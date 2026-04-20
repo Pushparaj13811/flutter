@@ -1,11 +1,14 @@
-// Profile display widget — modern card-based layout
+// Profile display widget — modern mobile layout with SliverAppBar
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/extensions/date_extensions.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
+import 'package:skill_exchange/core/theme/app_gradients.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/utils/formatters.dart';
+import 'package:skill_exchange/core/widgets/app_button.dart';
 import 'package:skill_exchange/core/widgets/star_rating.dart';
 import 'package:skill_exchange/core/widgets/skill_tag.dart';
 import 'package:skill_exchange/core/widgets/user_avatar.dart';
@@ -18,222 +21,143 @@ class ProfileView extends StatelessWidget {
     super.key,
     required this.profile,
     this.isOwnProfile = false,
+    this.onEditPressed,
+    this.onSettingsPressed,
+    this.onLogoutPressed,
+    this.onBlockPressed,
+    this.onReportPressed,
   });
 
   final UserProfileModel profile;
   final bool isOwnProfile;
+  final VoidCallback? onEditPressed;
+  final VoidCallback? onSettingsPressed;
+  final VoidCallback? onLogoutPressed;
+  final VoidCallback? onBlockPressed;
+  final VoidCallback? onReportPressed;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
 
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // ── Hero header ────────────────────────────────────────────
-          _buildHeroHeader(context, colors),
+    return CustomScrollView(
+      slivers: [
+        // -- Cover image + transparent overlay AppBar --
+        _buildSliverAppBar(context, colors),
 
-          // ── Content sections ───────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.screenPadding,
-            ),
+        // -- Content --
+        SliverToBoxAdapter(
+          child: Transform.translate(
+            offset: const Offset(0, -44), // half of avatar overlaps cover
             child: Column(
               children: [
+                // Avatar
+                _buildAvatar(colors),
+                const SizedBox(height: AppSpacing.sm),
+
+                // Name, username, location
+                _buildIdentity(colors),
                 const SizedBox(height: AppSpacing.lg),
 
-                // Stats
-                _buildStatsCard(context, colors),
+                // Stats row
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenPadding,
+                  ),
+                  child: _buildStatsRow(colors),
+                ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // About
-                if (profile.bio != null && profile.bio!.isNotEmpty) ...[
-                  _buildAboutCard(context, colors),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-
-                // Skills to Teach
-                if (profile.skillsToTeach.isNotEmpty) ...[
-                  _buildSkillsCard(
-                    context,
-                    colors,
-                    title: 'Skills to Teach',
-                    icon: Icons.school_outlined,
-                    iconColor: colors.success,
-                    skills: profile.skillsToTeach,
+                // Action buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenPadding,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-
-                // Skills to Learn
-                if (profile.skillsToLearn.isNotEmpty) ...[
-                  _buildSkillsCard(
-                    context,
-                    colors,
-                    title: 'Skills to Learn',
-                    icon: Icons.auto_stories_outlined,
-                    iconColor: colors.primary,
-                    skills: profile.skillsToLearn,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-
-                // Languages & Interests
-                if (profile.languages.isNotEmpty ||
-                    profile.interests.isNotEmpty) ...[
-                  _buildDetailsCard(context, colors),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-
-                // Availability
-                _buildAvailabilityCard(context, colors),
+                  child: _buildActionButtons(colors),
+                ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // Footer — Learning style + Member since
-                _buildFooterCard(context, colors),
-                const SizedBox(height: AppSpacing.xxl),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Hero header with gradient background ────────────────────────────────
-
-  Widget _buildHeroHeader(BuildContext context, AppColorsExtension colors) {
-    const double bannerHeight = 120;
-    const double avatarSize = 88;
-    const double avatarBorderWidth = 4;
-    const double avatarTotal = avatarSize + avatarBorderWidth * 2;
-    const double avatarOverlap = avatarTotal / 2;
-    // Card padding clears the avatar bottom half + small gap
-    const double cardTopPadding = avatarOverlap + AppSpacing.sm;
-
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
-      children: [
-        // Gradient banner
-        Container(
-          width: double.infinity,
-          height: bannerHeight,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colors.primary,
-                colors.secondary,
-              ],
-            ),
-          ),
-        ),
-
-        // Profile info card — starts at banner bottom
-        Padding(
-          padding: const EdgeInsets.only(top: bannerHeight),
-          child: Container(
-            margin: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.screenPadding,
-            ),
-            // ignore: prefer_const_constructors
-            padding: EdgeInsets.only(
-              top: cardTopPadding,
-              left: AppSpacing.lg,
-              right: AppSpacing.lg,
-              bottom: AppSpacing.lg,
-            ),
-            decoration: BoxDecoration(
-              color: colors.card,
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              border: Border.all(color: colors.border.withValues(alpha: 0.5)),
-              boxShadow: [
-                BoxShadow(
-                  color: colors.foreground.withValues(alpha: 0.06),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Text(
-                  profile.fullName,
-                  style: AppTextStyles.h2.copyWith(
-                    color: colors.foreground,
+                // Sections
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenPadding,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  '@${profile.username}',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: colors.mutedForeground,
-                  ),
-                ),
-                if (profile.location != null &&
-                    profile.location!.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
+                  child: Column(
                     children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 15,
-                        color: colors.mutedForeground,
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        profile.location!,
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: colors.mutedForeground,
+                      // About / Bio
+                      if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+                        _buildSectionCard(
+                          colors,
+                          icon: Icons.person_outline,
+                          title: 'Bio',
+                          child: Text(
+                            profile.bio!,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: colors.foreground,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
+
+                      // Skills to Teach
+                      if (profile.skillsToTeach.isNotEmpty) ...[
+                        _buildSkillsSection(
+                          colors,
+                          title: 'Skills to Teach',
+                          icon: Icons.school_outlined,
+                          iconColor: colors.success,
+                          skills: profile.skillsToTeach,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
+
+                      // Skills to Learn
+                      if (profile.skillsToLearn.isNotEmpty) ...[
+                        _buildSkillsSection(
+                          colors,
+                          title: 'Skills to Learn',
+                          icon: Icons.auto_stories_outlined,
+                          iconColor: colors.primary,
+                          skills: profile.skillsToLearn,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
+
+                      // Availability
+                      _buildSectionCard(
+                        colors,
+                        icon: Icons.calendar_today_outlined,
+                        title: 'Availability',
+                        child: AvailabilityGrid(
+                          availability: profile.availability,
+                          readOnly: true,
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Details (languages, interests)
+                      if (profile.languages.isNotEmpty ||
+                          profile.interests.isNotEmpty) ...[
+                        _buildDetailsSection(colors),
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
+
+                      // Footer — Learning style + Member since
+                      _buildFooterCard(colors),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Logout button (own profile only)
+                      if (isOwnProfile && onLogoutPressed != null) ...[
+                        _buildLogoutButton(colors),
+                        const SizedBox(height: AppSpacing.xxl),
+                      ] else
+                        const SizedBox(height: AppSpacing.xxl),
                     ],
                   ),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                // Rating inline
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    StarRating(
-                      rating: profile.stats.averageRating,
-                      size: 18,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      profile.stats.averageRating.toStringAsFixed(1),
-                      style: AppTextStyles.labelLarge.copyWith(
-                        color: colors.foreground,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
                 ),
               ],
-            ),
-          ),
-        ),
-
-        // Avatar centered on the banner/card boundary
-        Positioned(
-          top: bannerHeight - avatarOverlap,
-          child: Container(
-            padding: const EdgeInsets.all(avatarBorderWidth),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: colors.card,
-            ),
-            child: UserAvatar(
-              imageUrl: profile.avatar,
-              name: profile.fullName,
-              size: avatarSize,
-              heroTag: 'avatar_${profile.id}',
             ),
           ),
         ),
@@ -241,9 +165,197 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // ── Stats card ──────────────────────────────────────────────────────────
+  // -- SliverAppBar with cover image ------------------------------------------
 
-  Widget _buildStatsCard(BuildContext context, AppColorsExtension colors) {
+  Widget _buildSliverAppBar(BuildContext context, AppColorsExtension colors) {
+    const double expandedHeight = 180.0;
+
+    return SliverAppBar(
+      expandedHeight: expandedHeight,
+      pinned: true,
+      backgroundColor: colors.primary,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      actions: [
+        if (isOwnProfile) ...[
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: onSettingsPressed,
+          ),
+          PopupMenuButton<_OwnProfileAction>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (action) {
+              switch (action) {
+                case _OwnProfileAction.edit:
+                  onEditPressed?.call();
+                case _OwnProfileAction.settings:
+                  onSettingsPressed?.call();
+                case _OwnProfileAction.logout:
+                  onLogoutPressed?.call();
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: _OwnProfileAction.edit,
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Edit Profile'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: _OwnProfileAction.settings,
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Settings'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: _OwnProfileAction.logout,
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 18, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Log Out', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ] else ...[
+          PopupMenuButton<_OtherProfileAction>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (action) {
+              switch (action) {
+                case _OtherProfileAction.block:
+                  onBlockPressed?.call();
+                case _OtherProfileAction.report:
+                  onReportPressed?.call();
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: _OtherProfileAction.block,
+                child: Row(
+                  children: [
+                    Icon(Icons.block, size: 18),
+                    SizedBox(width: 8),
+                    Text('Block'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: _OtherProfileAction.report,
+                child: Row(
+                  children: [
+                    Icon(Icons.flag_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Report'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: _buildCoverImage(colors),
+      ),
+    );
+  }
+
+  Widget _buildCoverImage(AppColorsExtension colors) {
+    if (profile.coverImage != null && profile.coverImage!.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: profile.coverImage!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorWidget: (_, _, _) => _buildGradientCover(colors),
+      );
+    }
+    return _buildGradientCover(colors);
+  }
+
+  Widget _buildGradientCover(AppColorsExtension colors) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: AppGradients.hero,
+      ),
+    );
+  }
+
+  // -- Avatar -----------------------------------------------------------------
+
+  Widget _buildAvatar(AppColorsExtension colors) {
+    const double avatarSize = 88;
+    const double borderWidth = 4;
+
+    return Container(
+      padding: const EdgeInsets.all(borderWidth),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: colors.card,
+      ),
+      child: UserAvatar(
+        imageUrl: profile.avatar,
+        name: profile.fullName,
+        size: avatarSize,
+        heroTag: 'avatar_${profile.id}',
+      ),
+    );
+  }
+
+  // -- Identity (name, username, location) ------------------------------------
+
+  Widget _buildIdentity(AppColorsExtension colors) {
+    return Column(
+      children: [
+        Text(
+          profile.fullName,
+          style: AppTextStyles.h2.copyWith(color: colors.foreground),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          '@${profile.username}',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: colors.mutedForeground,
+          ),
+        ),
+        if (profile.location != null && profile.location!.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                size: 15,
+                color: colors.mutedForeground,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                profile.location!,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: colors.mutedForeground,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  // -- Stats row --------------------------------------------------------------
+
+  Widget _buildStatsRow(AppColorsExtension colors) {
     return Container(
       padding: const EdgeInsets.symmetric(
         vertical: AppSpacing.lg,
@@ -258,26 +370,24 @@ class ProfileView extends StatelessWidget {
         children: [
           _buildStatItem(
             colors,
-            icon: Icons.people_outline,
             value: Formatters.number(profile.stats.connectionsCount),
             label: 'Connections',
-            iconColor: colors.primary,
           ),
           _verticalDivider(colors),
           _buildStatItem(
             colors,
-            icon: Icons.school_outlined,
             value: Formatters.number(profile.stats.sessionsCompleted),
             label: 'Sessions',
-            iconColor: colors.success,
           ),
           _verticalDivider(colors),
           _buildStatItem(
             colors,
-            icon: Icons.rate_review_outlined,
-            value: Formatters.number(profile.stats.reviewsReceived),
-            label: 'Reviews',
-            iconColor: colors.warning,
+            value: profile.stats.averageRating.toStringAsFixed(1),
+            label: 'Rating',
+            trailing: StarRating(
+              rating: profile.stats.averageRating,
+              size: 14,
+            ),
           ),
         ],
       ),
@@ -286,20 +396,18 @@ class ProfileView extends StatelessWidget {
 
   Widget _buildStatItem(
     AppColorsExtension colors, {
-    required IconData icon,
     required String value,
     required String label,
-    required Color iconColor,
+    Widget? trailing,
   }) {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 22, color: iconColor),
-          const SizedBox(height: AppSpacing.sm),
           Text(
             value,
             style: AppTextStyles.h3.copyWith(
               color: colors.foreground,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 2),
@@ -309,6 +417,10 @@ class ProfileView extends StatelessWidget {
               color: colors.mutedForeground,
             ),
           ),
+          if (trailing != null) ...[
+            const SizedBox(height: 4),
+            trailing,
+          ],
         ],
       ),
     );
@@ -322,34 +434,43 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // ── About card ──────────────────────────────────────────────────────────
+  // -- Action buttons ---------------------------------------------------------
 
-  Widget _buildAboutCard(BuildContext context, AppColorsExtension colors) {
-    return _sectionCard(
-      colors,
-      icon: Icons.person_outline,
-      title: 'About',
-      child: Text(
-        profile.bio!,
-        style: AppTextStyles.bodyMedium.copyWith(
-          color: colors.foreground,
-          height: 1.5,
-        ),
-      ),
-    );
+  Widget _buildActionButtons(AppColorsExtension colors) {
+    if (isOwnProfile) {
+      return Row(
+        children: [
+          Expanded(
+            child: AppButton.primary(
+              label: 'Edit Profile',
+              icon: Icons.edit_outlined,
+              onPressed: onEditPressed,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: AppButton.outline(
+              label: 'Settings',
+              onPressed: onSettingsPressed,
+            ),
+          ),
+        ],
+      );
+    }
+    // For other users — handled by parent _OtherUserActions bar
+    return const SizedBox.shrink();
   }
 
-  // ── Skills card ─────────────────────────────────────────────────────────
+  // -- Skills section ---------------------------------------------------------
 
-  Widget _buildSkillsCard(
-    BuildContext context,
+  Widget _buildSkillsSection(
     AppColorsExtension colors, {
     required String title,
     required IconData icon,
     required Color iconColor,
     required List<SkillModel> skills,
   }) {
-    return _sectionCard(
+    return _buildSectionCard(
       colors,
       icon: icon,
       iconColor: iconColor,
@@ -367,10 +488,10 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // ── Details card (Languages + Interests) ────────────────────────────────
+  // -- Details section (languages + interests) --------------------------------
 
-  Widget _buildDetailsCard(BuildContext context, AppColorsExtension colors) {
-    return _sectionCard(
+  Widget _buildDetailsSection(AppColorsExtension colors) {
+    return _buildSectionCard(
       colors,
       icon: Icons.interests_outlined,
       title: 'Details',
@@ -455,24 +576,9 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // ── Availability card ───────────────────────────────────────────────────
+  // -- Footer card (learning style + joined date) -----------------------------
 
-  Widget _buildAvailabilityCard(
-      BuildContext context, AppColorsExtension colors) {
-    return _sectionCard(
-      colors,
-      icon: Icons.calendar_today_outlined,
-      title: 'Availability',
-      child: AvailabilityGrid(
-        availability: profile.availability,
-        readOnly: true,
-      ),
-    );
-  }
-
-  // ── Footer card (learning style + joined date) ──────────────────────────
-
-  Widget _buildFooterCard(BuildContext context, AppColorsExtension colors) {
+  Widget _buildFooterCard(AppColorsExtension colors) {
     final joined = profile.joinedAt.toDateTimeOrNull;
     final joinedText = joined != null ? joined.fullDate : profile.joinedAt;
 
@@ -536,15 +642,27 @@ class ProfileView extends StatelessWidget {
     );
   }
 
+  // -- Logout button ----------------------------------------------------------
+
+  Widget _buildLogoutButton(AppColorsExtension colors) {
+    return SizedBox(
+      width: double.infinity,
+      child: AppButton.destructive(
+        label: 'Log Out',
+        onPressed: onLogoutPressed,
+      ),
+    );
+  }
+
+  // -- Helpers ----------------------------------------------------------------
+
   String _formatLearningStyle(String style) {
     return style.isEmpty
         ? 'Not set'
         : '${style[0].toUpperCase()}${style.substring(1)}';
   }
 
-  // ── Shared section card wrapper ─────────────────────────────────────────
-
-  Widget _sectionCard(
+  Widget _buildSectionCard(
     AppColorsExtension colors, {
     required IconData icon,
     required String title,
@@ -586,3 +704,9 @@ class ProfileView extends StatelessWidget {
     );
   }
 }
+
+// -- Own profile popup menu actions -------------------------------------------
+
+enum _OwnProfileAction { edit, settings, logout }
+
+enum _OtherProfileAction { block, report }

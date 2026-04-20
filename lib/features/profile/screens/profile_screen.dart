@@ -10,6 +10,7 @@ import 'package:skill_exchange/core/widgets/app_button.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
 import 'package:skill_exchange/data/models/user_profile_model.dart';
+import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/features/profile/providers/profile_provider.dart';
 import 'package:skill_exchange/features/profile/widgets/block_user_sheet.dart';
 import 'package:skill_exchange/features/profile/widgets/profile_edit.dart';
@@ -47,26 +48,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _isEditing = !_isEditing);
   }
 
+  Future<void> _showLogoutDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref.read(authProvider.notifier).logout();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncValue = ref.watch(_provider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isOwnProfile ? 'My Profile' : 'Profile'),
-        actions: [
-          if (_isOwnProfile && !_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Edit profile',
-              onPressed: _toggleEdit,
-            ),
-          if (_isOwnProfile && !_isEditing)
-            const SizedBox.shrink()
-          else if (!_isOwnProfile)
-            _OtherUserMenu(userId: widget.userId!),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () async => _invalidate(),
         child: asyncValue.when(
@@ -112,6 +122,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: ProfileView(
               profile: profile,
               isOwnProfile: false,
+              onBlockPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => BlockUserSheet(userId: widget.userId!),
+              ),
+              onReportPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => ReportUserSheet(userId: widget.userId!),
+              ),
             ),
           ),
           _OtherUserActions(userId: widget.userId!),
@@ -122,66 +142,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return ProfileView(
       profile: profile,
       isOwnProfile: true,
+      onEditPressed: _toggleEdit,
+      onSettingsPressed: () => context.go(RouteNames.settings),
+      onLogoutPressed: _showLogoutDialog,
     );
   }
 }
 
-// ── Other-user app-bar popup menu ────────────────────────────────────────────
-
-class _OtherUserMenu extends StatelessWidget {
-  const _OtherUserMenu({required this.userId});
-
-  final String userId;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<_UserAction>(
-      icon: const Icon(Icons.more_vert),
-      onSelected: (action) => _onSelected(context, action),
-      itemBuilder: (_) => const [
-        PopupMenuItem(
-          value: _UserAction.block,
-          child: Row(
-            children: [
-              Icon(Icons.block, size: 18),
-              SizedBox(width: 8),
-              Text('Block'),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: _UserAction.report,
-          child: Row(
-            children: [
-              Icon(Icons.flag_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('Report'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _onSelected(BuildContext context, _UserAction action) {
-    switch (action) {
-      case _UserAction.block:
-        showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          builder: (_) => BlockUserSheet(userId: userId),
-        );
-      case _UserAction.report:
-        showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          builder: (_) => ReportUserSheet(userId: userId),
-        );
-    }
-  }
-}
-
-// ── Other-user bottom action bar ─────────────────────────────────────────────
+// -- Other-user bottom action bar ---------------------------------------------
 
 class _OtherUserActions extends ConsumerWidget {
   const _OtherUserActions({required this.userId});
@@ -245,6 +213,3 @@ class _OtherUserActions extends ConsumerWidget {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-enum _UserAction { block, report }
