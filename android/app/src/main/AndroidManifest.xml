@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="skill_exchange"
+        android:label="Skill Exchange"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
