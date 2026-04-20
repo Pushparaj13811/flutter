@@ -1,7 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/data/sources/firebase/firebase_auth_service.dart';
 import 'package:skill_exchange/domain/entities/user.dart';
-import 'package:skill_exchange/domain/repositories/auth_repository.dart';
 
 // ── Auth State ────────────────────────────────────────────────────────────
 
@@ -34,50 +34,81 @@ class AuthError extends AuthState {
 // ── Auth Notifier ─────────────────────────────────────────────────────────
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  final AuthRepository _repository;
+  final FirebaseAuthService _authService;
 
-  AuthNotifier(this._repository) : super(const AuthInitial());
+  AuthNotifier(this._authService) : super(const AuthInitial()) {
+    _init();
+  }
 
-  Future<void> checkAuthStatus() async {
-    state = const AuthAuthenticating();
-    final result = await _repository.getCurrentUser();
-    result.fold(
-      (failure) => state = const AuthUnauthenticated(),
-      (user) => state = AuthAuthenticated(user: user),
-    );
+  void _init() {
+    _authService.authStateChanges.listen((fbUser) async {
+      if (fbUser == null) {
+        state = const AuthUnauthenticated();
+      } else {
+        final user = await _authService.getCurrentUser();
+        if (user != null) {
+          if (!user.isActive) {
+            state = const AuthUnauthenticated();
+            await _authService.signOut();
+          } else {
+            state = AuthAuthenticated(user: user);
+          }
+        } else {
+          state = const AuthUnauthenticated();
+        }
+      }
+    });
   }
 
   Future<void> login(String email, String password) async {
     state = const AuthAuthenticating();
-    final result = await _repository.login(email, password);
-    result.fold(
-      (failure) => state = AuthError(message: failure.message),
-      (user) => state = AuthAuthenticated(user: user),
-    );
+    try {
+      final user = await _authService.signIn(email: email, password: password);
+      state = AuthAuthenticated(user: user);
+    } on fb.FirebaseAuthException catch (e) {
+      state = AuthError(message: _mapAuthError(e.code));
+    } catch (e) {
+      state = AuthError(message: e.toString());
+    }
   }
 
-  Future<void> signup(String name, String email, String password) async {
+  Future<void> signup(String name, String email, String password, {String? username}) async {
     state = const AuthAuthenticating();
-    final result = await _repository.signup(name, email, password);
-    result.fold(
-      (failure) => state = AuthError(message: failure.message),
-      (user) => state = AuthAuthenticated(user: user),
-    );
+    try {
+      final uname = username ?? email.split('@').first;
+      final user = await _authService.signUp(
+        name: name,
+        email: email,
+        password: password,
+        username: uname,
+      );
+      state = AuthAuthenticated(user: user);
+    } on fb.FirebaseAuthException catch (e) {
+      state = AuthError(message: _mapAuthError(e.code));
+    } catch (e) {
+      state = AuthError(message: e.toString());
+    }
   }
 
   Future<void> logout() async {
-    await _repository.logout();
+    await _authService.signOut();
     state = const AuthUnauthenticated();
   }
 
   Future<bool> forgotPassword(String email) async {
-    final result = await _repository.forgotPassword(email);
-    return result.isRight();
+    try {
+      await _authService.sendPasswordResetEmail(email);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<bool> verifyEmail(String token) async {
-    final result = await _repository.verifyEmail(token);
-    return result.isRight();
+    // Firebase handles email verification via deep links, not tokens
+    // This method checks if the current user's email is now verified
+    await fb.FirebaseAuth.instance.currentUser?.reload();
+    return fb.FirebaseAuth.instance.currentUser?.emailVerified ?? false;
   }
 
   void clearError() {
@@ -85,11 +116,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthUnauthenticated();
     }
   }
+
+  String _mapAuthError(String code) {
+    return switch (code) {
+      'user-not-found' => 'No account found with this email',
+      'wrong-password' => 'Incorrect password',
+      'invalid-credential' => 'Invalid email or password',
+      'email-already-in-use' => 'An account with this email already exists',
+      'weak-password' => 'Password is too weak (min 8 characters)',
+      'user-disabled' => 'Account has been suspended',
+      'too-many-requests' => 'Too many attempts. Please try again later',
+      'invalid-email' => 'Invalid email address',
+      _ => 'Authentication failed. Please try again',
+    };
+  }
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  final repository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repository);
+  final authService = ref.watch(firebaseAuthServiceProvider);
+  return AuthNotifier(authService);
 });
