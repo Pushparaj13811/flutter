@@ -86,7 +86,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await ref.read(authProvider.notifier).logout();
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (mounted) await ref.read(authProvider.notifier).logout();
     }
   }
 

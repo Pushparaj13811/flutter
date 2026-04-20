@@ -305,8 +305,10 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
+            onPressed: () async {
+              Navigator.of(context).pop(); // close dialog first
+              // Small delay to let dialog animation finish before auth state changes
+              await Future.delayed(const Duration(milliseconds: 200));
               ref.read(authProvider.notifier).logout();
             },
             child: const Text('Log Out'),
@@ -921,6 +923,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
+        await Future.delayed(const Duration(milliseconds: 200));
         widget.ref.read(authProvider.notifier).logout();
       }
     } on FirebaseAuthException catch (e) {
