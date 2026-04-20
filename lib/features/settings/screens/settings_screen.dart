@@ -294,28 +294,27 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _handleLogout(BuildContext context, WidgetRef ref) {
-    showDialog<void>(
+    showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Log Out'),
         content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () async {
-              Navigator.of(context).pop(); // close dialog first
-              // Small delay to let dialog animation finish before auth state changes
-              await Future.delayed(const Duration(milliseconds: 200));
-              ref.read(authProvider.notifier).logout();
-            },
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text('Log Out'),
           ),
         ],
       ),
-    );
+    ).then((confirmed) {
+      if (confirmed == true) {
+        ref.read(authProvider.notifier).logout();
+      }
+    });
   }
 }
 
@@ -921,11 +920,9 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
 
       await user.delete();
 
-      if (mounted) {
-        Navigator.of(context).pop();
-        await Future.delayed(const Duration(milliseconds: 200));
-        widget.ref.read(authProvider.notifier).logout();
-      }
+      // Auth state listener will handle navigation to login
+      // Don't pop — the router redirect will dispose this sheet
+      widget.ref.read(authProvider.notifier).logout();
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
       _showError(e.message ?? 'Failed to delete account.');
