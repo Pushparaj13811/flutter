@@ -47,8 +47,63 @@ final adminCirclesProvider =
 });
 
 final analyticsProvider = FutureProvider<AnalyticsModel>((ref) async {
-  // Analytics not directly supported — stub
-  return AnalyticsModel.fromJson({});
+  final db = FirebaseFirestore.instance;
+
+  // Get all profiles to compute skill popularity
+  final profiles = await db.collection('profiles').get();
+  final teachCounts = <String, int>{};
+  final learnCounts = <String, int>{};
+
+  for (final doc in profiles.docs) {
+    final data = doc.data();
+    final teachSkills = (data['skillsToTeach'] as List?) ?? [];
+    final learnSkills = (data['skillsToLearn'] as List?) ?? [];
+
+    for (final skill in teachSkills) {
+      final name = (skill as Map)['category'] as String? ?? 'Other';
+      teachCounts[name] = (teachCounts[name] ?? 0) + 1;
+    }
+    for (final skill in learnSkills) {
+      final name = (skill as Map)['category'] as String? ?? 'Other';
+      learnCounts[name] = (learnCounts[name] ?? 0) + 1;
+    }
+  }
+
+  // Merge categories and sort by total popularity
+  final allCategories = {...teachCounts.keys, ...learnCounts.keys};
+  final popularSkills = allCategories.map((cat) {
+    return {
+      'name': cat,
+      'teachCount': teachCounts[cat] ?? 0,
+      'learnCount': learnCounts[cat] ?? 0,
+    };
+  }).toList()
+    ..sort((a, b) =>
+        ((b['teachCount'] as int) + (b['learnCount'] as int))
+            .compareTo((a['teachCount'] as int) + (a['learnCount'] as int)));
+
+  // Get session stats
+  final allSessions = await db.collection('sessions').count().get();
+  final completedSessions = await db.collection('sessions').where('status', isEqualTo: 'completed').count().get();
+  final activeUsers = await db.collection('users').where('isActive', isEqualTo: true).count().get();
+  final totalUsers = await db.collection('users').count().get();
+
+  final totalSessionCount = allSessions.count ?? 0;
+  final completedCount = completedSessions.count ?? 0;
+  final completionRate = totalSessionCount > 0 ? completedCount / totalSessionCount : 0.0;
+
+  return AnalyticsModel.fromMap({
+    'overview': {
+      'totalUsers': totalUsers.count ?? 0,
+      'activeUsers': activeUsers.count ?? 0,
+      'totalSessions': totalSessionCount,
+      'completionRate': completionRate,
+      'newUsersThisWeek': 0,
+      'sessionsThisWeek': 0,
+    },
+    'popularSkills': popularSkills.take(8).toList(),
+    'weeklyActivity': <Map<String, dynamic>>[],
+  });
 });
 
 final adminSkillsProvider =

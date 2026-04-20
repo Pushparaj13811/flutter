@@ -6,12 +6,25 @@ class AdminFirestoreService {
 
   Future<Map<String, dynamic>> getStats() async {
     final users = await _db.collection('users').count().get();
-    final sessions = await _db.collection('sessions').where('status', isEqualTo: 'completed').count().get();
+    final activeUsers = await _db.collection('users').where('isActive', isEqualTo: true).count().get();
+    final allSessions = await _db.collection('sessions').count().get();
+    final completedSessions = await _db.collection('sessions').where('status', isEqualTo: 'completed').count().get();
     final connections = await _db.collection('connections').where('status', isEqualTo: 'accepted').count().get();
+    final reviews = await _db.collection('reviews').count().get();
+    final posts = await _db.collection('posts').where('moderationStatus', isEqualTo: 'active').count().get();
+    final circles = await _db.collection('circles').count().get();
+    final pendingReports = await _db.collection('reports').where('status', isEqualTo: 'pending').count().get();
+
     return {
       'totalUsers': users.count ?? 0,
-      'totalSessions': sessions.count ?? 0,
+      'activeUsers': activeUsers.count ?? 0,
+      'totalSessions': allSessions.count ?? 0,
+      'completedSessions': completedSessions.count ?? 0,
       'totalConnections': connections.count ?? 0,
+      'totalReviews': reviews.count ?? 0,
+      'totalPosts': posts.count ?? 0,
+      'totalCircles': circles.count ?? 0,
+      'pendingReports': pendingReports.count ?? 0,
     };
   }
 

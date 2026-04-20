@@ -562,6 +562,79 @@ class SeedData {
       }
       debugPrint('Created ${sessions.length} sessions');
 
+      // Update session completion stats in profiles
+      final sessionCompletionCount = <String, int>{};
+      for (final session in sessions) {
+        if (session['status'] == 'completed') {
+          final host = session['host'] as String;
+          final participant = session['participant'] as String;
+          sessionCompletionCount[host] = (sessionCompletionCount[host] ?? 0) + 1;
+          sessionCompletionCount[participant] = (sessionCompletionCount[participant] ?? 0) + 1;
+        }
+      }
+      for (final entry in sessionCompletionCount.entries) {
+        await _db.collection('profiles').doc(entry.key).update({
+          'stats.sessionsCompleted': entry.value,
+        });
+        await _db.collection('matchPool').doc(entry.key).update({
+          'sessionsCompleted': entry.value,
+        });
+      }
+      debugPrint('Updated session stats for ${sessionCompletionCount.length} users');
+
+      // Reviews for completed sessions
+      final reviews = [
+        {
+          'fromUser': uids[1], 'toUser': uids[0],
+          'rating': 5, 'comment': 'Excellent React teacher! Very patient and thorough.',
+          'skillsReviewed': ['React', 'JavaScript'],
+        },
+        {
+          'fromUser': uids[0], 'toUser': uids[4],
+          'rating': 5, 'comment': 'Priya made ML concepts so easy to understand!',
+          'skillsReviewed': ['Machine Learning', 'Python'],
+        },
+        {
+          'fromUser': uids[3], 'toUser': uids[2],
+          'rating': 4, 'comment': 'Great Figma workshop. Would love a follow-up session.',
+          'skillsReviewed': ['Figma', 'UI Design'],
+        },
+      ];
+
+      // Clean existing reviews
+      final existingReviews = await _db.collection('reviews').get();
+      for (final doc in existingReviews.docs) {
+        await doc.reference.delete();
+      }
+
+      for (final review in reviews) {
+        await _db.collection('reviews').add({
+          ...review,
+          'status': 'approved',
+          'isFeatured': review['rating'] == 5,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        // Update reviewed user's stats
+        final toUser = review['toUser'] as String;
+        final rating = (review['rating'] as int).toDouble();
+        final profileDoc = await _db.collection('profiles').doc(toUser).get();
+        final stats = (profileDoc.data()?['stats'] as Map<String, dynamic>?) ?? {};
+        final currentCount = (stats['reviewsReceived'] as num?)?.toInt() ?? 0;
+        final currentAvg = (stats['averageRating'] as num?)?.toDouble() ?? 0.0;
+        final newCount = currentCount + 1;
+        final newAvg = ((currentAvg * currentCount) + rating) / newCount;
+
+        await _db.collection('profiles').doc(toUser).update({
+          'stats.reviewsReceived': newCount,
+          'stats.averageRating': double.parse(newAvg.toStringAsFixed(1)),
+        });
+        await _db.collection('matchPool').doc(toUser).update({
+          'averageRating': double.parse(newAvg.toStringAsFixed(1)),
+        });
+      }
+      debugPrint('Created ${reviews.length} reviews');
+
       // Update connection counts in profiles
       final connectionCount = <String, int>{};
       for (final pair in connectionPairs) {
