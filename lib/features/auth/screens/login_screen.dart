@@ -1,12 +1,14 @@
-// Email/password login with Google OAuth
+// Email/password login with Google OAuth — modern gradient design
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skill_exchange/core/theme/app_colors.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
+import 'package:skill_exchange/core/theme/app_gradients.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
-import 'package:skill_exchange/core/widgets/app_button.dart';
+import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/utils/validators.dart';
 import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/features/auth/widgets/google_oauth_button.dart';
@@ -26,14 +28,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _rememberMe = false;
-
-  // ── Derived state ────────────────────────────────────────────────────────
+  bool _obscurePassword = true;
 
   bool get _isLoading {
     return ref.watch(authProvider) is AuthAuthenticating;
   }
-
-  // ── Lifecycle ────────────────────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -41,8 +40,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
-
-  // ── Actions ──────────────────────────────────────────────────────────────
 
   void _onLogin() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -62,132 +59,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passwordController.text = 'Admin123!@#';
   }
 
-  // ── Decoration helpers (mirrors AppTextField styling) ────────────────────
-
-  static const _borderRadius = BorderRadius.all(Radius.circular(8.0));
-
-  OutlineInputBorder _defaultBorder(BuildContext context) {
-    return OutlineInputBorder(
-      borderRadius: _borderRadius,
-      borderSide: BorderSide(color: context.colors.input),
-    );
-  }
-
-  OutlineInputBorder _focusedBorder(BuildContext context) {
-    return OutlineInputBorder(
-      borderRadius: _borderRadius,
-      borderSide: BorderSide(color: context.colors.ring, width: 2),
-    );
-  }
-
-  OutlineInputBorder _errorBorder(BuildContext context) {
-    return OutlineInputBorder(
-      borderRadius: _borderRadius,
-      borderSide: BorderSide(color: context.colors.destructive),
-    );
-  }
-
-  OutlineInputBorder _focusedErrorBorder(BuildContext context) {
-    return OutlineInputBorder(
-      borderRadius: _borderRadius,
-      borderSide: BorderSide(color: context.colors.destructive, width: 2),
-    );
-  }
-
-  InputDecoration _inputDecoration({
-    required BuildContext context,
-    required String hint,
-    required IconData prefixIconData,
-  }) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: AppTextStyles.bodyMedium.copyWith(
-        color: context.colors.mutedForeground,
-      ),
-      prefixIcon: Icon(prefixIconData, color: context.colors.mutedForeground),
-      enabledBorder: _defaultBorder(context),
-      focusedBorder: _focusedBorder(context),
-      errorBorder: _errorBorder(context),
-      focusedErrorBorder: _focusedErrorBorder(context),
-      errorStyle: AppTextStyles.caption.copyWith(
-        color: context.colors.destructive,
-      ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-    );
-  }
-
-  Widget _buildLabeledFormField({
-    required BuildContext context,
-    required String label,
-    required Widget field,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.labelMedium.copyWith(
-            color: context.colors.foreground,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        field,
-      ],
-    );
-  }
-
-  Widget _buildCredentialCard({
-    required BuildContext context,
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.md,
-          horizontal: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: const BorderRadius.all(Radius.circular(8.0)),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 28, color: color),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              title,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Tap to fill',
-              style: AppTextStyles.caption.copyWith(
-                color: context.colors.mutedForeground,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Build ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    // React to auth state changes: show errors, navigate on success.
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next is AuthError) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -203,44 +76,85 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.screenPadding,
-            vertical: AppSpacing.xxl,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Logo / title ───────────────────────────────────────────
-              Text(
-                'Skill Exchange',
-                style: AppTextStyles.h1.copyWith(
-                  color: context.colors.primary,
-                ),
-                textAlign: TextAlign.center,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // ── Hero gradient section ─────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + AppSpacing.xxl,
+                bottom: AppSpacing.xxxl,
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Welcome back',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: context.colors.mutedForeground,
-                ),
-                textAlign: TextAlign.center,
+              decoration: const BoxDecoration(
+                gradient: AppGradients.hero,
               ),
-              const SizedBox(height: AppSpacing.xxl),
+              child: Column(
+                children: [
+                  // App icon
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.primary,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: const Icon(
+                      Icons.swap_horiz_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  // Gradient text title
+                  ShaderMask(
+                    shaderCallback: (bounds) => AppGradients.text.createShader(bounds),
+                    blendMode: BlendMode.srcIn,
+                    child: Text(
+                      'Skill Exchange',
+                      style: AppTextStyles.h1.copyWith(
+                        fontSize: 32,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Welcome back',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-              // ── Form ───────────────────────────────────────────────────
-              Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Email field
-                    _buildLabeledFormField(
-                      context: context,
-                      label: 'Email',
-                      field: TextFormField(
+            // ── Card-style form section ───────────────────────────────────
+            Transform.translate(
+              offset: const Offset(0, -24),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                decoration: BoxDecoration(
+                  color: context.colors.card,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Email field
+                      _buildLabel('Email'),
+                      const SizedBox(height: AppSpacing.xs),
+                      TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         style: AppTextStyles.bodyMedium.copyWith(
@@ -249,173 +163,349 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         decoration: _inputDecoration(
                           context: context,
                           hint: 'Enter your email',
-                          prefixIconData: Icons.email_outlined,
+                          prefixIcon: Icons.email_outlined,
                         ),
                         validator: Validators.email,
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.lg),
 
-                    // Password field
-                    _buildLabeledFormField(
-                      context: context,
-                      label: 'Password',
-                      field: TextFormField(
+                      // Password field
+                      _buildLabel('Password'),
+                      const SizedBox(height: AppSpacing.xs),
+                      TextFormField(
                         controller: _passwordController,
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: context.colors.foreground,
                         ),
                         decoration: _inputDecoration(
                           context: context,
                           hint: 'Enter your password',
-                          prefixIconData: Icons.lock_outline,
+                          prefixIcon: Icons.lock_outline,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              size: 20,
+                              color: context.colors.mutedForeground,
+                            ),
+                            onPressed: () {
+                              setState(() => _obscurePassword = !_obscurePassword);
+                            },
+                          ),
                         ),
                         validator: Validators.password,
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: AppSpacing.md),
 
-                    // Remember Me + Forgot Password
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _rememberMe,
-                          activeColor: context.colors.primary,
-                          onChanged: (value) {
-                            setState(() {
-                              _rememberMe = value ?? false;
-                            });
-                          },
-                        ),
-                        Text(
-                          'Remember Me',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: context.colors.foreground,
-                          ),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () {
-                            context.go('/forgot-password');
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: context.colors.primary,
-                            padding: EdgeInsets.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Forgot Password?',
-                            style: AppTextStyles.labelMedium.copyWith(
-                              color: context.colors.primary,
+                      // Remember Me + Forgot Password
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Checkbox(
+                              value: _rememberMe,
+                              activeColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              onChanged: (value) {
+                                setState(() => _rememberMe = value ?? false);
+                              },
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Login button
-                    AppButton.primary(
-                      label: 'Login',
-                      isLoading: _isLoading,
-                      onPressed: _isLoading ? null : _onLogin,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Divider with "Or continue with"
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color: context.colors.border,
-                            thickness: 1,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                          ),
-                          child: Text(
-                            'Or continue with',
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(
+                            'Remember me',
                             style: AppTextStyles.bodySmall.copyWith(
-                              color: context.colors.mutedForeground,
+                              color: context.colors.foreground,
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: context.colors.border,
-                            thickness: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Google OAuth button
-                    const GoogleOAuthButton(),
-                    const SizedBox(height: AppSpacing.xxl),
-
-                    // Quick login cards
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildCredentialCard(
-                            context: context,
-                            title: 'Demo User',
-                            icon: Icons.person_outline,
-                            color: context.colors.primary,
-                            onTap: _fillDemoCredentials,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: _buildCredentialCard(
-                            context: context,
-                            title: 'Admin',
-                            icon: Icons.admin_panel_settings_outlined,
-                            color: context.colors.secondary,
-                            onTap: _fillAdminCredentials,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Sign up row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Don't have an account?",
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: context.colors.mutedForeground,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            context.go('/signup');
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: context.colors.primary,
-                            padding: const EdgeInsets.only(left: AppSpacing.xs),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Sign up',
-                            style: AppTextStyles.labelMedium.copyWith(
-                              color: context.colors.primary,
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => context.go('/forgot-password'),
+                            child: Text(
+                              'Forgot password?',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Login button with gradient
+                      _GradientButton(
+                        label: 'Log In',
+                        isLoading: _isLoading,
+                        onPressed: _isLoading ? null : _onLogin,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Divider
+                      Row(
+                        children: [
+                          Expanded(child: Divider(color: context.colors.border)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                            child: Text(
+                              'Or continue with',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: context.colors.mutedForeground,
+                              ),
+                            ),
+                          ),
+                          Expanded(child: Divider(color: context.colors.border)),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Google button
+                      const GoogleOAuthButton(),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // ── Demo credential cards ─────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Quick access',
+                    style: AppTextStyles.labelMedium.copyWith(
+                      color: context.colors.mutedForeground,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DemoCard(
+                          title: 'Demo User',
+                          subtitle: 'demo@skillexchange.com',
+                          icon: Icons.person_outline,
+                          color: AppColors.primary,
+                          onTap: _fillDemoCredentials,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: _DemoCard(
+                          title: 'Admin',
+                          subtitle: 'admin@skillexchange.com',
+                          icon: Icons.admin_panel_settings_outlined,
+                          color: AppColors.secondary,
+                          onTap: _fillAdminCredentials,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            // ── Sign up link ──────────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Don't have an account? ",
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: context.colors.mutedForeground,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => context.go('/signup'),
+                  child: Text(
+                    'Sign up',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: AppTextStyles.labelMedium.copyWith(
+        color: context.colors.foreground,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required BuildContext context,
+    required String hint,
+    required IconData prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    const borderRadius = BorderRadius.all(Radius.circular(AppRadius.input));
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: AppTextStyles.bodyMedium.copyWith(
+        color: context.colors.mutedForeground,
+      ),
+      prefixIcon: Icon(prefixIcon, size: 20, color: context.colors.mutedForeground),
+      suffixIcon: suffixIcon,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: context.colors.input),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: context.colors.ring, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: context.colors.destructive),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: context.colors.destructive, width: 2),
+      ),
+      errorStyle: AppTextStyles.caption.copyWith(color: context.colors.destructive),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.md,
+      ),
+    );
+  }
+}
+
+// ── Gradient Button ──────────────────────────────────────────────────────────
+
+class _GradientButton extends StatelessWidget {
+  const _GradientButton({
+    required this.label,
+    this.isLoading = false,
+    this.onPressed,
+  });
+
+  final String label;
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = !isLoading && onPressed != null;
+    return GestureDetector(
+      onTap: enabled ? onPressed : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 52,
+        decoration: BoxDecoration(
+          gradient: enabled ? AppGradients.primary : null,
+          color: enabled ? null : AppColors.primary.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Center(
+          child: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Text(
+                  label,
+                  style: AppTextStyles.labelLarge.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Demo Credential Card ─────────────────────────────────────────────────────
+
+class _DemoCard extends StatelessWidget {
+  const _DemoCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              title,
+              style: AppTextStyles.labelMedium.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Tap to fill',
+              style: AppTextStyles.caption.copyWith(
+                color: context.colors.mutedForeground,
+                fontSize: 10,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,10 +1,34 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/data/models/skill_model.dart';
 import 'package:skill_exchange/data/models/update_profile_dto.dart';
 import 'package:skill_exchange/data/models/user_profile_model.dart';
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+/// Sanitizes raw Firestore data so that required fields in [UserProfileModel]
+/// never receive null values. This prevents "type 'Null' is not a subtype of
+/// type 'String' in type cast" errors when a profile document has missing or
+/// incomplete fields (e.g. freshly-created user).
+Map<String, dynamic> _sanitizeProfileData(Map<String, dynamic> raw) {
+  final uid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+  final now = DateTime.now().toIso8601String();
+
+  return <String, dynamic>{
+    ...raw,
+    'id': raw['id'] ?? raw['uid'] ?? uid,
+    'username': raw['username'] ?? raw['email']?.toString().split('@').first ?? '',
+    'email': raw['email'] ?? '',
+    'fullName': raw['fullName'] ?? raw['name'] ?? raw['displayName'] ?? '',
+    'joinedAt': raw['joinedAt'] ?? raw['createdAt'] ?? now,
+    'lastActive': raw['lastActive'] ?? now,
+    'availability': raw['availability'] ?? <String, dynamic>{},
+    'stats': raw['stats'] ?? <String, dynamic>{},
+  };
+}
 
 // ── Data Providers ────────────────────────────────────────────────────────
 
@@ -15,7 +39,7 @@ final currentProfileProvider =
   if (data == null) {
     throw Exception('Profile not found');
   }
-  return UserProfileModel.fromJson(data);
+  return UserProfileModel.fromJson(_sanitizeProfileData(data));
 });
 
 final profileProvider =
@@ -25,7 +49,7 @@ final profileProvider =
   if (data == null) {
     throw Exception('Profile not found');
   }
-  return UserProfileModel.fromJson(data);
+  return UserProfileModel.fromJson(_sanitizeProfileData(data));
 });
 
 final allSkillsProvider = FutureProvider<List<SkillModel>>((ref) async {
@@ -63,7 +87,7 @@ class ProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
       _ref.invalidate(currentProfileProvider);
       final data = await _service.getMyProfile();
       if (data != null) {
-        state = AsyncValue.data(UserProfileModel.fromJson(data));
+        state = AsyncValue.data(UserProfileModel.fromJson(_sanitizeProfileData(data)));
       } else {
         state = const AsyncValue.data(null);
       }
