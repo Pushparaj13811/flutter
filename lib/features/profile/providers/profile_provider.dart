@@ -13,9 +13,21 @@ import 'package:skill_exchange/data/models/user_profile_model.dart';
 /// never receive null values. This prevents "type 'Null' is not a subtype of
 /// type 'String' in type cast" errors when a profile document has missing or
 /// incomplete fields (e.g. freshly-created user).
+/// Converts a Firestore Timestamp or other value to an ISO 8601 string.
+String _toIsoString(dynamic value) {
+  if (value == null) return DateTime.now().toIso8601String();
+  if (value is String) return value;
+  // Firestore Timestamp has a toDate() method
+  if (value.runtimeType.toString().contains('Timestamp')) {
+    try {
+      return (value as dynamic).toDate().toIso8601String() as String;
+    } catch (_) {}
+  }
+  return DateTime.now().toIso8601String();
+}
+
 Map<String, dynamic> _sanitizeProfileData(Map<String, dynamic> raw) {
   final uid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
-  final now = DateTime.now().toIso8601String();
 
   return <String, dynamic>{
     ...raw,
@@ -23,8 +35,8 @@ Map<String, dynamic> _sanitizeProfileData(Map<String, dynamic> raw) {
     'username': raw['username'] ?? raw['email']?.toString().split('@').first ?? '',
     'email': raw['email'] ?? '',
     'fullName': raw['fullName'] ?? raw['name'] ?? raw['displayName'] ?? '',
-    'joinedAt': raw['joinedAt'] ?? raw['createdAt'] ?? now,
-    'lastActive': raw['lastActive'] ?? now,
+    'joinedAt': _toIsoString(raw['joinedAt'] ?? raw['createdAt']),
+    'lastActive': _toIsoString(raw['lastActive'] ?? raw['updatedAt']),
     'availability': raw['availability'] ?? <String, dynamic>{},
     'stats': raw['stats'] ?? <String, dynamic>{},
   };
