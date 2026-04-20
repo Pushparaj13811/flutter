@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
@@ -46,20 +47,32 @@ Map<String, dynamic> _sanitizeProfileData(Map<String, dynamic> raw) {
 
 final currentProfileProvider =
     FutureProvider<UserProfileModel>((ref) async {
-  final service = ref.watch(profileFirestoreServiceProvider);
+  // Get UID directly — don't go through service which may have stale _uid
+  var uid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+  if (uid.isEmpty) {
+    await Future.delayed(const Duration(milliseconds: 300));
+    uid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+  }
+  if (uid.isEmpty) throw Exception('Not authenticated');
 
-  // Retry up to 3 times with delay — profile may not be available
-  // immediately after auth state change
-  for (int attempt = 0; attempt < 3; attempt++) {
-    final data = await service.getMyProfile();
-    if (data != null) {
-      return UserProfileModel.fromJson(_sanitizeProfileData(data));
-    }
-    if (attempt < 2) {
-      await Future.delayed(const Duration(milliseconds: 500));
+  final db = FirebaseFirestore.instance;
+  final doc = await db.collection('profiles').doc(uid).get();
+  if (!doc.exists) throw Exception('Profile not found');
+
+  final data = doc.data()!;
+
+  // Merge fullName from users collection if missing
+  if (data['fullName'] == null || (data['fullName'] as String).isEmpty) {
+    final userDoc = await db.collection('users').doc(uid).get();
+    if (userDoc.exists) {
+      final userData = userDoc.data()!;
+      data['fullName'] = userData['name'] ?? '';
+      data['email'] = userData['email'] ?? data['email'] ?? '';
+      if (data['avatar'] == null) data['avatar'] = userData['avatar'];
     }
   }
-  throw Exception('Profile not found');
+
+  return UserProfileModel.fromMap(_sanitizeProfileData(data));
 });
 
 final profileProvider =
