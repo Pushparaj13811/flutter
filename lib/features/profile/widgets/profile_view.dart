@@ -49,7 +49,7 @@ class ProfileView extends StatelessWidget {
         // -- Content --
         SliverToBoxAdapter(
           child: Transform.translate(
-            offset: const Offset(0, -44), // half of avatar overlaps cover
+            offset: const Offset(0, -48), // half of avatar (88 + 8 border = 96 / 2)
             child: Column(
               children: [
                 // Avatar
@@ -164,12 +164,13 @@ class ProfileView extends StatelessWidget {
   // -- SliverAppBar with cover image ------------------------------------------
 
   Widget _buildSliverAppBar(BuildContext context, AppColorsExtension colors) {
-    const double expandedHeight = 180.0;
+    const double expandedHeight = 200.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SliverAppBar(
       expandedHeight: expandedHeight,
       pinned: true,
-      backgroundColor: colors.primary,
+      backgroundColor: isDark ? colors.card : colors.primary,
       foregroundColor: Colors.white,
       elevation: 0,
       actions: [
@@ -267,9 +268,11 @@ class ProfileView extends StatelessWidget {
   }
 
   Widget _buildGradientCover(AppColorsExtension colors) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: AppGradients.hero,
+    return Builder(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          gradient: AppGradients.heroFor(Theme.of(context).brightness),
+        ),
       ),
     );
   }
