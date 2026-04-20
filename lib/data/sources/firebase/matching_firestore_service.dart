@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class MatchingFirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   Future<List<Map<String, dynamic>>> getSuggestions() async {
     final myProfile = await _db.collection('profiles').doc(_uid).get();

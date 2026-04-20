@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ConnectionFirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   Future<List<Map<String, dynamic>>> getMyConnections() async {
     final snap = await _db.collection('connections')

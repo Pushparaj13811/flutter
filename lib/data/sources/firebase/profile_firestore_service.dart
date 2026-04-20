@@ -11,7 +11,7 @@ class ProfileFirestoreService {
 
   ProfileFirestoreService(this._cloudinary);
 
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   Future<Map<String, dynamic>?> getMyProfile() async {
     final doc = await _db.collection('profiles').doc(_uid).get();

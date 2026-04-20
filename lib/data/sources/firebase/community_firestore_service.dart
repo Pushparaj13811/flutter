@@ -8,7 +8,7 @@ import 'package:skill_exchange/data/sources/firebase/cloudinary_service.dart';
 class CommunityFirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final CloudinaryService _cloudinary;
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   CommunityFirestoreService(this._cloudinary);
 

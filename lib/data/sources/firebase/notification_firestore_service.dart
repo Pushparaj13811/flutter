@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class NotificationFirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   Stream<QuerySnapshot<Map<String, dynamic>>> notificationsStream() {
     return _db.collection('notifications').doc(_uid).collection('items')

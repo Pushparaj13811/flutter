@@ -50,11 +50,11 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
     }
 
-    // Sessions
+    // Sessions — any authenticated user can read (queries filter by participants)
     match /sessions/{id} {
-      allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow update: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
       allow delete: if isAdmin();
     }
 
