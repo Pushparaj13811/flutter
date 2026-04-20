@@ -330,10 +330,7 @@ class SeedData {
               'interests': userData['interests'],
               'availability': userData['availability'],
               'preferredLearningStyle': userData['preferredLearningStyle'],
-              'stats': {'connectionsCount': 0, 'sessionsCompleted': 0, 'reviewsReceived': 0, 'averageRating': 0.0},
-              'privacyPreferences': {'profileVisibility': 'public', 'showEmail': false, 'showLocation': true, 'showOnlineStatus': true, 'allowMessages': 'everyone'},
-              'notificationPreferences': {'emailNotifications': true, 'pushNotifications': true, 'connectionRequests': true, 'sessionReminders': true, 'newMessages': true, 'reviewsReceived': true, 'marketingEmails': false},
-              'createdAt': FieldValue.serverTimestamp(),
+              // Don't reset stats during re-seed — they'll be set by stat updates below
               'updatedAt': FieldValue.serverTimestamp(),
             }, SetOptions(merge: true));
 
@@ -798,7 +795,7 @@ class SeedData {
       }
       debugPrint('Created ${reports.length} reports');
 
-      // Update connection counts in profiles
+      // Final: Set ALL stats at once per user in a single write
       final connectionCount = <String, int>{};
       for (final pair in connectionPairs) {
         final u1 = uids[pair[0]];
@@ -807,16 +804,26 @@ class SeedData {
         connectionCount[u1] = (connectionCount[u1] ?? 0) + 1;
         connectionCount[u2] = (connectionCount[u2] ?? 0) + 1;
       }
-      for (final entry in connectionCount.entries) {
+
+      // Write all stats for each user in one update
+      final allUserIds = {...connectionCount.keys, ...sessionCompletionCount.keys};
+      for (final uid in allUserIds) {
         try {
-          await _db.collection('profiles').doc(entry.key).update({
-            'stats.connectionsCount': entry.value,
-          });
+          final updates = <String, dynamic>{};
+          if (connectionCount.containsKey(uid)) {
+            updates['stats.connectionsCount'] = connectionCount[uid];
+          }
+          if (sessionCompletionCount.containsKey(uid)) {
+            updates['stats.sessionsCompleted'] = sessionCompletionCount[uid];
+          }
+          if (updates.isNotEmpty) {
+            await _db.collection('profiles').doc(uid).update(updates);
+          }
         } catch (e) {
-          debugPrint('Failed to update connection count for ${entry.key}: $e');
+          debugPrint('Failed to update stats for $uid: $e');
         }
       }
-      debugPrint('Updated connection counts for ${connectionCount.length} users');
+      debugPrint('Updated all stats for ${allUserIds.length} users');
 
       debugPrint('\nSeed complete! Created ${uids.where((u) => u.isNotEmpty).length} users, connections, posts, and circles.');
     }
