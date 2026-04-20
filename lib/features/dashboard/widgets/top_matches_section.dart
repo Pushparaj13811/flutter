@@ -34,7 +34,7 @@ class TopMatchesSection extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Top Matches',
           style: AppTextStyles.h4,
         ),
@@ -52,7 +52,7 @@ class TopMatchesSection extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
       child: Center(
         child: Text(

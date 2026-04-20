@@ -14,7 +14,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
   @override
   Future<Either<Failure, List<ConversationModel>>> getConversations() async {
     try {
-      final result = await _remoteSource.getConversations();
+      final result = await _remoteSource.getThreads();
       return Right(result);
     } on DioException catch (e) {
       return Left(e.error as Failure);
@@ -31,9 +31,14 @@ class MessagingRepositoryImpl implements MessagingRepository {
     try {
       final result = await _remoteSource.getMessages(
         conversationId,
-        page: page,
+        page: page ?? 1,
       );
-      return Right(result);
+      final items = result['messages'] as List? ?? [];
+      return Right(
+        items
+            .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {
@@ -59,7 +64,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
   @override
   Future<Either<Failure, void>> markAsRead(String id) async {
     try {
-      await _remoteSource.markAsRead(id);
+      await _remoteSource.markThreadRead(id);
       return const Right(null);
     } on DioException catch (e) {
       return Left(e.error as Failure);

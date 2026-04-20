@@ -46,7 +46,7 @@ class _SkillFormSheetState extends State<SkillFormSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Add New Skill', style: AppTextStyles.h3),
+          Text('Add New Skill', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.lg),
           TextField(
             controller: _nameController,

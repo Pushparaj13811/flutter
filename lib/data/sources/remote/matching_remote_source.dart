@@ -29,7 +29,7 @@ class MatchingRemoteSource {
     }
 
     final response = await _dio.get(
-      Matching.list,
+      Matching.suggestions,
       queryParameters: params,
     );
 

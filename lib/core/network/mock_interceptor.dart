@@ -249,13 +249,14 @@ class MockInterceptor extends Interceptor {
   ) {
     // ── Auth ──────────────────────────────────────────────────────────
     if (path == '/auth/login' && method == 'POST') return _loginResponse(options);
-    if (path == '/auth/signup' && method == 'POST') return _signupResponse(options);
+    if (path == '/auth/register' && method == 'POST') return _signupResponse(options);
     if (path == '/auth/logout' && method == 'POST') return _ok('Logged out');
-    if (path == '/auth/me' && method == 'GET') return _currentUser();
+    if (path == '/users/me' && method == 'GET') return _currentUser();
     if (path == '/auth/forgot-password') return _ok('Reset link sent');
     if (path == '/auth/reset-password') return _ok('Password reset');
     if (path == '/auth/verify-email') return _ok('Email verified');
     if (path == '/auth/change-password') return _ok('Password changed');
+    if (path == '/auth/change-email') return _ok('Email changed');
     if (path == '/auth/refresh') return _refreshToken();
 
     // ── Profile ───────────────────────────────────────────────────────
@@ -268,10 +269,15 @@ class MockInterceptor extends Interceptor {
     // ── Skills ────────────────────────────────────────────────────────
     if (path == '/skills' && method == 'GET') return _allSkills();
     if (path == '/skills/categories') return _skillCategories();
+    if (path == '/skills/search') return _allSkills();
+    if (path == '/skills/popular') return _allSkills();
 
     // ── Matching ──────────────────────────────────────────────────────
-    if (path == '/matching' && method == 'GET') return _matchesPaginated(options);
-    if (path == '/matching/suggestions') return _topMatches();
+    if (path == '/matching/suggestions' && method == 'GET') {
+      final limit = options.queryParameters['limit'];
+      if (limit != null) return _topMatches();
+      return _matchesPaginated(options);
+    }
 
     // ── Connections ───────────────────────────────────────────────────
     if (path == '/connections' && method == 'GET') return _connectionsList();
@@ -280,19 +286,19 @@ class MockInterceptor extends Interceptor {
     if (path == '/connections/request' && method == 'POST') {
       return _sendConnectionRequest(options);
     }
-    if (path.contains('/connections/') && path.endsWith('/respond')) {
+    if (path.contains('/connections/') && path.endsWith('/accept')) {
       return _respondConnection(path);
     }
-    if (path.contains('/connections/') && path.endsWith('/status')) {
-      return _wrap({'status': 'accepted'});
+    if (path.contains('/connections/') && path.endsWith('/reject')) {
+      return _respondConnection(path);
     }
     if (path.startsWith('/connections/') && method == 'DELETE') {
       return _ok('Connection removed');
     }
 
     // ── Sessions ──────────────────────────────────────────────────────
-    if (path == '/sessions/upcoming') return _upcomingSessions();
-    if (path == '/sessions' && method == 'POST') return _createSession(options);
+    if (path == '/sessions' && method == 'GET') return _sessionsList();
+    if (path == '/sessions/book' && method == 'POST') return _createSession(options);
     if (path.contains('/sessions/') && path.endsWith('/cancel')) {
       return _sessionAction(path, 'cancelled');
     }
@@ -302,24 +308,32 @@ class MockInterceptor extends Interceptor {
     if (path.contains('/sessions/') && path.endsWith('/reschedule')) {
       return _sessionAction(path, 'scheduled');
     }
+    if (path.startsWith('/sessions/available-slots/')) {
+      return _wrap({'slots': []});
+    }
+    if (path.startsWith('/sessions/') && method == 'GET') {
+      return _sessionAction(path, 'scheduled');
+    }
 
     // ── Reviews ───────────────────────────────────────────────────────
     if (path == '/reviews' && method == 'POST') return _createReview(options);
-    if (path.startsWith('/reviews/user/') && path.endsWith('/stats')) {
-      return _reviewStats();
-    }
+    if (path.startsWith('/reviews/by/')) return _userReviews();
+    if (path.startsWith('/reviews/user/') && path.endsWith('/stats')) return _reviewStats();
     if (path.startsWith('/reviews/user/')) return _userReviews();
 
     // ── Messages ──────────────────────────────────────────────────────
-    if (path == '/messages/conversations' && method == 'GET') {
+    if (path == '/messages/threads' && method == 'GET') {
       return _conversations();
     }
-    if (path.startsWith('/messages/conversations/') && method == 'GET') {
+    if (path.startsWith('/messages/threads/') && path.endsWith('/read')) {
+      return _ok('Marked as read');
+    }
+    if (path.startsWith('/messages/threads/') && method == 'GET') {
       return _conversationMessages(path);
     }
-    if (path == '/messages' && method == 'POST') return _sendMessage(options);
-    if (path.contains('/messages/') && path.endsWith('/read')) {
-      return _ok('Marked as read');
+    if (path == '/messages/send' && method == 'POST') return _sendMessage(options);
+    if (path == '/messages/unread-count' && method == 'GET') {
+      return _wrap({'count': 3});
     }
 
     // ── Notifications ─────────────────────────────────────────────────
@@ -346,6 +360,21 @@ class MockInterceptor extends Interceptor {
           ? _ok('Post liked')
           : _ok('Post unliked');
     }
+    if (path.contains('/community/posts/') && path.endsWith('/liked')) {
+      return _wrap({'liked': false});
+    }
+    if (path.contains('/community/posts/') && path.endsWith('/replies') && method == 'GET') {
+      return _wrap([]);
+    }
+    if (path.contains('/community/posts/') && path.endsWith('/replies') && method == 'POST') {
+      return _wrap({'id': 'reply_new', 'content': '', 'createdAt': DateTime.now().toIso8601String()});
+    }
+    if (path == '/community/posts/upload-media') {
+      return _wrap({'media': []});
+    }
+    if (path == '/community/posts/upload-video') {
+      return _wrap({'url': 'https://example.com/video.mp4'});
+    }
     if (path == '/community/circles' && method == 'GET') return _circles();
     if (path == '/community/circles' && method == 'POST') {
       return _createCircle(options);
@@ -356,84 +385,87 @@ class MockInterceptor extends Interceptor {
     if (path.contains('/circles/') && path.endsWith('/leave')) {
       return _ok('Left circle');
     }
+    if (path.contains('/circles/') && path.endsWith('/membership')) {
+      return _wrap({'isMember': true});
+    }
+    if (path.contains('/circles/') && path.endsWith('/posts') && method == 'GET') {
+      return _wrap({'posts': []});
+    }
+    if (path.contains('/circles/') && path.endsWith('/posts') && method == 'POST') {
+      return _createPost(options);
+    }
     if (path == '/community/leaderboard') return _leaderboard();
 
-    // ── Admin ─────────────────────────────────────────────────────────
-    if (path == '/reports' && method == 'GET') return _reports();
+    // ── Reports ────────────────────────────────────────────────────────
     if (path == '/reports' && method == 'POST') return _createReport(options);
-    if (path.startsWith('/reports/') && method == 'PUT') {
-      return _updateReport(path);
-    }
+
+    // ── Admin ─────────────────────────────────────────────────────────
     if (path == '/admin/stats') return _platformStats();
 
-    // Admin community posts
-    if (path == '/admin/community/posts' && method == 'GET') {
-      return _adminPosts();
-    }
-    if (path.contains('/admin/community/posts/') &&
-        path.endsWith('/pin') &&
-        method == 'PUT') {
-      return _ok('Pin toggled');
-    }
-    if (path.contains('/admin/community/posts/') &&
-        path.endsWith('/hide') &&
-        method == 'PUT') {
-      return _ok('Visibility toggled');
-    }
-    if (path.startsWith('/admin/community/posts/') && method == 'DELETE') {
-      return _ok('Post deleted');
-    }
+    // Admin users
+    if (path == '/admin/users' && method == 'GET') return _wrap({'users': _otherUsers, 'total': _otherUsers.length});
+    if (path.startsWith('/admin/users/') && path.endsWith('/role')) return _ok('Role updated');
+    if (path.startsWith('/admin/users/') && path.endsWith('/ban')) return _ok('User banned');
+    if (path.startsWith('/admin/users/') && path.endsWith('/unban')) return _ok('User unbanned');
+    if (path.startsWith('/admin/users/') && path.contains('/verify-skill/')) return _ok('Skill verified');
+    if (path.startsWith('/admin/users/') && method == 'GET') return _profileById(path.split('/').last);
+    if (path.startsWith('/admin/users/') && method == 'DELETE') return _ok('User deleted');
 
-    // Admin community circles
-    if (path == '/admin/community/circles' && method == 'GET') {
-      return _adminCircles();
-    }
-    if (path.contains('/admin/community/circles/') &&
-        path.endsWith('/feature') &&
-        method == 'PUT') {
-      return _ok('Featured toggled');
-    }
-    if (path.startsWith('/admin/community/circles/') && method == 'PUT') {
-      return _ok('Circle updated');
-    }
-    if (path.startsWith('/admin/community/circles/') && method == 'DELETE') {
-      return _ok('Circle deleted');
-    }
+    // Admin posts
+    if (path == '/admin/posts' && method == 'GET') return _adminPosts();
+    if (path.contains('/admin/posts/') && path.endsWith('/moderate')) return _ok('Post moderated');
+    if (path.startsWith('/admin/posts/') && method == 'DELETE') return _ok('Post deleted');
 
-    // Admin analytics
-    if (path == '/admin/analytics' && method == 'GET') {
-      return _analyticsData();
-    }
+    // Admin circles
+    if (path == '/admin/circles' && method == 'GET') return _adminCircles();
+    if (path.startsWith('/admin/circles/') && method == 'PUT') return _ok('Circle updated');
+    if (path.startsWith('/admin/circles/') && method == 'DELETE') return _ok('Circle deleted');
 
-    // Admin skills
+    // Admin sessions
+    if (path == '/admin/sessions' && method == 'GET') return _sessionsList();
+    if (path.contains('/admin/sessions/') && path.endsWith('/cancel')) return _ok('Session cancelled');
+
+    // Admin connections
+    if (path == '/admin/connections' && method == 'GET') return _connectionsList();
+    if (path.startsWith('/admin/connections/') && method == 'DELETE') return _ok('Connection deleted');
+
+    // Admin reviews
+    if (path == '/admin/reviews' && method == 'GET') return _userReviews();
+    if (path.contains('/admin/reviews/') && path.endsWith('/status')) return _ok('Review status updated');
+    if (path.startsWith('/admin/reviews/') && method == 'DELETE') return _ok('Review deleted');
+
+    // Admin reports
+    if (path == '/admin/reports' && method == 'GET') return _reports();
+    if (path.startsWith('/admin/reports/') && method == 'GET') return _wrap(_reports()['data'][0]);
+    if (path.startsWith('/admin/reports/') && method == 'PATCH') return _updateReport(path);
+
+    // Admin analytics (legacy path support)
+    if (path == '/admin/analytics' && method == 'GET') return _analyticsData();
+
+    // Admin skills management
     if (path == '/admin/skills' && method == 'GET') return _adminSkills();
     if (path == '/admin/skills' && method == 'POST') return _ok('Skill created');
-    if (path.startsWith('/admin/skills/') && method == 'PUT') {
-      return _ok('Skill updated');
-    }
-    if (path.startsWith('/admin/skills/') && method == 'DELETE') {
-      return _ok('Skill deleted');
-    }
+    if (path.startsWith('/admin/skills/') && method == 'PUT') return _ok('Skill updated');
+    if (path.startsWith('/admin/skills/') && method == 'DELETE') return _ok('Skill deleted');
 
     // Admin announcements
-    if (path == '/admin/announcements' && method == 'GET') {
-      return _announcements();
-    }
-    if (path == '/admin/announcements' && method == 'POST') {
-      return _ok('Announcement created');
-    }
-    if (path.startsWith('/admin/announcements/') && method == 'DELETE') {
-      return _ok('Announcement deleted');
-    }
+    if (path == '/admin/announcements' && method == 'GET') return _announcements();
+    if (path == '/admin/announcements' && method == 'POST') return _ok('Announcement created');
+    if (path.startsWith('/admin/announcements/') && method == 'DELETE') return _ok('Announcement deleted');
 
     // Admin activity logs
-    if (path == '/admin/activity-logs' && method == 'GET') {
-      return _activityLogs();
-    }
+    if (path == '/admin/activity-logs' && method == 'GET') return _activityLogs();
+
+    // ── Public API ─────────────────────────────────────────────────────
+    if (path == '/public/stats') return _platformStats();
+    if (path == '/public/testimonials') return _wrap([]);
 
     // ── Uploads ───────────────────────────────────────────────────────
-    if (path == '/uploads/avatar') {
+    if (path == '/profiles/me/avatar') {
       return _wrap({'url': 'https://i.pravatar.cc/300?u=$_demoUserId'});
+    }
+    if (path == '/profiles/me/cover') {
+      return _wrap({'url': 'https://picsum.photos/800/300'});
     }
 
     return null;
@@ -708,7 +740,8 @@ class MockInterceptor extends Interceptor {
 
   // ── Sessions ────────────────────────────────────────────────────────────
 
-  Map<String, dynamic> _upcomingSessions() => _wrap([
+  Map<String, dynamic> _sessionsList() => _wrap({
+    'upcoming': [
         {
           'id': 'session_001',
           'hostId': _demoUserId,
@@ -751,7 +784,30 @@ class MockInterceptor extends Interceptor {
           'host': _otherUsers[1],
           'participant': null,
         },
-      ]);
+      ],
+      'past': [
+        {
+          'id': 'session_past_001',
+          'hostId': _demoUserId,
+          'participantId': 'user_004',
+          'title': 'Intro to UI Design',
+          'description': 'Covered basic design principles.',
+          'skillsToCover': ['UI Design', 'Figma'],
+          'scheduledAt': '2026-02-20T14:00:00Z',
+          'duration': 45,
+          'status': 'completed',
+          'sessionMode': 'online',
+          'meetingPlatform': 'zoom',
+          'meetingLink': null,
+          'location': null,
+          'notes': 'Great session!',
+          'createdAt': '2026-02-18T10:00:00Z',
+          'updatedAt': '2026-02-20T15:00:00Z',
+          'host': null,
+          'participant': _otherUsers[2],
+        },
+      ],
+    });
 
   Map<String, dynamic> _createSession(RequestOptions options) {
     final body = options.data as Map<String, dynamic>? ?? {};

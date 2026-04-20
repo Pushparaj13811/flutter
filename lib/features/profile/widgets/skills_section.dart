@@ -38,7 +38,7 @@ class _SkillsSectionState extends State<SkillsSection> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Add Skill', style: AppTextStyles.h4),
+              title: Text('Add Skill', style: AppTextStyles.h4),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

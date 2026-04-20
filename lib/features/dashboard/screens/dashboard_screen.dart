@@ -185,7 +185,7 @@ class _QuickActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Quick Actions', style: AppTextStyles.h4),
+        Text('Quick Actions', style: AppTextStyles.h4),
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [

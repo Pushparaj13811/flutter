@@ -16,8 +16,17 @@ class SearchRepositoryImpl implements SearchRepository {
     int page = 1,
   }) async {
     try {
-      final result = await _remoteSource.searchUsers(filters, page: page);
-      return Right(result);
+      final result = await _remoteSource.searchUsers(
+        query: filters.query,
+        skillCategory: filters.skillCategory,
+        skillName: filters.skillName,
+        location: filters.location,
+        minRating: filters.minRating,
+        maxRating: filters.maxRating,
+        learningStyle: filters.learningStyle,
+        page: page,
+      );
+      return Right(SearchResultModel.fromJson(result));
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {

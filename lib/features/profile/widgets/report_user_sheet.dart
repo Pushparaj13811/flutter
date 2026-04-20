@@ -65,7 +65,7 @@ class _ReportUserSheetState extends State<ReportUserSheet> {
           const SizedBox(height: AppSpacing.lg),
 
           // Title
-          const Text(
+          Text(
             'Report User',
             style: AppTextStyles.h3,
             textAlign: TextAlign.center,

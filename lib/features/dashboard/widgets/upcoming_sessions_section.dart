@@ -33,7 +33,7 @@ class UpcomingSessionsSection extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Upcoming Sessions',
           style: AppTextStyles.h4,
         ),
@@ -51,7 +51,7 @@ class UpcomingSessionsSection extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
       child: Center(
         child: Column(

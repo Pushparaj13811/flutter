@@ -117,7 +117,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Search Filters', style: AppTextStyles.h3),
+                Text('Search Filters', style: AppTextStyles.h3),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),

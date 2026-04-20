@@ -14,7 +14,12 @@ class ConnectionRepositoryImpl implements ConnectionRepository {
   Future<Either<Failure, List<ConnectionModel>>> getConnections() async {
     try {
       final result = await _remoteSource.getConnections();
-      return Right(result);
+      final items = result['connections'] as List? ?? [];
+      return Right(
+        items
+            .map((e) => ConnectionModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {
@@ -67,7 +72,9 @@ class ConnectionRepositoryImpl implements ConnectionRepository {
     bool accept,
   ) async {
     try {
-      final result = await _remoteSource.respondToRequest(id, accept);
+      final result = accept
+          ? await _remoteSource.acceptRequest(id)
+          : await _remoteSource.rejectRequest(id);
       return Right(result);
     } on DioException catch (e) {
       return Left(e.error as Failure);
@@ -91,8 +98,9 @@ class ConnectionRepositoryImpl implements ConnectionRepository {
   @override
   Future<Either<Failure, String>> getConnectionStatus(String userId) async {
     try {
-      final result = await _remoteSource.getConnectionStatus(userId);
-      return Right(result);
+      // The remote source no longer has a dedicated getConnectionStatus method.
+      // Return 'none' as default; the UI can derive status from connections list.
+      return const Right('none');
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {

@@ -15,7 +15,7 @@ class ReviewRepositoryImpl implements ReviewRepository {
   @override
   Future<Either<Failure, List<ReviewModel>>> getReviews(String userId) async {
     try {
-      final result = await _remoteSource.getReviews(userId);
+      final result = await _remoteSource.getReviewsForUser(userId);
       return Right(result);
     } on DioException catch (e) {
       return Left(e.error as Failure);
@@ -29,8 +29,16 @@ class ReviewRepositoryImpl implements ReviewRepository {
     String userId,
   ) async {
     try {
-      final result = await _remoteSource.getReviewStats(userId);
-      return Right(result);
+      // Derive stats from reviews list since remote source no longer has getReviewStats
+      final reviews = await _remoteSource.getReviewsForUser(userId);
+      final avgRating = reviews.isEmpty
+          ? 0.0
+          : reviews.map((r) => r.rating.toDouble()).reduce((a, b) => a + b) /
+              reviews.length;
+      return Right(ReviewStatsModel(
+        averageRating: avgRating,
+        totalReviews: reviews.length,
+      ));
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {

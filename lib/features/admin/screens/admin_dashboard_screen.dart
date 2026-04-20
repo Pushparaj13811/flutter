@@ -40,13 +40,13 @@ class AdminDashboardScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
           children: [
             // Platform stats
-            const Text('Platform Overview', style: AppTextStyles.h3),
+            Text('Platform Overview', style: AppTextStyles.h3),
             const SizedBox(height: AppSpacing.md),
             const AdminStatsGrid(),
             const SizedBox(height: AppSpacing.sectionGap),
 
             // Quick links
-            const Text('Quick Links', style: AppTextStyles.h4),
+            Text('Quick Links', style: AppTextStyles.h4),
             const SizedBox(height: AppSpacing.md),
             Row(
               children: [
@@ -126,7 +126,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Recent Reports', style: AppTextStyles.h4),
+                Text('Recent Reports', style: AppTextStyles.h4),
                 TextButton(
                   onPressed: () => context.go(RouteNames.adminModeration),
                   child: const Text('View All'),
@@ -221,7 +221,7 @@ class _RecentReportsSection extends StatelessWidget {
                   color: context.colors.success,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                const Text(
+                Text(
                   'No pending reports',
                   style: AppTextStyles.bodyMedium,
                 ),

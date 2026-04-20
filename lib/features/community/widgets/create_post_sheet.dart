@@ -99,7 +99,7 @@ class _CreatePostSheetState extends ConsumerState<CreatePostSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              const Text(
+              Text(
                 'Create Discussion',
                 style: AppTextStyles.h3,
                 textAlign: TextAlign.center,

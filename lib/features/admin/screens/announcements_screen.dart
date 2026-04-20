@@ -156,7 +156,7 @@ class _AnnouncementFormSheetState extends State<_AnnouncementFormSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('New Announcement', style: AppTextStyles.h3),
+          Text('New Announcement', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.lg),
           TextField(
             controller: _titleController,

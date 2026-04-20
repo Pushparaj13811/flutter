@@ -106,7 +106,7 @@ class _CreateCircleSheetState extends ConsumerState<CreateCircleSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              const Text(
+              Text(
                 'Create Learning Circle',
                 style: AppTextStyles.h3,
                 textAlign: TextAlign.center,

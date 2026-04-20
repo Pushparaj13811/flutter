@@ -98,7 +98,7 @@ class _MatchingFiltersSheetState extends State<MatchingFiltersSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Filters', style: AppTextStyles.h3),
+                Text('Filters', style: AppTextStyles.h3),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),

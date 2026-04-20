@@ -43,7 +43,7 @@ class AnalyticsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.screenPadding),
               children: [
                 // Overview stat cards
-                const Text('Overview', style: AppTextStyles.h3),
+                Text('Overview', style: AppTextStyles.h3),
                 const SizedBox(height: AppSpacing.md),
                 GridView.count(
                   crossAxisCount: 2,
@@ -80,7 +80,7 @@ class AnalyticsScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.sectionGap),
 
                 // Popular skills
-                const Text('Popular Skills', style: AppTextStyles.h4),
+                Text('Popular Skills', style: AppTextStyles.h4),
                 const SizedBox(height: AppSpacing.xs),
                 _SkillLegend(),
                 const SizedBox(height: AppSpacing.md),
@@ -100,7 +100,7 @@ class AnalyticsScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.sectionGap),
 
                 // Weekly activity
-                const Text('Weekly Activity', style: AppTextStyles.h4),
+                Text('Weekly Activity', style: AppTextStyles.h4),
                 const SizedBox(height: AppSpacing.md),
                 if (analytics.weeklyActivity.isNotEmpty)
                   _WeeklyActivityChart(activity: analytics.weeklyActivity),

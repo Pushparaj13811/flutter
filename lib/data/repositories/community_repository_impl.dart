@@ -19,8 +19,15 @@ class CommunityRepositoryImpl implements CommunityRepository {
     int? page,
   }) async {
     try {
-      final result = await _remoteSource.getPosts(page: page);
-      return Right(result);
+      final result = await _remoteSource.getPosts(
+        params: page != null ? {'page': page} : null,
+      );
+      final items = result['posts'] as List? ?? [];
+      return Right(
+        items
+            .map((e) => DiscussionPostModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {
@@ -33,8 +40,8 @@ class CommunityRepositoryImpl implements CommunityRepository {
     CreatePostDto dto,
   ) async {
     try {
-      final result = await _remoteSource.createPost(dto);
-      return Right(result);
+      final result = await _remoteSource.createPost(dto.toJson());
+      return Right(DiscussionPostModel.fromJson(result));
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {
@@ -73,8 +80,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
     int? page,
   }) async {
     try {
-      final result = await _remoteSource.getCircles(page: page);
-      return Right(result);
+      final result = await _remoteSource.getCircles();
+      return Right(
+        result
+            .map((e) => LearningCircleModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {
@@ -87,8 +98,8 @@ class CommunityRepositoryImpl implements CommunityRepository {
     CreateCircleDto dto,
   ) async {
     try {
-      final result = await _remoteSource.createCircle(dto);
-      return Right(result);
+      final result = await _remoteSource.createCircle(dto.toJson());
+      return Right(LearningCircleModel.fromJson(result));
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {
@@ -127,8 +138,13 @@ class CommunityRepositoryImpl implements CommunityRepository {
     int? limit,
   }) async {
     try {
-      final result = await _remoteSource.getLeaderboard(limit: limit);
-      return Right(result);
+      final result = await _remoteSource.getLeaderboard(limit: limit ?? 10);
+      return Right(
+        result
+            .map((e) =>
+                LeaderboardEntryModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {

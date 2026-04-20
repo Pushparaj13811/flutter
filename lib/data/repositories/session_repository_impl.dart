@@ -17,8 +17,15 @@ class SessionRepositoryImpl implements SessionRepository {
     int? limit,
   }) async {
     try {
-      final result = await _remoteSource.getUpcomingSessions(limit: limit);
-      return Right(result);
+      final result = await _remoteSource.getSessions();
+      final upcoming = result['upcoming'] as List? ?? [];
+      final sessions = upcoming
+          .map((e) => SessionModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (limit != null && sessions.length > limit) {
+        return Right(sessions.sublist(0, limit));
+      }
+      return Right(sessions);
     } on DioException catch (e) {
       return Left(e.error as Failure);
     } catch (e) {
@@ -31,7 +38,7 @@ class SessionRepositoryImpl implements SessionRepository {
     CreateSessionDto dto,
   ) async {
     try {
-      final result = await _remoteSource.createSession(dto);
+      final result = await _remoteSource.bookSession(dto);
       return Right(result);
     } on DioException catch (e) {
       return Left(e.error as Failure);
