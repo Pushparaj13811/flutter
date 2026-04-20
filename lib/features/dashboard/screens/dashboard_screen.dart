@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +13,7 @@ import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
 import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/features/matching/providers/matching_provider.dart';
+import 'package:skill_exchange/features/profile/providers/profile_provider.dart';
 import 'package:skill_exchange/features/sessions/providers/session_provider.dart';
 import 'package:skill_exchange/data/models/match_score_model.dart';
 import 'package:skill_exchange/data/models/session_model.dart';
@@ -38,6 +41,11 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline),
+            tooltip: 'Messages',
+            onPressed: () => context.go(RouteNames.messages),
+          ),
           _NotificationBell(ref: ref),
         ],
       ),
@@ -50,6 +58,38 @@ class DashboardScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
           children: [
+            // Email verification banner
+            if (authState is AuthAuthenticated && !authState.user.isVerified) ...[
+              _EmailVerificationBanner(
+                onResend: () async {
+                  await ref.read(firebaseAuthServiceProvider).sendEmailVerification();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Verification email sent! Check your inbox.')),
+                    );
+                  }
+                },
+                onRefresh: () async {
+                  await fb.FirebaseAuth.instance.currentUser?.reload();
+                  final isNowVerified = fb.FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+                  if (isNowVerified && context.mounted) {
+                    await FirebaseFirestore.instance.collection('users').doc(fb.FirebaseAuth.instance.currentUser!.uid).update({'isVerified': true});
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Email verified!')),
+                      );
+                    }
+                    ref.invalidate(currentProfileProvider);
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Email not yet verified. Please check your inbox.')),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+
             // Admin panel (compact)
             if (isAdmin) ...[
               _CompactAdminCard(
@@ -704,6 +744,52 @@ class _NotificationBell extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+// ── Email Verification Banner ────────────────────────────────────────────────
+
+class _EmailVerificationBanner extends StatelessWidget {
+  const _EmailVerificationBanner({required this.onResend, required this.onRefresh});
+  final VoidCallback onResend;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.highlight.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.highlight.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.email_outlined, color: colors.highlight, size: 20),
+              const SizedBox(width: 8),
+              Text('Verify your email', style: AppTextStyles.labelLarge.copyWith(color: colors.foreground)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Check your inbox for a verification link. Verify to unlock all features.',
+            style: AppTextStyles.bodySmall.copyWith(color: colors.mutedForeground),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              TextButton(onPressed: onResend, child: const Text('Resend Email')),
+              const SizedBox(width: 8),
+              TextButton(onPressed: onRefresh, child: const Text('I\'ve Verified')),
+            ],
+          ),
+        ],
       ),
     );
   }

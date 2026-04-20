@@ -9,6 +9,7 @@ import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/app_card.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
+import 'package:skill_exchange/data/seed/seed_data.dart';
 import 'package:skill_exchange/features/admin/providers/admin_provider.dart';
 import 'package:skill_exchange/features/admin/widgets/admin_stats_grid.dart';
 import 'package:skill_exchange/features/admin/widgets/report_card.dart';
@@ -120,6 +121,8 @@ class AdminDashboardScreen extends ConsumerWidget {
               color: context.colors.primary,
               onTap: () => context.go(RouteNames.adminLogs),
             ),
+            const SizedBox(height: AppSpacing.md),
+            _SeedDataButton(),
             const SizedBox(height: AppSpacing.sectionGap),
 
             // Recent reports
@@ -287,5 +290,65 @@ class _RecentReportsSection extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+// ── Seed Data Button ─────────────────────────────────────────────────────
+
+class _SeedDataButton extends StatefulWidget {
+  @override
+  State<_SeedDataButton> createState() => _SeedDataButtonState();
+}
+
+class _SeedDataButtonState extends State<_SeedDataButton> {
+  bool _seeding = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: _seeding ? null : _onSeed,
+      icon: _seeding
+          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+          : const Icon(Icons.dataset_outlined),
+      label: Text(_seeding ? 'Seeding...' : 'Seed Test Data'),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(double.infinity, 48),
+      ),
+    );
+  }
+
+  Future<void> _onSeed() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Seed Test Data'),
+        content: const Text(
+          'This will create 10 test users with profiles, connections, posts, and circles. Continue?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Seed')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _seeding = true);
+    try {
+      await SeedData.seed();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Seed data created successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Seed failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _seeding = false);
+    }
   }
 }
