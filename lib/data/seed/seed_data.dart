@@ -305,8 +305,69 @@ class SeedData {
 
         debugPrint('Created user: ${userData['name']} ($uid)');
       } catch (e) {
-        debugPrint('Failed to create ${userData['name']}: $e');
-        uids.add(''); // placeholder
+        // If user already exists, sign in to get UID
+        if (e.toString().contains('email-already-in-use')) {
+          try {
+            final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: userData['email'] as String,
+              password: userData['password'] as String,
+            );
+            final uid = credential.user!.uid;
+            uids.add(uid);
+
+            // Update profile and matchPool data (re-seed)
+            await _db.collection('profiles').doc(uid).set({
+              'fullName': userData['name'],
+              'username': (userData['email'] as String).split('@').first.toLowerCase(),
+              'avatar': null,
+              'coverImage': userData['coverImage'],
+              'bio': userData['bio'],
+              'location': userData['location'],
+              'timezone': userData['timezone'],
+              'languages': userData['languages'],
+              'skillsToTeach': userData['skillsToTeach'],
+              'skillsToLearn': userData['skillsToLearn'],
+              'interests': userData['interests'],
+              'availability': userData['availability'],
+              'preferredLearningStyle': userData['preferredLearningStyle'],
+              'stats': {'connectionsCount': 0, 'sessionsCompleted': 0, 'reviewsReceived': 0, 'averageRating': 0.0},
+              'privacyPreferences': {'profileVisibility': 'public', 'showEmail': false, 'showLocation': true, 'showOnlineStatus': true, 'allowMessages': 'everyone'},
+              'notificationPreferences': {'emailNotifications': true, 'pushNotifications': true, 'connectionRequests': true, 'sessionReminders': true, 'newMessages': true, 'reviewsReceived': true, 'marketingEmails': false},
+              'createdAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+
+            await _db.collection('matchPool').doc(uid).set({
+              'username': (userData['email'] as String).split('@').first.toLowerCase(),
+              'avatar': null,
+              'skillsToTeach': userData['skillsToTeach'],
+              'skillsToLearn': userData['skillsToLearn'],
+              'availability': userData['availability'],
+              'location': userData['location'],
+              'averageRating': 0.0,
+              'sessionsCompleted': 0,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+
+            await _db.collection('users').doc(uid).set({
+              'name': userData['name'],
+              'email': userData['email'],
+              'role': userData['role'],
+              'isVerified': true,
+              'isActive': true,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+
+            debugPrint('Re-seeded existing user: ${userData['name']} ($uid)');
+            continue;
+          } catch (signInError) {
+            debugPrint('Failed to re-seed ${userData['name']}: $signInError');
+            uids.add('');
+          }
+        } else {
+          debugPrint('Failed to create ${userData['name']}: $e');
+          uids.add('');
+        }
       }
     }
 
@@ -320,6 +381,22 @@ class SeedData {
       );
       debugPrint('Signed in as admin to create seed data...');
     }
+
+    // Clean up existing seed data before re-creating
+    debugPrint('Cleaning up existing connections, posts, circles...');
+    final existingConns = await _db.collection('connections').get();
+    for (final doc in existingConns.docs) {
+      await doc.reference.delete();
+    }
+    final existingPosts = await _db.collection('posts').get();
+    for (final doc in existingPosts.docs) {
+      await doc.reference.delete();
+    }
+    final existingCircles = await _db.collection('circles').get();
+    for (final doc in existingCircles.docs) {
+      await doc.reference.delete();
+    }
+    debugPrint('Cleanup done.');
 
     // Create connections (using stored UIDs)
     if (uids.length >= 10) {
