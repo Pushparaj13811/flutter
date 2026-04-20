@@ -18,6 +18,7 @@ import 'package:skill_exchange/features/auth/screens/reset_password_screen.dart'
 import 'package:skill_exchange/features/auth/screens/signup_screen.dart';
 import 'package:skill_exchange/features/auth/screens/verify_email_screen.dart';
 import 'package:skill_exchange/features/community/screens/community_screen.dart';
+import 'package:skill_exchange/features/community/screens/circle_detail_screen.dart';
 import 'package:skill_exchange/features/connections/screens/connections_screen.dart';
 import 'package:skill_exchange/features/dashboard/screens/dashboard_screen.dart';
 import 'package:skill_exchange/features/matching/screens/matching_screen.dart';
@@ -236,6 +237,17 @@ final routerProvider = Provider<GoRouter>((ref) {
               key: state.pageKey,
               child: const CommunityScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: ':circleId',
+                pageBuilder: (context, state) => slideUpTransitionPage(
+                  key: state.pageKey,
+                  child: CircleDetailScreen(
+                    circleId: state.pathParameters['circleId']!,
+                  ),
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: RouteNames.bookings,

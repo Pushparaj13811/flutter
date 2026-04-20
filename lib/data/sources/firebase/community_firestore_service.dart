@@ -116,6 +116,23 @@ class CommunityFirestoreService {
     });
   }
 
+  // ── Circle Posts ──
+  Future<List<Map<String, dynamic>>> getCirclePosts(String circleId) async {
+    final snap = await _db.collection('posts')
+        .where('circle', isEqualTo: circleId)
+        .where('moderationStatus', isEqualTo: 'active')
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+  }
+
+  // ── Circle by ID ──
+  Future<Map<String, dynamic>> getCircleById(String circleId) async {
+    final doc = await _db.collection('circles').doc(circleId).get();
+    if (!doc.exists) throw Exception('Circle not found');
+    return {'id': doc.id, ...doc.data()!};
+  }
+
   // ── Circles ──
   Future<List<Map<String, dynamic>>> getCircles() async {
     final snap = await _db.collection('circles').get();

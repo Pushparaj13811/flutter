@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
@@ -64,28 +66,12 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
 
   void _onTapCircle(Map<String, dynamic> circle) {
     final circleId = circle['id'] as String? ?? '';
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => _CircleDetailSheet(
-        circle: circle,
-        onJoin: () => _onJoinCircle(circleId),
-        onLeave: () => _onLeaveCircle(circleId),
-      ),
-    );
+    context.push('${RouteNames.community}/$circleId');
   }
 
   void _showCreatePostSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => const CreatePostSheet(),
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreatePostScreen()),
     );
   }
 
@@ -470,164 +456,3 @@ class _PostCommentsSheetState extends ConsumerState<_PostCommentsSheet> {
   }
 }
 
-// ── Circle Detail Bottom Sheet ─────────────────────────────────────────────
-
-class _CircleDetailSheet extends StatelessWidget {
-  const _CircleDetailSheet({
-    required this.circle,
-    required this.onJoin,
-    required this.onLeave,
-  });
-
-  final Map<String, dynamic> circle;
-  final VoidCallback onJoin;
-  final VoidCallback onLeave;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final name = circle['name'] as String? ?? '';
-    final description = circle['description'] as String? ?? '';
-    final category = circle['category'] as String? ?? '';
-    final skillFocus = (circle['skillFocus'] as List?)?.cast<String>() ?? [];
-    final membersCount = (circle['membersCount'] as num?)?.toInt() ?? 0;
-    final maxMembers = (circle['maxMembers'] as num?)?.toInt() ?? 50;
-    final isJoinedByMe = circle['isJoinedByMe'] as bool? ?? false;
-    final isFull = membersCount >= maxMembers;
-
-    return Padding(
-      padding: EdgeInsets.only(
-        left: AppSpacing.screenPadding,
-        right: AppSpacing.screenPadding,
-        top: AppSpacing.lg,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colors.muted,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: colors.secondary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.groups_outlined,
-                  color: colors.secondary,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: AppTextStyles.h4),
-                    if (category.isNotEmpty)
-                      Text(
-                        category,
-                        style: AppTextStyles.caption.copyWith(
-                          color: colors.mutedForeground,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          if (description.isNotEmpty) ...[
-            Text(
-              description,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: colors.foreground,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          if (skillFocus.isNotEmpty) ...[
-            Text(
-              'Skills',
-              style: AppTextStyles.labelMedium.copyWith(
-                color: colors.mutedForeground,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
-              children: skillFocus.map((skill) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.secondary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    skill,
-                    style: AppTextStyles.caption.copyWith(
-                      color: colors.secondary,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          Row(
-            children: [
-              Icon(Icons.people_outline, size: 16, color: colors.mutedForeground),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                '$membersCount / $maxMembers members',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: colors.mutedForeground,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            child: isJoinedByMe
-                ? OutlinedButton(
-                    onPressed: () {
-                      onLeave();
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Leave Circle'),
-                  )
-                : FilledButton(
-                    onPressed: isFull
-                        ? null
-                        : () {
-                            onJoin();
-                            Navigator.of(context).pop();
-                          },
-                    child: Text(isFull ? 'Circle is Full' : 'Join Circle'),
-                  ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ],
-      ),
-    );
-  }
-}
