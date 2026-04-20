@@ -45,8 +45,8 @@ service cloud.firestore {
     // Connections — read allowed for any authenticated user (queries filter by requester/recipient)
     match /connections/{id} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.requester;
-      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated() && (request.auth.uid == request.resource.data.requester || isAdmin());
+      allow update: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
       allow delete: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
     }
 
@@ -91,12 +91,11 @@ service cloud.firestore {
       allow update, delete: if isOwner(uid);
     }
 
-    // Posts
+    // Posts — admin can create/update on behalf of any user (for seeding)
     match /posts/{id} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (request.auth.uid == resource.data.author || isAdmin());
-      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.author || isAdmin());
+      allow update, delete: if isAuthenticated() && (request.auth.uid == resource.data.author || isAdmin());
 
       match /replies/{replyId} {
         allow read: if isAuthenticated();

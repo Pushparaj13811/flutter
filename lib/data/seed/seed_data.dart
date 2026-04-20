@@ -310,8 +310,16 @@ class SeedData {
       }
     }
 
-    // Sign out after creating all users (we were signed in as the last one)
-    await FirebaseAuth.instance.signOut();
+    // Sign in as the admin user (first user) to create connections/posts/circles
+    // because Firestore rules require authentication for writes.
+    if (uids.isNotEmpty && uids[0].isNotEmpty) {
+      await FirebaseAuth.instance.signOut();
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: users[0]['email'] as String,
+        password: users[0]['password'] as String,
+      );
+      debugPrint('Signed in as admin to create seed data...');
+    }
 
     // Create connections (using stored UIDs)
     if (uids.length >= 10) {
@@ -392,7 +400,25 @@ class SeedData {
         });
       }
 
+      // Update connection counts in profiles
+      final connectionCount = <String, int>{};
+      for (final pair in connectionPairs) {
+        final u1 = uids[pair[0]];
+        final u2 = uids[pair[1]];
+        if (u1.isEmpty || u2.isEmpty) continue;
+        connectionCount[u1] = (connectionCount[u1] ?? 0) + 1;
+        connectionCount[u2] = (connectionCount[u2] ?? 0) + 1;
+      }
+      for (final entry in connectionCount.entries) {
+        await _db.collection('profiles').doc(entry.key).update({
+          'stats.connectionsCount': entry.value,
+        });
+      }
+
       debugPrint('\nSeed complete! Created ${uids.where((u) => u.isNotEmpty).length} users, connections, posts, and circles.');
     }
+
+    // Sign out at the very end
+    await FirebaseAuth.instance.signOut();
   }
 }
