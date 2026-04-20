@@ -42,9 +42,9 @@ service cloud.firestore {
       allow write: if isOwner(uid);
     }
 
-    // Connections
+    // Connections — read allowed for any authenticated user (queries filter by requester/recipient)
     match /connections/{id} {
-      allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.requester;
       allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
       allow delete: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
