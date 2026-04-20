@@ -77,10 +77,10 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
-    // Reviews
+    // Reviews — author creates own, admin can create on behalf (for seeding)
     match /reviews/{id} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.fromUser;
+      allow create: if isAuthenticated() && (request.auth.uid == request.resource.data.fromUser || isAdmin());
       allow update, delete: if isAdmin();
     }
 
