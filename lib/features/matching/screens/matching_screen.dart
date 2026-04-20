@@ -8,11 +8,11 @@ import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
+import 'package:skill_exchange/features/connections/providers/connections_provider.dart';
 import 'package:skill_exchange/features/matching/providers/matching_provider.dart';
 import 'package:skill_exchange/features/matching/widgets/match_card.dart';
 import 'package:skill_exchange/features/matching/widgets/matching_filters.dart';
 import 'package:skill_exchange/core/widgets/animated_list_item.dart';
-import 'package:skill_exchange/config/di/providers.dart';
 
 class MatchingScreen extends ConsumerStatefulWidget {
   const MatchingScreen({super.key});
@@ -202,7 +202,7 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                         ),
                         onConnect: isSent ? null : () async {
                           try {
-                            await ref.read(connectionFirestoreServiceProvider).sendRequest(match.userId);
+                            await ref.read(connectionsNotifierProvider.notifier).sendRequest(match.userId, null);
                             if (mounted) {
                               setState(() => _sentRequests.add(match.userId));
                               ScaffoldMessenger.of(context).showSnackBar(

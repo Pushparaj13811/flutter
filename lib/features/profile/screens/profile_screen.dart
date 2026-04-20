@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/config/router/app_router.dart';
+import 'package:skill_exchange/features/connections/providers/connections_provider.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/widgets/app_button.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
@@ -230,8 +231,8 @@ class _OtherUserActionsState extends ConsumerState<_OtherUserActions> {
   Future<void> _sendRequest() async {
     try {
       await ref
-          .read(connectionFirestoreServiceProvider)
-          .sendRequest(widget.userId);
+          .read(connectionsNotifierProvider.notifier)
+          .sendRequest(widget.userId, null);
       if (mounted) {
         setState(() => _status = 'pending_sent');
         ScaffoldMessenger.of(context).showSnackBar(

@@ -63,9 +63,22 @@ class ConnectionFirestoreService {
   }
 
   Future<void> acceptRequest(String connectionId) async {
+    final doc = await _db.collection('connections').doc(connectionId).get();
+    final data = doc.data()!;
+
     await _db.collection('connections').doc(connectionId).update({
       'status': 'accepted',
       'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Update both users' connection counts
+    final requester = data['requester'] as String;
+    final recipient = data['recipient'] as String;
+    await _db.collection('profiles').doc(requester).update({
+      'stats.connectionsCount': FieldValue.increment(1),
+    });
+    await _db.collection('profiles').doc(recipient).update({
+      'stats.connectionsCount': FieldValue.increment(1),
     });
   }
 
@@ -77,7 +90,25 @@ class ConnectionFirestoreService {
   }
 
   Future<void> removeConnection(String connectionId) async {
-    await _db.collection('connections').doc(connectionId).delete();
+    final doc = await _db.collection('connections').doc(connectionId).get();
+    if (doc.exists) {
+      final data = doc.data()!;
+      final requester = data['requester'] as String? ?? '';
+      final recipient = data['recipient'] as String? ?? '';
+
+      await _db.collection('connections').doc(connectionId).delete();
+
+      if (requester.isNotEmpty) {
+        await _db.collection('profiles').doc(requester).update({
+          'stats.connectionsCount': FieldValue.increment(-1),
+        });
+      }
+      if (recipient.isNotEmpty) {
+        await _db.collection('profiles').doc(recipient).update({
+          'stats.connectionsCount': FieldValue.increment(-1),
+        });
+      }
+    }
   }
 
   /// Returns the connection status between current user and another user.

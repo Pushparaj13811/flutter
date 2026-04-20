@@ -10,11 +10,11 @@ import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
+import 'package:skill_exchange/features/connections/providers/connections_provider.dart';
 import 'package:skill_exchange/features/search/providers/search_provider.dart';
 import 'package:skill_exchange/features/search/widgets/search_filters_sheet.dart';
 import 'package:skill_exchange/features/search/widgets/search_result_card.dart';
 import 'package:skill_exchange/core/widgets/animated_list_item.dart';
-import 'package:skill_exchange/config/di/providers.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -260,7 +260,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 ),
                                 onConnect: isSent ? null : () async {
                                   try {
-                                    await ref.read(connectionFirestoreServiceProvider).sendRequest(user.id);
+                                    await ref.read(connectionsNotifierProvider.notifier).sendRequest(user.id, null);
                                     if (mounted) {
                                       setState(() => _sentRequests.add(user.id));
                                       ScaffoldMessenger.of(context).showSnackBar(

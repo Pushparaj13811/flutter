@@ -40,10 +40,23 @@ class SessionFirestoreService {
   }
 
   Future<void> completeSession(String id, {String? notes}) async {
+    final doc = await _db.collection('sessions').doc(id).get();
+    final data = doc.data()!;
+
     await _db.collection('sessions').doc(id).update({
       'status': 'completed',
       if (notes != null) 'notes': notes,
       'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Update both users' session counts
+    final host = data['host'] as String;
+    final participant = data['participant'] as String;
+    await _db.collection('profiles').doc(host).update({
+      'stats.sessionsCompleted': FieldValue.increment(1),
+    });
+    await _db.collection('profiles').doc(participant).update({
+      'stats.sessionsCompleted': FieldValue.increment(1),
     });
   }
 

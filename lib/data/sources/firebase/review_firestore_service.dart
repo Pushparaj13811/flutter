@@ -31,6 +31,29 @@ class ReviewFirestoreService {
       'isFeatured': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    // Update reviewed user's stats
+    final toUser = data['toUser'] as String;
+    final rating = (data['rating'] as num).toDouble();
+
+    // Get current stats to calculate new average
+    final profileDoc = await _db.collection('profiles').doc(toUser).get();
+    final stats = (profileDoc.data()?['stats'] as Map<String, dynamic>?) ?? {};
+    final currentCount = (stats['reviewsReceived'] as num?)?.toInt() ?? 0;
+    final currentAvg = (stats['averageRating'] as num?)?.toDouble() ?? 0.0;
+    final newCount = currentCount + 1;
+    final newAvg = ((currentAvg * currentCount) + rating) / newCount;
+
+    await _db.collection('profiles').doc(toUser).update({
+      'stats.reviewsReceived': newCount,
+      'stats.averageRating': double.parse(newAvg.toStringAsFixed(1)),
+    });
+
+    // Also update matchPool
+    await _db.collection('matchPool').doc(toUser).update({
+      'averageRating': double.parse(newAvg.toStringAsFixed(1)),
+    });
+
     return doc.id;
   }
 }
