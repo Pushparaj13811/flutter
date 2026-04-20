@@ -13,7 +13,11 @@ import 'package:skill_exchange/firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FcmService().initialize();
+  try {
+    await FcmService().initialize();
+  } catch (_) {
+    // FCM init may fail if user doc doesn't exist yet — non-blocking
+  }
   final prefs = await SharedPreferences.getInstance();
 
   runApp(
