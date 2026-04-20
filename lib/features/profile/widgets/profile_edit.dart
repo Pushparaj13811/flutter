@@ -106,7 +106,14 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
         .updateProfile(dto);
 
     if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully')),
+      );
       widget.onSaved();
+    } else if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update profile')),
+      );
     }
   }
 

@@ -95,11 +95,53 @@ class ProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
   Future<bool> updateProfile(UpdateProfileDto dto) async {
     state = const AsyncValue.loading();
     try {
-      await _service.updateProfile(dto.toJson());
+      // Manually build the Firestore map to avoid Freezed serialization issues
+      // (null values, enum name vs value, nested model encoding).
+      final data = <String, dynamic>{};
+      if (dto.fullName != null) data['fullName'] = dto.fullName;
+      if (dto.bio != null) data['bio'] = dto.bio;
+      if (dto.location != null) data['location'] = dto.location;
+      if (dto.timezone != null) data['timezone'] = dto.timezone;
+      if (dto.preferredLearningStyle != null) {
+        data['preferredLearningStyle'] = dto.preferredLearningStyle;
+      }
+      if (dto.interests != null) data['interests'] = dto.interests;
+      if (dto.languages != null) data['languages'] = dto.languages;
+      if (dto.skillsToTeach != null) {
+        data['skillsToTeach'] = dto.skillsToTeach!.map((s) => {
+          'id': s.id,
+          'name': s.name,
+          'category': s.category,
+          'level': s.level.value,
+        }).toList();
+      }
+      if (dto.skillsToLearn != null) {
+        data['skillsToLearn'] = dto.skillsToLearn!.map((s) => {
+          'id': s.id,
+          'name': s.name,
+          'category': s.category,
+          'level': s.level.value,
+        }).toList();
+      }
+      if (dto.availability != null) {
+        data['availability'] = {
+          'monday': dto.availability!.monday,
+          'tuesday': dto.availability!.tuesday,
+          'wednesday': dto.availability!.wednesday,
+          'thursday': dto.availability!.thursday,
+          'friday': dto.availability!.friday,
+          'saturday': dto.availability!.saturday,
+          'sunday': dto.availability!.sunday,
+        };
+      }
+
+      await _service.updateProfile(data);
       _ref.invalidate(currentProfileProvider);
-      final data = await _service.getMyProfile();
-      if (data != null) {
-        state = AsyncValue.data(UserProfileModel.fromJson(_sanitizeProfileData(data)));
+      final refreshed = await _service.getMyProfile();
+      if (refreshed != null) {
+        state = AsyncValue.data(
+          UserProfileModel.fromJson(_sanitizeProfileData(refreshed)),
+        );
       } else {
         state = const AsyncValue.data(null);
       }
