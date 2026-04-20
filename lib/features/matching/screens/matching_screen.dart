@@ -100,6 +100,11 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
         title: const Text('Skill Matching'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Search',
+            onPressed: () => context.push(RouteNames.search),
+          ),
+          IconButton(
             icon: const Icon(Icons.filter_list),
             tooltip: 'Filters',
             onPressed: _openFilters,

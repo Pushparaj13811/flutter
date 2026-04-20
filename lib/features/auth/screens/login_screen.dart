@@ -22,6 +22,8 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
+enum _AuthAction { none, login, google }
+
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -29,10 +31,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   bool _rememberMe = false;
   bool _obscurePassword = true;
+  _AuthAction _currentAction = _AuthAction.none;
 
-  bool get _isLoading {
-    return ref.watch(authProvider) is AuthAuthenticating;
-  }
+  bool get _isLoginLoading => _currentAction == _AuthAction.login;
 
   @override
   void dispose() {
@@ -43,6 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _onLogin() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _currentAction = _AuthAction.login);
     ref.read(authProvider.notifier).login(
           _emailController.text.trim(),
           _passwordController.text,
@@ -54,6 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next is AuthError) {
+        setState(() => _currentAction = _AuthAction.none);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.message),
@@ -62,6 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         );
       } else if (next is AuthAuthenticated) {
+        setState(() => _currentAction = _AuthAction.none);
         context.go('/dashboard');
       }
     });
@@ -232,8 +236,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // Login button with gradient
                       _GradientButton(
                         label: 'Log In',
-                        isLoading: _isLoading,
-                        onPressed: _isLoading ? null : _onLogin,
+                        isLoading: _isLoginLoading,
+                        onPressed: _currentAction != _AuthAction.none ? null : _onLogin,
                       ),
                       const SizedBox(height: AppSpacing.xl),
 
@@ -257,11 +261,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                       // Google button
                       GoogleOAuthButton(
-                        onPressed: _isLoading
+                        onPressed: _currentAction != _AuthAction.none
                             ? null
-                            : () => ref
-                                .read(authProvider.notifier)
-                                .signInWithGoogle(),
+                            : () {
+                                setState(() => _currentAction = _AuthAction.google);
+                                ref.read(authProvider.notifier).signInWithGoogle();
+                              },
                       ),
                     ],
                   ),

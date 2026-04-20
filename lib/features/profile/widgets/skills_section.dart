@@ -28,143 +28,19 @@ class _SkillsSectionState extends State<SkillsSection> {
   }
 
   Future<void> _showAddSkillDialog() async {
-    final nameController = TextEditingController();
-    SkillCategory selectedCategory = SkillCategory.other;
-    SkillLevel selectedLevel = SkillLevel.beginner;
-
-    await showDialog<void>(
+    final result = await showModalBottomSheet<SkillModel?>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Add Skill', style: AppTextStyles.h4),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Skill Name',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: context.colors.foreground,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    TextField(
-                      controller: nameController,
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Flutter, Python, Figma',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.sm,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Category',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: context.colors.foreground,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    DropdownButtonFormField<SkillCategory>(
-                      initialValue: selectedCategory,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.sm,
-                        ),
-                      ),
-                      items: SkillCategory.values.map((cat) {
-                        return DropdownMenuItem(
-                          value: cat,
-                          child: Text(cat.value, style: AppTextStyles.bodyMedium),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => selectedCategory = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Level',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: context.colors.foreground,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    DropdownButtonFormField<SkillLevel>(
-                      initialValue: selectedLevel,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.sm,
-                        ),
-                      ),
-                      items: SkillLevel.values.map((lvl) {
-                        return DropdownMenuItem(
-                          value: lvl,
-                          child: Text(
-                            _capitalize(lvl.value),
-                            style: AppTextStyles.bodyMedium,
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => selectedLevel = val);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    if (name.isEmpty) return;
-
-                    final newSkill = SkillModel(
-                      id: 'tmp_${DateTime.now().millisecondsSinceEpoch}',
-                      name: name,
-                      category: selectedCategory.value,
-                      level: selectedLevel,
-                    );
-
-                    final updated = [...widget.skills, newSkill];
-                    widget.onChanged(updated);
-                    Navigator.of(dialogContext).pop();
-                  },
-                  child: const Text('Add'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => const _AddSkillSheet(),
     );
 
-    nameController.dispose();
-  }
-
-  String _capitalize(String s) {
-    if (s.isEmpty) return s;
-    return s[0].toUpperCase() + s.substring(1);
+    if (result != null) {
+      final updated = [...widget.skills, result];
+      widget.onChanged(updated);
+    }
   }
 
   @override
@@ -215,6 +91,125 @@ class _SkillsSectionState extends State<SkillsSection> {
     );
   }
 }
+
+// ── Add Skill Bottom Sheet (StatefulWidget to avoid StatefulBuilder bug) ──────
+
+class _AddSkillSheet extends StatefulWidget {
+  const _AddSkillSheet();
+
+  @override
+  State<_AddSkillSheet> createState() => _AddSkillSheetState();
+}
+
+class _AddSkillSheetState extends State<_AddSkillSheet> {
+  final _nameController = TextEditingController();
+  SkillCategory _selectedCategory = SkillCategory.other;
+  SkillLevel _selectedLevel = SkillLevel.beginner;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).dividerColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Add Skill', style: AppTextStyles.h3),
+          const SizedBox(height: 20),
+
+          // Skill name
+          TextField(
+            controller: _nameController,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: 'Skill Name',
+              hintText: 'e.g. Flutter, Python, Figma',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Category dropdown
+          DropdownButtonFormField<SkillCategory>(
+            value: _selectedCategory,
+            decoration: InputDecoration(
+              labelText: 'Category',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            items: SkillCategory.values
+                .map((c) => DropdownMenuItem(value: c, child: Text(c.value)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedCategory = v!),
+          ),
+          const SizedBox(height: 16),
+
+          // Level dropdown
+          DropdownButtonFormField<SkillLevel>(
+            value: _selectedLevel,
+            decoration: InputDecoration(
+              labelText: 'Level',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            items: SkillLevel.values
+                .map((l) => DropdownMenuItem(
+                      value: l,
+                      child: Text(l.value[0].toUpperCase() + l.value.substring(1)),
+                    ))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedLevel = v!),
+          ),
+          const SizedBox(height: 24),
+
+          // Add button
+          FilledButton(
+            onPressed: () {
+              final name = _nameController.text.trim();
+              if (name.isEmpty) return;
+              Navigator.of(context).pop(SkillModel(
+                id: 'tmp_${DateTime.now().millisecondsSinceEpoch}',
+                name: name,
+                category: _selectedCategory.value,
+                level: _selectedLevel,
+              ));
+            },
+            child: const Text('Add Skill'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Deletable Skill Chip ─────────────────────────────────────────────────────
 
 class _DeletableSkillChip extends StatelessWidget {
   const _DeletableSkillChip({

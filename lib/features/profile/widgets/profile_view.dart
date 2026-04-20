@@ -8,7 +8,6 @@ import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/utils/formatters.dart';
-import 'package:skill_exchange/core/widgets/app_button.dart';
 import 'package:skill_exchange/core/widgets/star_rating.dart';
 import 'package:skill_exchange/core/widgets/skill_tag.dart';
 import 'package:skill_exchange/core/widgets/user_avatar.dart';
@@ -150,12 +149,7 @@ class ProfileView extends StatelessWidget {
                       _buildFooterCard(colors),
                       const SizedBox(height: AppSpacing.lg),
 
-                      // Logout button (own profile only)
-                      if (isOwnProfile && onLogoutPressed != null) ...[
-                        _buildLogoutButton(colors),
-                        const SizedBox(height: AppSpacing.xxl),
-                      ] else
-                        const SizedBox(height: AppSpacing.xxl),
+                      const SizedBox(height: AppSpacing.xxl),
                     ],
                   ),
                 ),
@@ -191,8 +185,6 @@ class ProfileView extends StatelessWidget {
               switch (action) {
                 case _OwnProfileAction.edit:
                   onEditPressed?.call();
-                case _OwnProfileAction.settings:
-                  onSettingsPressed?.call();
                 case _OwnProfileAction.logout:
                   onLogoutPressed?.call();
               }
@@ -205,16 +197,6 @@ class ProfileView extends StatelessWidget {
                     Icon(Icons.edit_outlined, size: 18),
                     SizedBox(width: 8),
                     Text('Edit Profile'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: _OwnProfileAction.settings,
-                child: Row(
-                  children: [
-                    Icon(Icons.settings_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Settings'),
                   ],
                 ),
               ),
@@ -470,27 +452,7 @@ class ProfileView extends StatelessWidget {
   // -- Action buttons ---------------------------------------------------------
 
   Widget _buildActionButtons(AppColorsExtension colors) {
-    if (isOwnProfile) {
-      return Row(
-        children: [
-          Expanded(
-            child: AppButton.primary(
-              label: 'Edit Profile',
-              icon: Icons.edit_outlined,
-              onPressed: onEditPressed,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: AppButton.outline(
-              label: 'Settings',
-              onPressed: onSettingsPressed,
-            ),
-          ),
-        ],
-      );
-    }
-    // For other users — handled by parent _OtherUserActions bar
+    // Own profile actions are in the AppBar menu only — no body buttons
     return const SizedBox.shrink();
   }
 
@@ -675,18 +637,6 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // -- Logout button ----------------------------------------------------------
-
-  Widget _buildLogoutButton(AppColorsExtension colors) {
-    return SizedBox(
-      width: double.infinity,
-      child: AppButton.destructive(
-        label: 'Log Out',
-        onPressed: onLogoutPressed,
-      ),
-    );
-  }
-
   // -- Helpers ----------------------------------------------------------------
 
   String _formatLearningStyle(String style) {
@@ -740,6 +690,6 @@ class ProfileView extends StatelessWidget {
 
 // -- Own profile popup menu actions -------------------------------------------
 
-enum _OwnProfileAction { edit, settings, logout }
+enum _OwnProfileAction { edit, logout }
 
 enum _OtherProfileAction { block, report }
