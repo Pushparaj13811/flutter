@@ -452,6 +452,7 @@ class SeedData {
       for (final post in posts) {
         await _db.collection('posts').add({
           ...post,
+          'authorAvatar': null,
           'images': <Map<String, dynamic>>[],
           'videoUrl': null,
           'mediaType': 'text',
@@ -546,6 +547,16 @@ class SeedData {
           'sessionMode': 'offline', 'location': 'Pune Central Park',
           'notes': '',
         },
+        {
+          'host': uids[3], 'participant': uids[1],
+          'title': 'TypeScript Workshop',
+          'description': 'Advanced TypeScript patterns and generics',
+          'skillsToCover': ['TypeScript'],
+          'scheduledAt': Timestamp.fromDate(now.subtract(const Duration(days: 1))),
+          'duration': 60, 'status': 'cancelled',
+          'sessionMode': 'online', 'meetingPlatform': 'google-meet',
+          'notes': 'Cancelled due to scheduling conflict.',
+        },
       ];
 
       for (final session in sessions) {
@@ -634,6 +645,142 @@ class SeedData {
         });
       }
       debugPrint('Created ${reviews.length} reviews');
+
+      // Post replies — get the created post IDs
+      final createdPosts = await _db.collection('posts').orderBy('createdAt').get();
+      if (createdPosts.docs.length >= 6) {
+        final postIds = createdPosts.docs.map((d) => d.id).toList();
+
+        final replies = [
+          // Replies to Welcome post (postIds[0])
+          {'postId': postIds[0], 'author': uids[1], 'authorName': 'Aarav Sharma', 'content': 'This platform is amazing! Already found great learning partners.'},
+          {'postId': postIds[0], 'author': uids[2], 'authorName': 'Diya Patel', 'content': 'Love the concept! Looking forward to sharing design skills.'},
+          {'postId': postIds[0], 'author': uids[8], 'authorName': 'Ananya Krishnan', 'content': 'Excited to be part of this community!'},
+          // Replies to Python Tips (postIds[1])
+          {'postId': postIds[1], 'author': uids[4], 'authorName': 'Priya Nair', 'content': 'Great tips! I would add: always use virtual environments.'},
+          {'postId': postIds[1], 'author': uids[0], 'authorName': 'Kruti Manani', 'content': 'Very helpful for beginners. Thanks for sharing!'},
+          // Replies to Design Resources (postIds[2])
+          {'postId': postIds[2], 'author': uids[5], 'authorName': 'Arjun Mehta', 'content': 'These resources are gold! Bookmarked them all.'},
+          // Replies to ML Project Ideas (postIds[3])
+          {'postId': postIds[3], 'author': uids[1], 'authorName': 'Aarav Sharma', 'content': 'The sentiment analysis project idea is perfect for my level.'},
+          // Replies to React Exchange (postIds[4])
+          {'postId': postIds[4], 'author': uids[0], 'authorName': 'Kruti Manani', 'content': 'I can help with React! Let us schedule a session.'},
+          {'postId': postIds[4], 'author': uids[8], 'authorName': 'Ananya Krishnan', 'content': 'I know someone learning Rust, let me connect you!'},
+        ];
+
+        for (final reply in replies) {
+          final postId = reply['postId'] as String;
+          await _db.collection('posts').doc(postId).collection('replies').add({
+            'author': reply['author'],
+            'authorName': reply['authorName'],
+            'authorAvatar': null,
+            'content': reply['content'],
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+          // Increment reply count
+          await _db.collection('posts').doc(postId).update({
+            'repliesCount': FieldValue.increment(1),
+          });
+        }
+        debugPrint('Created ${replies.length} post replies');
+
+        // Add likes to some posts
+        // Welcome post liked by 5 users
+        await _db.collection('posts').doc(postIds[0]).update({
+          'likedBy': [uids[1], uids[2], uids[3], uids[4], uids[8]],
+          'likesCount': 5,
+        });
+        // Python Tips liked by 3 users
+        await _db.collection('posts').doc(postIds[1]).update({
+          'likedBy': [uids[0], uids[4], uids[3]],
+          'likesCount': 3,
+        });
+        // Design Resources liked by 4 users
+        await _db.collection('posts').doc(postIds[2]).update({
+          'likedBy': [uids[0], uids[5], uids[3], uids[8]],
+          'likesCount': 4,
+        });
+        // ML Projects liked by 2 users
+        await _db.collection('posts').doc(postIds[3]).update({
+          'likedBy': [uids[1], uids[0]],
+          'likesCount': 2,
+        });
+        // Flutter vs RN liked by 3 users
+        await _db.collection('posts').doc(postIds[5]).update({
+          'likedBy': [uids[0], uids[2], uids[3]],
+          'likesCount': 3,
+        });
+        debugPrint('Added likes to posts');
+      }
+
+      // Notifications
+      final notifications = [
+        {'uid': uids[0], 'type': 'connection_request', 'title': 'New Connection Request', 'message': 'Rahul Gupta wants to connect with you', 'isRead': false},
+        {'uid': uids[0], 'type': 'session_booked', 'title': 'Session Booked', 'message': 'Flutter State Management Deep Dive with Ananya Krishnan', 'isRead': false},
+        {'uid': uids[0], 'type': 'review_received', 'title': 'New Review', 'message': 'Aarav Sharma gave you 5 stars!', 'isRead': true},
+        {'uid': uids[0], 'type': 'connection_accepted', 'title': 'Connection Accepted', 'message': 'Diya Patel accepted your connection request', 'isRead': true},
+        {'uid': uids[1], 'type': 'session_booked', 'title': 'Session Booked', 'message': 'Python Advanced Patterns with Kruti Manani', 'isRead': false},
+        {'uid': uids[1], 'type': 'review_received', 'title': 'New Review', 'message': 'Kruti Manani appreciated your Python teaching!', 'isRead': false},
+        {'uid': uids[4], 'type': 'connection_request', 'title': 'New Connection Request', 'message': 'Rahul Gupta wants to connect with you', 'isRead': false},
+        {'uid': uids[4], 'type': 'review_received', 'title': 'New Review', 'message': 'Kruti Manani gave you 5 stars for ML teaching!', 'isRead': true},
+        {'uid': uids[2], 'type': 'review_received', 'title': 'New Review', 'message': 'Rohan Verma gave you 4 stars for the Figma workshop', 'isRead': false},
+        {'uid': uids[8], 'type': 'session_booked', 'title': 'Upcoming Session', 'message': 'Flutter State Management Deep Dive with Kruti Manani in 2 days', 'isRead': false},
+      ];
+
+      // Clean existing notifications
+      for (final uid in uids) {
+        if (uid.isEmpty) continue;
+        final existing = await _db.collection('notifications').doc(uid).collection('items').get();
+        for (final doc in existing.docs) {
+          await doc.reference.delete();
+        }
+      }
+
+      for (final notif in notifications) {
+        final uid = notif['uid'] as String;
+        await _db.collection('notifications').doc(uid).collection('items').add({
+          'type': notif['type'],
+          'title': notif['title'],
+          'message': notif['message'],
+          'isRead': notif['isRead'],
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+      debugPrint('Created ${notifications.length} notifications');
+
+      // Reports
+      final existingReportsSnap = await _db.collection('reports').get();
+      for (final doc in existingReportsSnap.docs) {
+        await doc.reference.delete();
+      }
+
+      final reports = [
+        {
+          'reporter': uids[0], 'reportedUser': uids[9],
+          'reason': 'spam', 'description': 'This user is posting cryptocurrency scam links in their bio.',
+          'status': 'pending',
+        },
+        {
+          'reporter': uids[2], 'reportedUser': uids[9],
+          'reason': 'scam', 'description': 'Received suspicious messages with phishing links from this user.',
+          'status': 'pending',
+        },
+        {
+          'reporter': uids[1], 'reportedUser': uids[7],
+          'reason': 'inappropriate', 'description': 'Promoting unverified health supplements during skill sessions.',
+          'status': 'reviewed', 'resolutionNote': 'User warned. Content removed.',
+          'reviewedBy': uids[0],
+        },
+      ];
+
+      for (final report in reports) {
+        await _db.collection('reports').add({
+          ...report,
+          'createdAt': FieldValue.serverTimestamp(),
+          if (report['status'] == 'reviewed') 'reviewedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      debugPrint('Created ${reports.length} reports');
 
       // Update connection counts in profiles
       final connectionCount = <String, int>{};
