@@ -28,7 +28,7 @@ dependencies:
 
   # Networking
   dio: ^5.7.0
-  web_socket_channel: ^3.0.2
+  socket_io_client: ^3.0.2
   connectivity_plus: ^6.1.2
 
   # Local Storage
