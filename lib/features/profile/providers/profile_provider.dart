@@ -47,11 +47,19 @@ Map<String, dynamic> _sanitizeProfileData(Map<String, dynamic> raw) {
 final currentProfileProvider =
     FutureProvider<UserProfileModel>((ref) async {
   final service = ref.watch(profileFirestoreServiceProvider);
-  final data = await service.getMyProfile();
-  if (data == null) {
-    throw Exception('Profile not found');
+
+  // Retry up to 3 times with delay — profile may not be available
+  // immediately after auth state change
+  for (int attempt = 0; attempt < 3; attempt++) {
+    final data = await service.getMyProfile();
+    if (data != null) {
+      return UserProfileModel.fromJson(_sanitizeProfileData(data));
+    }
+    if (attempt < 2) {
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
   }
-  return UserProfileModel.fromJson(_sanitizeProfileData(data));
+  throw Exception('Profile not found');
 });
 
 final profileProvider =
