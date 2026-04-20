@@ -9,22 +9,21 @@ class SessionRemoteSource {
 
   SessionRemoteSource(this._dio);
 
-  Future<List<SessionModel>> getUpcomingSessions({int? limit}) async {
-    final params = <String, dynamic>{};
-    if (limit != null) params['limit'] = limit;
-
-    final response = await _dio.get(
-      Sessions.upcoming,
-      queryParameters: params,
-    );
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => SessionModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+  /// Returns {upcoming: [...], past: [...]}
+  Future<Map<String, dynamic>> getSessions() async {
+    final response = await _dio.get(Sessions.list);
+    return response.data['data'] as Map<String, dynamic>;
   }
 
-  Future<SessionModel> createSession(CreateSessionDto dto) async {
-    final response = await _dio.post(Sessions.create, data: dto.toJson());
+  Future<SessionModel> getSession(String id) async {
+    final response = await _dio.get(Sessions.byId(id));
+    return SessionModel.fromJson(
+      response.data['data'] as Map<String, dynamic>,
+    );
+  }
+
+  Future<SessionModel> bookSession(CreateSessionDto dto) async {
+    final response = await _dio.post(Sessions.book, data: dto.toJson());
     return SessionModel.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
@@ -33,15 +32,16 @@ class SessionRemoteSource {
   Future<SessionModel> cancelSession(String id, {String? reason}) async {
     final body = <String, dynamic>{};
     if (reason != null) body['reason'] = reason;
-
-    final response = await _dio.put(Sessions.cancel(id), data: body);
+    final response = await _dio.post(Sessions.cancel(id), data: body);
     return SessionModel.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
   }
 
-  Future<SessionModel> completeSession(String id) async {
-    final response = await _dio.put(Sessions.complete(id));
+  Future<SessionModel> completeSession(String id, {String? notes}) async {
+    final body = <String, dynamic>{};
+    if (notes != null) body['notes'] = notes;
+    final response = await _dio.post(Sessions.complete(id), data: body);
     return SessionModel.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );

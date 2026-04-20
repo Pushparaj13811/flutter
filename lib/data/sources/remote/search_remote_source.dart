@@ -1,31 +1,38 @@
 import 'package:dio/dio.dart';
 import 'package:skill_exchange/core/constants/api_endpoints.dart';
-import 'package:skill_exchange/data/models/search_result_model.dart';
 
 class SearchRemoteSource {
   final Dio _dio;
 
   SearchRemoteSource(this._dio);
 
-  Future<SearchResultModel> searchUsers(
-    SearchFiltersModel filters, {
+  Future<Map<String, dynamic>> searchUsers({
+    String? query,
+    String? skillCategory,
+    String? skillName,
+    String? location,
+    double? minRating,
+    double? maxRating,
+    String? learningStyle,
     int page = 1,
+    int pageSize = 20,
   }) async {
     final params = <String, dynamic>{
       'page': page,
+      'pageSize': pageSize,
     };
-
-    final json = filters.toJson();
-    json.removeWhere((_, v) => v == null);
-    params.addAll(json);
+    if (query != null) params['query'] = query;
+    if (skillCategory != null) params['skillCategory'] = skillCategory;
+    if (skillName != null) params['skillName'] = skillName;
+    if (location != null) params['location'] = location;
+    if (minRating != null) params['minRating'] = minRating;
+    if (maxRating != null) params['maxRating'] = maxRating;
+    if (learningStyle != null) params['learningStyle'] = learningStyle;
 
     final response = await _dio.get(
       Search.users,
       queryParameters: params,
     );
-
-    return SearchResultModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
+    return response.data['data'] as Map<String, dynamic>;
   }
 }

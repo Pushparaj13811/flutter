@@ -1,153 +1,132 @@
 import 'package:dio/dio.dart';
 import 'package:skill_exchange/core/constants/api_endpoints.dart';
-import 'package:skill_exchange/data/models/activity_log_model.dart';
-import 'package:skill_exchange/data/models/admin_circle_model.dart';
-import 'package:skill_exchange/data/models/admin_post_model.dart';
-import 'package:skill_exchange/data/models/admin_skill_model.dart';
-import 'package:skill_exchange/data/models/analytics_model.dart';
-import 'package:skill_exchange/data/models/announcement_model.dart';
-import 'package:skill_exchange/data/models/platform_stats_model.dart';
-import 'package:skill_exchange/data/models/user_report_model.dart';
 
 class AdminRemoteSource {
   final Dio _dio;
 
   AdminRemoteSource(this._dio);
 
-  // ── Reports ──────────────────────────────────────────────────────────
-
-  Future<UserReportModel> createReport(Map<String, dynamic> data) async {
-    final response = await _dio.post(Reports.create, data: data);
-    return UserReportModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
-  }
-
-  Future<List<UserReportModel>> getReports() async {
-    final response = await _dio.get(Reports.list);
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => UserReportModel.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  Future<UserReportModel> updateReport(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _dio.put(Reports.byId(id), data: data);
-    return UserReportModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
-  }
-
-  Future<PlatformStatsModel> getPlatformStats() async {
+  // ── Stats ──
+  Future<Map<String, dynamic>> getStats() async {
     final response = await _dio.get(Admin.stats);
-    return PlatformStatsModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
+    return response.data['data'] as Map<String, dynamic>;
   }
 
-  // ── Community Posts ──────────────────────────────────────────────────
-
-  Future<List<AdminPostModel>> getAdminPosts() async {
-    final response = await _dio.get(Admin.communityPosts);
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => AdminPostModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+  // ── Users ──
+  Future<Map<String, dynamic>> getUsers({Map<String, dynamic>? params}) async {
+    final response = await _dio.get(Admin.users, queryParameters: params);
+    return response.data['data'] as Map<String, dynamic>;
   }
 
-  Future<void> pinPost(String id) async {
-    await _dio.put(Admin.pinPost(id));
+  Future<Map<String, dynamic>> getUserById(String id) async {
+    final response = await _dio.get(Admin.userById(id));
+    return response.data['data'] as Map<String, dynamic>;
   }
 
-  Future<void> hidePost(String id) async {
-    await _dio.put(Admin.hidePost(id));
+  Future<void> updateUserRole(String id, String role) async {
+    await _dio.patch(Admin.userRole(id), data: {'role': role});
+  }
+
+  Future<void> banUser(String id) async {
+    await _dio.patch(Admin.banUser(id));
+  }
+
+  Future<void> unbanUser(String id) async {
+    await _dio.patch(Admin.unbanUser(id));
+  }
+
+  Future<void> deleteUser(String id) async {
+    await _dio.delete(Admin.userById(id));
+  }
+
+  Future<void> verifySkill(String userId, int skillIndex) async {
+    await _dio.patch(Admin.verifySkill(userId, skillIndex));
+  }
+
+  // ── Posts ──
+  Future<Map<String, dynamic>> getPosts({Map<String, dynamic>? params}) async {
+    final response = await _dio.get(Admin.posts, queryParameters: params);
+    return response.data['data'] as Map<String, dynamic>;
   }
 
   Future<void> deletePost(String id) async {
     await _dio.delete(Admin.deletePost(id));
   }
 
-  // ── Community Circles ────────────────────────────────────────────────
-
-  Future<List<AdminCircleModel>> getAdminCircles() async {
-    final response = await _dio.get(Admin.communityCircles);
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => AdminCircleModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+  Future<void> moderatePost(String id, Map<String, dynamic> data) async {
+    await _dio.patch(Admin.moderatePost(id), data: data);
   }
 
-  Future<void> featureCircle(String id) async {
-    await _dio.put(Admin.featureCircle(id));
+  // ── Circles ──
+  Future<List<dynamic>> getCircles() async {
+    final response = await _dio.get(Admin.circles);
+    return response.data['data'] as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getCircleById(String id) async {
+    final response = await _dio.get(Admin.circleById(id));
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createCircle(Map<String, dynamic> data) async {
+    final response = await _dio.post(Admin.circles, data: data);
+    return response.data['data'] as Map<String, dynamic>;
   }
 
   Future<void> updateCircle(String id, Map<String, dynamic> data) async {
-    await _dio.put(Admin.updateCircle(id), data: data);
+    await _dio.put(Admin.circleById(id), data: data);
   }
 
   Future<void> deleteCircle(String id) async {
-    await _dio.delete(Admin.deleteCircle(id));
+    await _dio.delete(Admin.circleById(id));
   }
 
-  // ── Analytics ────────────────────────────────────────────────────────
-
-  Future<AnalyticsModel> getAnalytics() async {
-    final response = await _dio.get(Admin.analytics);
-    return AnalyticsModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
+  // ── Sessions ──
+  Future<Map<String, dynamic>> getSessions({Map<String, dynamic>? params}) async {
+    final response = await _dio.get(Admin.sessions, queryParameters: params);
+    return response.data['data'] as Map<String, dynamic>;
   }
 
-  // ── Skills Management ────────────────────────────────────────────────
-
-  Future<List<AdminSkillModel>> getAdminSkills() async {
-    final response = await _dio.get(Admin.skills);
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => AdminSkillModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+  Future<void> cancelSession(String id) async {
+    await _dio.patch(Admin.cancelSession(id));
   }
 
-  Future<void> createSkill(Map<String, dynamic> data) async {
-    await _dio.post(Admin.skills, data: data);
+  // ── Connections ──
+  Future<Map<String, dynamic>> getConnections({Map<String, dynamic>? params}) async {
+    final response = await _dio.get(Admin.connections, queryParameters: params);
+    return response.data['data'] as Map<String, dynamic>;
   }
 
-  Future<void> updateSkill(String id, Map<String, dynamic> data) async {
-    await _dio.put(Admin.skillById(id), data: data);
+  Future<void> deleteConnection(String id) async {
+    await _dio.delete(Admin.deleteConnection(id));
   }
 
-  Future<void> deleteSkill(String id) async {
-    await _dio.delete(Admin.skillById(id));
+  // ── Reviews ──
+  Future<Map<String, dynamic>> getReviews({Map<String, dynamic>? params}) async {
+    final response = await _dio.get(Admin.reviews, queryParameters: params);
+    return response.data['data'] as Map<String, dynamic>;
   }
 
-  // ── Announcements ───────────────────────────────────────────────────
-
-  Future<List<AnnouncementModel>> getAnnouncements() async {
-    final response = await _dio.get(Admin.announcements);
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => AnnouncementModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+  Future<void> deleteReview(String id) async {
+    await _dio.delete(Admin.deleteReview(id));
   }
 
-  Future<void> createAnnouncement(Map<String, dynamic> data) async {
-    await _dio.post(Admin.announcements, data: data);
+  Future<void> updateReviewStatus(String id, String status) async {
+    await _dio.patch(Admin.reviewStatus(id), data: {'status': status});
   }
 
-  Future<void> deleteAnnouncement(String id) async {
-    await _dio.delete(Admin.deleteAnnouncement(id));
+  // ── Reports ──
+  Future<Map<String, dynamic>> getReports({Map<String, dynamic>? params}) async {
+    final response = await _dio.get(Admin.reports, queryParameters: params);
+    return response.data['data'] as Map<String, dynamic>;
   }
 
-  // ── Activity Logs ───────────────────────────────────────────────────
+  Future<Map<String, dynamic>> getReportById(String id) async {
+    final response = await _dio.get(Admin.reportById(id));
+    return response.data['data'] as Map<String, dynamic>;
+  }
 
-  Future<List<ActivityLogModel>> getActivityLogs() async {
-    final response = await _dio.get(Admin.activityLogs);
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => ActivityLogModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+  Future<void> updateReport(String id, Map<String, dynamic> data) async {
+    await _dio.patch(Admin.reportById(id), data: data);
   }
 }

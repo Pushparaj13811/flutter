@@ -16,7 +16,7 @@ class AuthRemoteSource {
   }
 
   Future<AuthTokensModel> signup(SignupDto dto) async {
-    final response = await _dio.post(Auth.signup, data: dto.toJson());
+    final response = await _dio.post(Auth.register, data: dto.toJson());
     return AuthTokensModel.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
@@ -27,9 +27,9 @@ class AuthRemoteSource {
   }
 
   Future<UserModel> getCurrentUser() async {
-    final response = await _dio.get(Auth.me);
+    final response = await _dio.get(Users.me);
     return UserModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
+      response.data['data']['user'] as Map<String, dynamic>,
     );
   }
 
@@ -40,7 +40,7 @@ class AuthRemoteSource {
   Future<void> resetPassword(String token, String newPassword) async {
     await _dio.post(
       Auth.resetPassword,
-      data: {'token': token, 'newPassword': newPassword},
+      data: {'token': token, 'password': newPassword},
     );
   }
 
@@ -50,5 +50,12 @@ class AuthRemoteSource {
 
   Future<void> changePassword(ChangePasswordDto dto) async {
     await _dio.post(Auth.changePassword, data: dto.toJson());
+  }
+
+  Future<void> changeEmail(String password, String newEmail) async {
+    await _dio.patch(Auth.changeEmail, data: {
+      'password': password,
+      'newEmail': newEmail,
+    });
   }
 }

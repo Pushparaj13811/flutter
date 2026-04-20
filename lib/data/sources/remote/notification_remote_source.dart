@@ -9,7 +9,7 @@ class NotificationRemoteSource {
 
   Future<List<NotificationModel>> getNotifications() async {
     final response = await _dio.get(Notifications.list);
-    final data = response.data['data'] as List;
+    final data = response.data['data']['notifications'] as List;
     return data
         .map((e) => NotificationModel.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -21,11 +21,11 @@ class NotificationRemoteSource {
   }
 
   Future<void> markAsRead(String id) async {
-    await _dio.put(Notifications.markRead(id));
+    await _dio.post(Notifications.markRead(id));
   }
 
   Future<void> markAllAsRead() async {
-    await _dio.put(Notifications.readAll);
+    await _dio.post(Notifications.readAll);
   }
 
   Future<void> deleteNotification(String id) async {

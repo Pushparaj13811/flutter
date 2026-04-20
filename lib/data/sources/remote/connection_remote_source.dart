@@ -7,17 +7,14 @@ class ConnectionRemoteSource {
 
   ConnectionRemoteSource(this._dio);
 
-  Future<List<ConnectionModel>> getConnections() async {
+  Future<Map<String, dynamic>> getConnections() async {
     final response = await _dio.get(Connections.list);
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => ConnectionModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return response.data['data'] as Map<String, dynamic>;
   }
 
   Future<List<ConnectionModel>> getPendingRequests() async {
     final response = await _dio.get(Connections.pending);
-    final data = response.data['data'] as List;
+    final data = response.data['data']['pending'] as List;
     return data
         .map((e) => ConnectionModel.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -25,7 +22,7 @@ class ConnectionRemoteSource {
 
   Future<List<ConnectionModel>> getSentRequests() async {
     final response = await _dio.get(Connections.sent);
-    final data = response.data['data'] as List;
+    final data = response.data['data']['sent'] as List;
     return data
         .map((e) => ConnectionModel.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -45,11 +42,15 @@ class ConnectionRemoteSource {
     );
   }
 
-  Future<ConnectionModel> respondToRequest(String id, bool accept) async {
-    final response = await _dio.put(
-      Connections.respond(id),
-      data: {'accept': accept},
+  Future<ConnectionModel> acceptRequest(String id) async {
+    final response = await _dio.post(Connections.accept(id));
+    return ConnectionModel.fromJson(
+      response.data['data'] as Map<String, dynamic>,
     );
+  }
+
+  Future<ConnectionModel> rejectRequest(String id) async {
+    final response = await _dio.post(Connections.reject(id));
     return ConnectionModel.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
@@ -57,10 +58,5 @@ class ConnectionRemoteSource {
 
   Future<void> removeConnection(String id) async {
     await _dio.delete(Connections.remove(id));
-  }
-
-  Future<String> getConnectionStatus(String userId) async {
-    final response = await _dio.get(Connections.status(userId));
-    return response.data['data']['status'] as String;
   }
 }

@@ -8,45 +8,44 @@ class MessagingRemoteSource {
 
   MessagingRemoteSource(this._dio);
 
-  Future<List<ConversationModel>> getConversations() async {
-    final response = await _dio.get(Messages.conversations);
+  Future<List<ConversationModel>> getThreads() async {
+    final response = await _dio.get(Messages.threads);
     final data = response.data['data'] as List;
     return data
         .map((e) => ConversationModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
-  Future<List<MessageModel>> getMessages(
-    String conversationId, {
-    int? page,
+  Future<Map<String, dynamic>> getMessages(
+    String threadId, {
+    int page = 1,
   }) async {
-    final params = <String, dynamic>{};
-    if (page != null) params['page'] = page;
-
     final response = await _dio.get(
-      Messages.conversationMessages(conversationId),
-      queryParameters: params,
+      Messages.threadById(threadId),
+      queryParameters: {'page': page},
     );
-    final data = response.data['data'] as List;
-    return data
-        .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return response.data['data'] as Map<String, dynamic>;
   }
 
   Future<MessageModel> sendMessage(
-    String conversationId,
+    String receiverId,
     String content,
   ) async {
     final response = await _dio.post(
       Messages.send,
-      data: {'conversationId': conversationId, 'content': content},
+      data: {'receiverId': receiverId, 'content': content},
     );
     return MessageModel.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
   }
 
-  Future<void> markAsRead(String id) async {
-    await _dio.put(Messages.markRead(id));
+  Future<void> markThreadRead(String threadId) async {
+    await _dio.post(Messages.markRead(threadId));
+  }
+
+  Future<int> getUnreadCount() async {
+    final response = await _dio.get(Messages.unreadCount);
+    return response.data['data']['count'] as int;
   }
 }
