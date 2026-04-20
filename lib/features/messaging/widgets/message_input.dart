@@ -1,11 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 
 class MessageInput extends StatefulWidget {
-  const MessageInput({super.key, required this.onSend});
+  const MessageInput({
+    super.key,
+    required this.onSend,
+    this.onTypingChanged,
+  });
 
   final ValueChanged<String> onSend;
+  final ValueChanged<bool>? onTypingChanged;
 
   @override
   State<MessageInput> createState() => _MessageInputState();
@@ -14,6 +21,8 @@ class MessageInput extends StatefulWidget {
 class _MessageInputState extends State<MessageInput> {
   final _controller = TextEditingController();
   bool _canSend = false;
+  Timer? _typingTimer;
+  bool _isTyping = false;
 
   @override
   void initState() {
@@ -23,6 +32,10 @@ class _MessageInputState extends State<MessageInput> {
 
   @override
   void dispose() {
+    _typingTimer?.cancel();
+    if (_isTyping) {
+      widget.onTypingChanged?.call(false);
+    }
     _controller.dispose();
     super.dispose();
   }
@@ -32,6 +45,25 @@ class _MessageInputState extends State<MessageInput> {
     if (hasText != _canSend) {
       setState(() => _canSend = hasText);
     }
+
+    // Typing indicator logic
+    if (hasText) {
+      if (!_isTyping) {
+        _isTyping = true;
+        widget.onTypingChanged?.call(true);
+      }
+      _typingTimer?.cancel();
+      _typingTimer = Timer(const Duration(seconds: 3), () {
+        _isTyping = false;
+        widget.onTypingChanged?.call(false);
+      });
+    } else {
+      if (_isTyping) {
+        _isTyping = false;
+        _typingTimer?.cancel();
+        widget.onTypingChanged?.call(false);
+      }
+    }
   }
 
   void _handleSend() {
@@ -39,6 +71,12 @@ class _MessageInputState extends State<MessageInput> {
     if (text.isEmpty) return;
     widget.onSend(text);
     _controller.clear();
+    // Stop typing on send
+    _typingTimer?.cancel();
+    if (_isTyping) {
+      _isTyping = false;
+      widget.onTypingChanged?.call(false);
+    }
   }
 
   @override

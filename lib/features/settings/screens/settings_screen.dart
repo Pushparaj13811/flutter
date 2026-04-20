@@ -7,6 +7,7 @@ import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/features/settings/providers/settings_provider.dart';
 import 'package:skill_exchange/features/settings/widgets/account_settings.dart';
+import 'package:skill_exchange/features/settings/widgets/appearance_settings.dart';
 import 'package:skill_exchange/features/settings/widgets/notification_settings.dart';
 import 'package:skill_exchange/features/settings/widgets/privacy_settings.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
@@ -61,6 +62,8 @@ class SettingsScreen extends ConsumerWidget {
               const PrivacySettings(),
               const Divider(height: AppSpacing.xl),
               const AccountSettings(),
+              const Divider(height: AppSpacing.xl),
+              const AppearanceSettings(),
               const SizedBox(height: AppSpacing.xxl),
               _buildAppVersion(context),
               const SizedBox(height: AppSpacing.xl),

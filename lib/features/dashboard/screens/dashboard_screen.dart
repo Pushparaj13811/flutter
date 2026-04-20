@@ -15,6 +15,7 @@ import 'package:skill_exchange/features/sessions/providers/session_provider.dart
 import 'package:skill_exchange/features/dashboard/widgets/top_matches_section.dart';
 import 'package:skill_exchange/features/dashboard/widgets/upcoming_sessions_section.dart';
 import 'package:skill_exchange/features/profile/providers/profile_provider.dart';
+import 'package:skill_exchange/config/di/providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -26,6 +27,9 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
+        actions: [
+          _NotificationBell(ref: ref),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -111,6 +115,118 @@ class DashboardScreen extends ConsumerWidget {
         SizedBox(height: AppSpacing.md),
         SkeletonCard.session(),
       ],
+    );
+  }
+}
+
+// ── Notification bell with unread badge ──────────────────────────────────────
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell({required this.ref});
+
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final service = ref.watch(notificationFirestoreServiceProvider);
+
+    return StreamBuilder(
+      stream: service.notificationsStream(),
+      builder: (context, snapshot) {
+        int unreadCount = 0;
+        if (snapshot.hasData) {
+          unreadCount = snapshot.data!.docs
+              .where((doc) => doc.data()['isRead'] == false)
+              .length;
+        }
+
+        return IconButton(
+          icon: Badge(
+            isLabelVisible: unreadCount > 0,
+            label: Text(
+              unreadCount > 9 ? '9+' : '$unreadCount',
+              style: const TextStyle(fontSize: 10),
+            ),
+            child: const Icon(Icons.notifications_outlined),
+          ),
+          tooltip: 'Notifications',
+          onPressed: () => _showNotificationsSheet(context, service),
+        );
+      },
+    );
+  }
+
+  void _showNotificationsSheet(BuildContext context, NotificationFirestoreService service) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.3,
+        expand: false,
+        builder: (context, scrollController) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Notifications', style: AppTextStyles.h4),
+                    TextButton(
+                      onPressed: () => service.markAllAsRead(),
+                      child: const Text('Mark all read'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: StreamBuilder(
+                  stream: service.notificationsStream(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final docs = snapshot.data!.docs;
+                    if (docs.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(AppSpacing.xl),
+                          child: Text('No notifications yet'),
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      controller: scrollController,
+                      itemCount: docs.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final data = docs[index].data();
+                        final isRead = data['isRead'] ?? false;
+                        return ListTile(
+                          leading: Icon(
+                            Icons.circle,
+                            size: 10,
+                            color: isRead ? Colors.transparent : Theme.of(context).colorScheme.primary,
+                          ),
+                          title: Text(data['title'] ?? 'Notification'),
+                          subtitle: Text(data['body'] ?? ''),
+                          dense: true,
+                          onTap: () {
+                            service.markAsRead(docs[index].id);
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

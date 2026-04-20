@@ -1,22 +1,84 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/data/models/conversation_model.dart';
 import 'package:skill_exchange/data/models/message_model.dart';
 
-// ── Data Providers ────────────────────────────────────────────────────────
+// ── Stream-based Providers ───────────────────────────────────────────────────
+
+/// Real-time stream of conversations from Firestore.
+final conversationsStreamProvider =
+    StreamProvider<List<ConversationModel>>((ref) {
+  final service = ref.watch(messagingFirestoreServiceProvider);
+  final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  return service.threadsStream().map((snap) {
+    return snap.docs.map((doc) {
+      final data = doc.data();
+      final participants = List<String>.from(data['participants'] ?? []);
+      return ConversationModel(
+        id: doc.id,
+        participants: participants,
+        lastMessage: data['lastMessage'] as String?,
+        lastMessageAt: (data['lastMessageAt'] as Timestamp?)
+            ?.toDate()
+            .toIso8601String(),
+        unreadCount: (data['unreadCount_$uid'] as int?) ?? 0,
+        updatedAt: (data['lastMessageAt'] as Timestamp?)
+                ?.toDate()
+                .toIso8601String() ??
+            '',
+      );
+    }).toList();
+  });
+});
+
+/// Real-time stream of messages for a specific thread.
+final messagesStreamProvider =
+    StreamProvider.family<List<MessageModel>, String>((ref, threadId) {
+  final service = ref.watch(messagingFirestoreServiceProvider);
+  final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  return service.messagesStream(threadId).map((snap) {
+    return snap.docs.map((doc) {
+      final data = doc.data();
+      return MessageModel(
+        id: doc.id,
+        conversationId: threadId,
+        senderId: data['sender'] ?? '',
+        receiverId: '',
+        content: data['content'] ?? '',
+        createdAt:
+            (data['createdAt'] as Timestamp?)?.toDate().toIso8601String() ?? '',
+        isFromMe: data['sender'] == uid,
+        read: data['isRead'] ?? false,
+      );
+    }).toList();
+  });
+});
+
+// ── Legacy Data Providers (kept for backward compatibility) ──────────────────
 
 final conversationsProvider =
     FutureProvider<List<ConversationModel>>((ref) async {
-  // Conversations are stream-based in Firebase; stub as empty for now.
-  // UI should use threadsStreamProvider instead.
-  return <ConversationModel>[];
+  // Delegate to the stream provider for real-time data
+  final streamValue = ref.watch(conversationsStreamProvider);
+  return streamValue.when(
+    data: (data) => data,
+    loading: () => <ConversationModel>[],
+    error: (_, __) => <ConversationModel>[],
+  );
 });
 
 final messagesProvider =
     FutureProvider.family<List<MessageModel>, String>((ref, conversationId) async {
-  // Messages are stream-based in Firebase; stub as empty for now.
-  // UI should use messagesStreamProvider instead.
-  return <MessageModel>[];
+  final streamValue = ref.watch(messagesStreamProvider(conversationId));
+  return streamValue.when(
+    data: (data) => data,
+    loading: () => <MessageModel>[],
+    error: (_, __) => <MessageModel>[],
+  );
 });
 
 // ── Messaging Notifier ───────────────────────────────────────────────────

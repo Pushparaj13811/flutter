@@ -7,6 +7,7 @@ import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/services/fcm_service.dart';
 import 'package:skill_exchange/core/theme/app_theme.dart';
 import 'package:skill_exchange/core/widgets/connectivity_banner.dart';
+import 'package:skill_exchange/features/settings/providers/theme_provider.dart';
 import 'package:skill_exchange/firebase_options.dart';
 
 void main() async {
@@ -31,12 +32,14 @@ class SkillExchangeApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Skill Exchange',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
       darkTheme: AppTheme.darkTheme(),
+      themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
         return GestureDetector(

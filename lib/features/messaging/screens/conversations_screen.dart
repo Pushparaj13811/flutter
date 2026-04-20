@@ -13,12 +13,13 @@ class ConversationsScreen extends ConsumerWidget {
   const ConversationsScreen({super.key});
 
   Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(conversationsStreamProvider);
     ref.invalidate(conversationsProvider);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final conversationsAsync = ref.watch(conversationsProvider);
+    final conversationsAsync = ref.watch(conversationsStreamProvider);
 
     return Scaffold(
       appBar: AppBar(

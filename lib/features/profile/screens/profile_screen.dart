@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/widgets/app_button.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
@@ -180,13 +183,13 @@ class _OtherUserMenu extends StatelessWidget {
 
 // ── Other-user bottom action bar ─────────────────────────────────────────────
 
-class _OtherUserActions extends StatelessWidget {
+class _OtherUserActions extends ConsumerWidget {
   const _OtherUserActions({required this.userId});
 
   final String userId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return SafeArea(
       child: Container(
@@ -208,24 +211,37 @@ class _OtherUserActions extends StatelessWidget {
             Expanded(
               child: AppButton.primary(
                 label: 'Connect',
-                onPressed: () {
-                  // TODO: trigger connect flow
-                },
+                onPressed: () => _sendConnectionRequest(context, ref),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: AppButton.outline(
                 label: 'Book Session',
-                onPressed: () {
-                  // TODO: trigger book-session flow
-                },
+                onPressed: () => context.go(RouteNames.bookings),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _sendConnectionRequest(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(connectionFirestoreServiceProvider).sendRequest(userId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Connection request sent!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send request: $e')),
+        );
+      }
+    }
   }
 }
 

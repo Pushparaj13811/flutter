@@ -56,12 +56,27 @@ class MessageBubble extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              child: Text(
-                _formattedTime,
-                style: AppTextStyles.caption.copyWith(
-                  color: context.colors.mutedForeground,
-                  fontSize: 10,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formattedTime,
+                    style: AppTextStyles.caption.copyWith(
+                      color: context.colors.mutedForeground,
+                      fontSize: 10,
+                    ),
+                  ),
+                  if (_isMine) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      message.read ? Icons.done_all : Icons.done,
+                      size: 14,
+                      color: message.read
+                          ? context.colors.primary
+                          : context.colors.mutedForeground,
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
