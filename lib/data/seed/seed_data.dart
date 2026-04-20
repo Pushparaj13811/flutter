@@ -436,6 +436,26 @@ class SeedData {
         });
       }
 
+      // Update connection counts IMMEDIATELY after creating connections
+      final connectionCount = <String, int>{};
+      for (final pair in connectionPairs) {
+        final u1 = uids[pair[0]];
+        final u2 = uids[pair[1]];
+        if (u1.isEmpty || u2.isEmpty) continue;
+        connectionCount[u1] = (connectionCount[u1] ?? 0) + 1;
+        connectionCount[u2] = (connectionCount[u2] ?? 0) + 1;
+      }
+      for (final entry in connectionCount.entries) {
+        try {
+          await _db.collection('profiles').doc(entry.key).update({
+            'stats.connectionsCount': entry.value,
+          });
+        } catch (e) {
+          debugPrint('Failed to update conn count for ${entry.key}: $e');
+        }
+      }
+      debugPrint('Updated connection counts for ${connectionCount.length} users');
+
       // Community posts
       final posts = [
         {'author': uids[0], 'authorName': 'Kruti Manani', 'title': 'Welcome to Skill Exchange!', 'content': 'Excited to launch this platform! Share your skills, learn new ones, and grow together.', 'category': 'Announcements', 'tags': ['welcome', 'launch']},
@@ -794,36 +814,6 @@ class SeedData {
         });
       }
       debugPrint('Created ${reports.length} reports');
-
-      // Final: Set ALL stats at once per user in a single write
-      final connectionCount = <String, int>{};
-      for (final pair in connectionPairs) {
-        final u1 = uids[pair[0]];
-        final u2 = uids[pair[1]];
-        if (u1.isEmpty || u2.isEmpty) continue;
-        connectionCount[u1] = (connectionCount[u1] ?? 0) + 1;
-        connectionCount[u2] = (connectionCount[u2] ?? 0) + 1;
-      }
-
-      // Write all stats for each user in one update
-      final allUserIds = {...connectionCount.keys, ...sessionCompletionCount.keys};
-      for (final uid in allUserIds) {
-        try {
-          final updates = <String, dynamic>{};
-          if (connectionCount.containsKey(uid)) {
-            updates['stats.connectionsCount'] = connectionCount[uid];
-          }
-          if (sessionCompletionCount.containsKey(uid)) {
-            updates['stats.sessionsCompleted'] = sessionCompletionCount[uid];
-          }
-          if (updates.isNotEmpty) {
-            await _db.collection('profiles').doc(uid).update(updates);
-          }
-        } catch (e) {
-          debugPrint('Failed to update stats for $uid: $e');
-        }
-      }
-      debugPrint('Updated all stats for ${allUserIds.length} users');
 
       debugPrint('\nSeed complete! Created ${uids.where((u) => u.isNotEmpty).length} users, connections, posts, and circles.');
     }
