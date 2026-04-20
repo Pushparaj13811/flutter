@@ -573,6 +573,14 @@ class SeedData {
       }
       debugPrint('Created ${sessions.length} sessions');
 
+      // Re-authenticate as admin before stat updates (auth listener may have changed state)
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: users[0]['email'] as String,
+          password: users[0]['password'] as String,
+        );
+      } catch (_) {}
+
       // Update session completion stats in profiles
       final sessionCompletionCount = <String, int>{};
       for (final session in sessions) {
@@ -584,12 +592,16 @@ class SeedData {
         }
       }
       for (final entry in sessionCompletionCount.entries) {
-        await _db.collection('profiles').doc(entry.key).update({
-          'stats.sessionsCompleted': entry.value,
-        });
-        await _db.collection('matchPool').doc(entry.key).update({
-          'sessionsCompleted': entry.value,
-        });
+        try {
+          await _db.collection('profiles').doc(entry.key).set({
+            'stats': {'sessionsCompleted': entry.value},
+          }, SetOptions(merge: true));
+          await _db.collection('matchPool').doc(entry.key).set({
+            'sessionsCompleted': entry.value,
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Failed to update session stats for ${entry.key}: $e');
+        }
       }
       debugPrint('Updated session stats for ${sessionCompletionCount.length} users');
 
@@ -627,22 +639,28 @@ class SeedData {
         });
 
         // Update reviewed user's stats
-        final toUser = review['toUser'] as String;
-        final rating = (review['rating'] as int).toDouble();
-        final profileDoc = await _db.collection('profiles').doc(toUser).get();
-        final stats = (profileDoc.data()?['stats'] as Map<String, dynamic>?) ?? {};
-        final currentCount = (stats['reviewsReceived'] as num?)?.toInt() ?? 0;
-        final currentAvg = (stats['averageRating'] as num?)?.toDouble() ?? 0.0;
-        final newCount = currentCount + 1;
-        final newAvg = ((currentAvg * currentCount) + rating) / newCount;
+        try {
+          final toUser = review['toUser'] as String;
+          final rating = (review['rating'] as int).toDouble();
+          final profileDoc = await _db.collection('profiles').doc(toUser).get();
+          final stats = (profileDoc.data()?['stats'] as Map<String, dynamic>?) ?? {};
+          final currentCount = (stats['reviewsReceived'] as num?)?.toInt() ?? 0;
+          final currentAvg = (stats['averageRating'] as num?)?.toDouble() ?? 0.0;
+          final newCount = currentCount + 1;
+          final newAvg = ((currentAvg * currentCount) + rating) / newCount;
 
-        await _db.collection('profiles').doc(toUser).update({
-          'stats.reviewsReceived': newCount,
-          'stats.averageRating': double.parse(newAvg.toStringAsFixed(1)),
-        });
-        await _db.collection('matchPool').doc(toUser).update({
-          'averageRating': double.parse(newAvg.toStringAsFixed(1)),
-        });
+          await _db.collection('profiles').doc(toUser).set({
+            'stats': {
+              'reviewsReceived': newCount,
+              'averageRating': double.parse(newAvg.toStringAsFixed(1)),
+            },
+          }, SetOptions(merge: true));
+          await _db.collection('matchPool').doc(toUser).set({
+            'averageRating': double.parse(newAvg.toStringAsFixed(1)),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Failed to update review stats: $e');
+        }
       }
       debugPrint('Created ${reviews.length} reviews');
 
@@ -792,9 +810,13 @@ class SeedData {
         connectionCount[u2] = (connectionCount[u2] ?? 0) + 1;
       }
       for (final entry in connectionCount.entries) {
-        await _db.collection('profiles').doc(entry.key).update({
-          'stats.connectionsCount': entry.value,
-        });
+        try {
+          await _db.collection('profiles').doc(entry.key).set({
+            'stats': {'connectionsCount': entry.value},
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Failed to update connection count for ${entry.key}: $e');
+        }
       }
 
       debugPrint('\nSeed complete! Created ${uids.where((u) => u.isNotEmpty).length} users, connections, posts, and circles.');
