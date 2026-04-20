@@ -11,8 +11,10 @@ import 'package:skill_exchange/features/admin/screens/content_moderation_screen.
 import 'package:skill_exchange/features/admin/screens/skills_management_screen.dart';
 import 'package:skill_exchange/features/admin/screens/user_management_screen.dart';
 import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
+import 'package:skill_exchange/features/auth/screens/banned_screen.dart';
 import 'package:skill_exchange/features/auth/screens/forgot_password_screen.dart';
 import 'package:skill_exchange/features/auth/screens/login_screen.dart';
+import 'package:skill_exchange/features/auth/screens/reset_password_screen.dart';
 import 'package:skill_exchange/features/auth/screens/signup_screen.dart';
 import 'package:skill_exchange/features/auth/screens/verify_email_screen.dart';
 import 'package:skill_exchange/features/community/screens/community_screen.dart';
@@ -36,6 +38,8 @@ class RouteNames {
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
   static const String verifyEmail = '/verify-email';
+  static const String resetPassword = '/reset-password';
+  static const String banned = '/banned';
 
   // Authenticated (under shell)
   static const String dashboard = '/dashboard';
@@ -74,6 +78,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         RouteNames.signup,
         RouteNames.forgotPassword,
         RouteNames.verifyEmail,
+        RouteNames.resetPassword,
+        RouteNames.banned,
       ].contains(state.matchedLocation);
 
       // Unauthenticated users can only access auth routes
@@ -123,6 +129,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => fadeTransitionPage(
           key: state.pageKey,
           child: const VerifyEmailScreen(),
+        ),
+      ),
+      GoRoute(
+        path: RouteNames.resetPassword,
+        pageBuilder: (context, state) => fadeTransitionPage(
+          key: state.pageKey,
+          child: const ResetPasswordScreen(),
+        ),
+      ),
+      GoRoute(
+        path: RouteNames.banned,
+        pageBuilder: (context, state) => fadeTransitionPage(
+          key: state.pageKey,
+          child: const BannedScreen(),
         ),
       ),
 

@@ -1,5 +1,7 @@
 // Report user bottom sheet
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
@@ -34,8 +36,45 @@ class _ReportUserSheetState extends State<ReportUserSheet> {
     super.dispose();
   }
 
-  void _submit() {
-    Navigator.of(context).pop();
+  void _submit() async {
+    if (_selectedReason == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a reason')),
+      );
+      return;
+    }
+
+    final description = _descriptionController.text.trim();
+    if (description.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please describe the issue')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('reports').add({
+        'reporter': FirebaseAuth.instance.currentUser!.uid,
+        'reportedUser': widget.userId,
+        'reason': _selectedReason!.toLowerCase().replaceAll(' ', '_'),
+        'description': description,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Report submitted. Thank you.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit report: $e')),
+        );
+      }
+    }
   }
 
   @override
