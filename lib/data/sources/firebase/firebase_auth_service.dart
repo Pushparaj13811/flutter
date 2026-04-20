@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:skill_exchange/domain/entities/user.dart';
 
 class FirebaseAuthService {
@@ -209,6 +210,118 @@ class FirebaseAuthService {
     await user.reauthenticateWithCredential(credential);
     await _firestore.collection('users').doc(user.uid).update({'isActive': false});
     await user.delete();
+  }
+
+  Future<User> signInWithGoogle() async {
+    final googleSignIn = GoogleSignIn();
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) {
+      throw fb.FirebaseAuthException(
+        code: 'sign-in-cancelled',
+        message: 'Google sign-in was cancelled',
+      );
+    }
+
+    final googleAuth = await googleUser.authentication;
+    final credential = fb.GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential = await _auth.signInWithCredential(credential);
+    final uid = userCredential.user!.uid;
+    final isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
+
+    if (isNewUser) {
+      final name = userCredential.user!.displayName ?? 'User';
+      final email = userCredential.user!.email ?? '';
+      final avatar = userCredential.user!.photoURL;
+      final username = email.split('@').first.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+      // Create user document
+      await _firestore.collection('users').doc(uid).set({
+        'name': name,
+        'email': email,
+        'role': 'user',
+        'isVerified': true,
+        'isActive': true,
+        'avatar': avatar,
+        'lastLogin': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Reserve username
+      await _firestore.collection('usernames').doc(username).set({'uid': uid});
+
+      // Create profile
+      await _firestore.collection('profiles').doc(uid).set({
+        'username': username,
+        'avatar': avatar,
+        'coverImage': null,
+        'bio': '',
+        'location': '',
+        'timezone': '',
+        'languages': <String>[],
+        'skillsToTeach': <Map<String, dynamic>>[],
+        'skillsToLearn': <Map<String, dynamic>>[],
+        'interests': <String>[],
+        'availability': {
+          'monday': false, 'tuesday': false, 'wednesday': false,
+          'thursday': false, 'friday': false, 'saturday': false, 'sunday': false,
+        },
+        'preferredLearningStyle': 'visual',
+        'stats': {
+          'connectionsCount': 0, 'sessionsCompleted': 0,
+          'reviewsReceived': 0, 'averageRating': 0.0,
+        },
+        'privacyPreferences': {
+          'profileVisibility': 'public', 'showEmail': false,
+          'showLocation': true, 'showOnlineStatus': true, 'allowMessages': 'everyone',
+        },
+        'notificationPreferences': {
+          'emailNotifications': true, 'pushNotifications': true,
+          'connectionRequests': true, 'sessionReminders': true,
+          'newMessages': true, 'reviewsReceived': true, 'marketingEmails': false,
+        },
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Create matchPool entry
+      await _firestore.collection('matchPool').doc(uid).set({
+        'username': username,
+        'avatar': avatar,
+        'skillsToTeach': <Map<String, dynamic>>[],
+        'skillsToLearn': <Map<String, dynamic>>[],
+        'availability': {
+          'monday': false, 'tuesday': false, 'wednesday': false,
+          'thursday': false, 'friday': false, 'saturday': false, 'sunday': false,
+        },
+        'location': '',
+        'averageRating': 0.0,
+        'sessionsCompleted': 0,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      // Update last login for existing users
+      await _firestore.collection('users').doc(uid).update({
+        'lastLogin': FieldValue.serverTimestamp(),
+      });
+    }
+
+    final userDoc = await _firestore.collection('users').doc(uid).get();
+    final data = userDoc.data()!;
+
+    return User(
+      id: uid,
+      email: userCredential.user!.email ?? '',
+      name: data['name'] as String? ?? userCredential.user!.displayName ?? '',
+      avatar: data['avatar'] as String?,
+      role: data['role'] as String? ?? 'user',
+      isVerified: true,
+      isActive: data['isActive'] as bool? ?? true,
+    );
   }
 
   Future<bool> isUsernameAvailable(String username) async {

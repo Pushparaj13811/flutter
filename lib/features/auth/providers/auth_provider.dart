@@ -90,6 +90,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    state = const AuthAuthenticating();
+    try {
+      final user = await _authService.signInWithGoogle();
+      state = AuthAuthenticated(user: user);
+    } on fb.FirebaseAuthException catch (e) {
+      if (e.code == 'sign-in-cancelled') {
+        state = const AuthUnauthenticated();
+      } else {
+        state = AuthError(message: _mapAuthError(e.code));
+      }
+    } catch (e) {
+      state = AuthError(message: e.toString());
+    }
+  }
+
   Future<void> logout() async {
     await _authService.signOut();
     state = const AuthUnauthenticated();

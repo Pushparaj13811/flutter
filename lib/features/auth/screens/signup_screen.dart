@@ -367,7 +367,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       const SizedBox(height: AppSpacing.lg),
 
                       // Google button
-                      const GoogleOAuthButton(),
+                      GoogleOAuthButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => ref
+                                .read(authProvider.notifier)
+                                .signInWithGoogle(),
+                      ),
                     ],
                   ),
                 ),
