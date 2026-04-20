@@ -8,17 +8,30 @@ import 'package:skill_exchange/core/theme/app_colors.dart';
 class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   const AppColorsExtension({
     required this.primary,
+    required this.primaryHover,
     required this.primaryForeground,
+    required this.primarySubtle,
+    required this.primaryMuted,
     required this.secondary,
+    required this.secondaryHover,
     required this.secondaryForeground,
+    required this.secondarySubtle,
     required this.background,
     required this.foreground,
     required this.card,
     required this.cardForeground,
+    required this.popover,
+    required this.popoverForeground,
+    required this.surface,
+    required this.surfaceForeground,
     required this.muted,
     required this.mutedForeground,
     required this.accent,
     required this.accentForeground,
+    required this.accentSubtle,
+    required this.highlight,
+    required this.highlightForeground,
+    required this.highlightSubtle,
     required this.destructive,
     required this.destructiveForeground,
     required this.border,
@@ -44,17 +57,30 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   });
 
   final Color primary;
+  final Color primaryHover;
   final Color primaryForeground;
+  final Color primarySubtle;
+  final Color primaryMuted;
   final Color secondary;
+  final Color secondaryHover;
   final Color secondaryForeground;
+  final Color secondarySubtle;
   final Color background;
   final Color foreground;
   final Color card;
   final Color cardForeground;
+  final Color popover;
+  final Color popoverForeground;
+  final Color surface;
+  final Color surfaceForeground;
   final Color muted;
   final Color mutedForeground;
   final Color accent;
   final Color accentForeground;
+  final Color accentSubtle;
+  final Color highlight;
+  final Color highlightForeground;
+  final Color highlightSubtle;
   final Color destructive;
   final Color destructiveForeground;
   final Color border;
@@ -82,17 +108,30 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
 
   static const light = AppColorsExtension(
     primary: AppColors.primary,
+    primaryHover: AppColors.primaryHover,
     primaryForeground: AppColors.primaryForeground,
+    primarySubtle: AppColors.primarySubtle,
+    primaryMuted: AppColors.primaryMuted,
     secondary: AppColors.secondary,
+    secondaryHover: AppColors.secondaryHover,
     secondaryForeground: AppColors.secondaryForeground,
+    secondarySubtle: AppColors.secondarySubtle,
     background: AppColors.background,
     foreground: AppColors.foreground,
     card: AppColors.card,
     cardForeground: AppColors.cardForeground,
+    popover: AppColors.popover,
+    popoverForeground: AppColors.popoverForeground,
+    surface: AppColors.surface,
+    surfaceForeground: AppColors.surfaceForeground,
     muted: AppColors.muted,
     mutedForeground: AppColors.mutedForeground,
     accent: AppColors.accent,
     accentForeground: AppColors.accentForeground,
+    accentSubtle: AppColors.accentSubtle,
+    highlight: AppColors.highlight,
+    highlightForeground: AppColors.highlightForeground,
+    highlightSubtle: AppColors.highlightSubtle,
     destructive: AppColors.destructive,
     destructiveForeground: AppColors.destructiveForeground,
     border: AppColors.border,
@@ -121,17 +160,30 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
 
   static const dark = AppColorsExtension(
     primary: AppColors.darkPrimary,
+    primaryHover: AppColors.darkPrimaryHover,
     primaryForeground: AppColors.darkPrimaryForeground,
+    primarySubtle: AppColors.darkPrimarySubtle,
+    primaryMuted: AppColors.darkPrimaryMuted,
     secondary: AppColors.darkSecondary,
+    secondaryHover: AppColors.darkSecondaryHover,
     secondaryForeground: AppColors.darkSecondaryForeground,
+    secondarySubtle: AppColors.darkSecondarySubtle,
     background: AppColors.darkBackground,
     foreground: AppColors.darkForeground,
     card: AppColors.darkCard,
     cardForeground: AppColors.darkCardForeground,
+    popover: AppColors.darkPopover,
+    popoverForeground: AppColors.darkPopoverForeground,
+    surface: AppColors.darkSurface,
+    surfaceForeground: AppColors.darkSurfaceForeground,
     muted: AppColors.darkMuted,
     mutedForeground: AppColors.darkMutedForeground,
     accent: AppColors.darkAccent,
     accentForeground: AppColors.darkAccentForeground,
+    accentSubtle: AppColors.darkAccentSubtle,
+    highlight: AppColors.darkHighlight,
+    highlightForeground: AppColors.darkHighlightForeground,
+    highlightSubtle: AppColors.darkHighlightSubtle,
     destructive: AppColors.darkDestructive,
     destructiveForeground: AppColors.darkDestructiveForeground,
     border: AppColors.darkBorder,
@@ -161,17 +213,30 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   @override
   AppColorsExtension copyWith({
     Color? primary,
+    Color? primaryHover,
     Color? primaryForeground,
+    Color? primarySubtle,
+    Color? primaryMuted,
     Color? secondary,
+    Color? secondaryHover,
     Color? secondaryForeground,
+    Color? secondarySubtle,
     Color? background,
     Color? foreground,
     Color? card,
     Color? cardForeground,
+    Color? popover,
+    Color? popoverForeground,
+    Color? surface,
+    Color? surfaceForeground,
     Color? muted,
     Color? mutedForeground,
     Color? accent,
     Color? accentForeground,
+    Color? accentSubtle,
+    Color? highlight,
+    Color? highlightForeground,
+    Color? highlightSubtle,
     Color? destructive,
     Color? destructiveForeground,
     Color? border,
@@ -197,17 +262,30 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   }) {
     return AppColorsExtension(
       primary: primary ?? this.primary,
+      primaryHover: primaryHover ?? this.primaryHover,
       primaryForeground: primaryForeground ?? this.primaryForeground,
+      primarySubtle: primarySubtle ?? this.primarySubtle,
+      primaryMuted: primaryMuted ?? this.primaryMuted,
       secondary: secondary ?? this.secondary,
+      secondaryHover: secondaryHover ?? this.secondaryHover,
       secondaryForeground: secondaryForeground ?? this.secondaryForeground,
+      secondarySubtle: secondarySubtle ?? this.secondarySubtle,
       background: background ?? this.background,
       foreground: foreground ?? this.foreground,
       card: card ?? this.card,
       cardForeground: cardForeground ?? this.cardForeground,
+      popover: popover ?? this.popover,
+      popoverForeground: popoverForeground ?? this.popoverForeground,
+      surface: surface ?? this.surface,
+      surfaceForeground: surfaceForeground ?? this.surfaceForeground,
       muted: muted ?? this.muted,
       mutedForeground: mutedForeground ?? this.mutedForeground,
       accent: accent ?? this.accent,
       accentForeground: accentForeground ?? this.accentForeground,
+      accentSubtle: accentSubtle ?? this.accentSubtle,
+      highlight: highlight ?? this.highlight,
+      highlightForeground: highlightForeground ?? this.highlightForeground,
+      highlightSubtle: highlightSubtle ?? this.highlightSubtle,
       destructive: destructive ?? this.destructive,
       destructiveForeground:
           destructiveForeground ?? this.destructiveForeground,
@@ -239,21 +317,37 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     if (other is! AppColorsExtension) return this;
     return AppColorsExtension(
       primary: Color.lerp(primary, other.primary, t)!,
+      primaryHover: Color.lerp(primaryHover, other.primaryHover, t)!,
       primaryForeground:
           Color.lerp(primaryForeground, other.primaryForeground, t)!,
+      primarySubtle: Color.lerp(primarySubtle, other.primarySubtle, t)!,
+      primaryMuted: Color.lerp(primaryMuted, other.primaryMuted, t)!,
       secondary: Color.lerp(secondary, other.secondary, t)!,
+      secondaryHover: Color.lerp(secondaryHover, other.secondaryHover, t)!,
       secondaryForeground:
           Color.lerp(secondaryForeground, other.secondaryForeground, t)!,
+      secondarySubtle: Color.lerp(secondarySubtle, other.secondarySubtle, t)!,
       background: Color.lerp(background, other.background, t)!,
       foreground: Color.lerp(foreground, other.foreground, t)!,
       card: Color.lerp(card, other.card, t)!,
       cardForeground: Color.lerp(cardForeground, other.cardForeground, t)!,
+      popover: Color.lerp(popover, other.popover, t)!,
+      popoverForeground:
+          Color.lerp(popoverForeground, other.popoverForeground, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      surfaceForeground:
+          Color.lerp(surfaceForeground, other.surfaceForeground, t)!,
       muted: Color.lerp(muted, other.muted, t)!,
       mutedForeground:
           Color.lerp(mutedForeground, other.mutedForeground, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
       accentForeground:
           Color.lerp(accentForeground, other.accentForeground, t)!,
+      accentSubtle: Color.lerp(accentSubtle, other.accentSubtle, t)!,
+      highlight: Color.lerp(highlight, other.highlight, t)!,
+      highlightForeground:
+          Color.lerp(highlightForeground, other.highlightForeground, t)!,
+      highlightSubtle: Color.lerp(highlightSubtle, other.highlightSubtle, t)!,
       destructive: Color.lerp(destructive, other.destructive, t)!,
       destructiveForeground:
           Color.lerp(destructiveForeground, other.destructiveForeground, t)!,

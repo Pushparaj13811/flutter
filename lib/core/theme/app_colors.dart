@@ -5,32 +5,46 @@ class AppColors {
 
   // ── LIGHT MODE ──
 
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryForeground = Color(0xFFF9FAFB);
+  static const Color primary = Color(0xFF059669);
+  static const Color primaryHover = Color(0xFF047857);
+  static const Color primaryForeground = Color(0xFFFFFFFF);
+  static const Color primarySubtle = Color(0xFFD1FAE5);
+  static const Color primaryMuted = Color(0xFF6EE7B7);
+
   static const Color secondary = Color(0xFF8B5CF6);
-  static const Color secondaryForeground = Color(0xFFF9FAFB);
+  static const Color secondaryHover = Color(0xFF7C3AED);
+  static const Color secondaryForeground = Color(0xFFFFFFFF);
+  static const Color secondarySubtle = Color(0xFFEDE9FE);
 
   static const Color background = Color(0xFFFAFAFA);
-  static const Color foreground = Color(0xFF09090B);
+  static const Color foreground = Color(0xFF111827);
   static const Color card = Color(0xFFFFFFFF);
-  static const Color cardForeground = Color(0xFF09090B);
+  static const Color cardForeground = Color(0xFF111827);
+  static const Color popover = Color(0xFFFFFFFF);
+  static const Color popoverForeground = Color(0xFF111827);
+  static const Color surface = Color(0xFFF5F5F5);
+  static const Color surfaceForeground = Color(0xFF111827);
 
-  static const Color muted = Color(0xFFF4F4F5);
-  static const Color mutedForeground = Color(0xFF71717A);
-  static const Color accent = Color(0xFFF4F4F5);
-  static const Color accentForeground = Color(0xFF09090B);
+  static const Color accent = Color(0xFFF3F4F6);
+  static const Color accentForeground = Color(0xFF111827);
+  static const Color accentSubtle = Color(0xFFE5E7EB);
 
-  static const Color destructive = Color(0xFFDC2626);
-  static const Color destructiveForeground = Color(0xFFF9FAFB);
+  static const Color highlight = Color(0xFFF59E0B);
+  static const Color highlightForeground = Color(0xFFFFFFFF);
+  static const Color highlightSubtle = Color(0xFFFEF3C7);
 
-  static const Color border = Color(0xFFE4E4E7);
-  static const Color input = Color(0xFFE4E4E7);
-  static const Color ring = Color(0xFF2563EB);
+  static const Color muted = Color(0xFFF5F5F5);
+  static const Color mutedForeground = Color(0xFF6B7280);
+  static const Color border = Color(0xFFE5E7EB);
+  static const Color input = Color(0xFFE5E7EB);
+  static const Color ring = Color(0xFF10B981);
+  static const Color destructive = Color(0xFFEF4444);
+  static const Color destructiveForeground = Color(0xFFFFFFFF);
 
   // Status
   static const Color success = Color(0xFF16A34A);
   static const Color warning = Color(0xFFEAB308);
-  static const Color info = Color(0xFF2563EB);
+  static const Color info = Color(0xFF059669);
 
   // Skill levels
   static const Color beginnerBg = Color(0xFFDCFCE7);
@@ -48,27 +62,45 @@ class AppColors {
 
   // Compatibility scores
   static const Color scoreExcellent = Color(0xFF16A34A);
-  static const Color scoreGreat = Color(0xFF2563EB);
+  static const Color scoreGreat = Color(0xFF059669);
   static const Color scoreGood = Color(0xFFEAB308);
-  static const Color scoreFair = Color(0xFF71717A);
+  static const Color scoreFair = Color(0xFF6B7280);
 
   // ── DARK MODE ──
 
-  static const Color darkPrimary = Color(0xFF60A5FA);
-  static const Color darkPrimaryForeground = Color(0xFF09090B);
-  static const Color darkSecondary = Color(0xFFA78BFA);
-  static const Color darkSecondaryForeground = Color(0xFF09090B);
-  static const Color darkBackground = Color(0xFF09090B);
-  static const Color darkForeground = Color(0xFFFAFAFA);
-  static const Color darkCard = Color(0xFF18181B);
-  static const Color darkCardForeground = Color(0xFFFAFAFA);
-  static const Color darkMuted = Color(0xFF27272A);
-  static const Color darkMutedForeground = Color(0xFFA1A1AA);
-  static const Color darkAccent = Color(0xFF27272A);
-  static const Color darkAccentForeground = Color(0xFFFAFAFA);
-  static const Color darkDestructive = Color(0xFFEF4444);
-  static const Color darkDestructiveForeground = Color(0xFFFAFAFA);
-  static const Color darkBorder = Color(0xFF27272A);
-  static const Color darkInput = Color(0xFF27272A);
-  static const Color darkRing = Color(0xFF60A5FA);
+  static const Color darkPrimary = Color(0xFF10B981);
+  static const Color darkPrimaryHover = Color(0xFF059669);
+  static const Color darkPrimaryForeground = Color(0xFFFFFFFF);
+  static const Color darkPrimarySubtle = Color(0xFF064E3B);
+  static const Color darkPrimaryMuted = Color(0xFF065F46);
+
+  static const Color darkSecondary = Color(0xFF8B5CF6);
+  static const Color darkSecondaryHover = Color(0xFF7C3AED);
+  static const Color darkSecondaryForeground = Color(0xFFFFFFFF);
+  static const Color darkSecondarySubtle = Color(0xFF2E1065);
+
+  static const Color darkBackground = Color(0xFF0F0F0F);
+  static const Color darkForeground = Color(0xFFF9FAFB);
+  static const Color darkCard = Color(0xFF1A1A1A);
+  static const Color darkCardForeground = Color(0xFFF9FAFB);
+  static const Color darkPopover = Color(0xFF1A1A1A);
+  static const Color darkPopoverForeground = Color(0xFFF9FAFB);
+  static const Color darkSurface = Color(0xFF141414);
+  static const Color darkSurfaceForeground = Color(0xFFF9FAFB);
+
+  static const Color darkAccent = Color(0xFF1F1F1F);
+  static const Color darkAccentForeground = Color(0xFFF9FAFB);
+  static const Color darkAccentSubtle = Color(0xFFFEF3C7);
+
+  static const Color darkHighlight = Color(0xFFFBBF24);
+  static const Color darkHighlightForeground = Color(0xFF0A0F0D);
+  static const Color darkHighlightSubtle = Color(0xFF78350F);
+
+  static const Color darkMuted = Color(0xFF141414);
+  static const Color darkMutedForeground = Color(0xFF9CA3AF);
+  static const Color darkBorder = Color(0xFF2A2A2A);
+  static const Color darkInput = Color(0xFF1A1A1A);
+  static const Color darkRing = Color(0xFF34D399);
+  static const Color darkDestructive = Color(0xFFF87171);
+  static const Color darkDestructiveForeground = Color(0xFF0A0F0D);
 }
