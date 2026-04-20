@@ -396,6 +396,10 @@ class SeedData {
     for (final doc in existingCircles.docs) {
       await doc.reference.delete();
     }
+    final existingSessions = await _db.collection('sessions').get();
+    for (final doc in existingSessions.docs) {
+      await doc.reference.delete();
+    }
     debugPrint('Cleanup done.');
 
     // Create connections (using stored UIDs)
@@ -476,6 +480,87 @@ class SeedData {
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
+
+      // Sessions
+      final now = DateTime.now();
+      final sessions = [
+        // Completed sessions (past)
+        {
+          'host': uids[0], 'participant': uids[1],
+          'title': 'React Fundamentals Workshop',
+          'description': 'Teaching React hooks and state management basics',
+          'skillsToCover': ['React', 'JavaScript'],
+          'scheduledAt': Timestamp.fromDate(now.subtract(const Duration(days: 7))),
+          'duration': 60, 'status': 'completed',
+          'sessionMode': 'online', 'meetingPlatform': 'google-meet',
+          'notes': 'Great session! Covered useState, useEffect, and custom hooks.',
+        },
+        {
+          'host': uids[4], 'participant': uids[0],
+          'title': 'Intro to Machine Learning',
+          'description': 'Overview of ML concepts and Python libraries',
+          'skillsToCover': ['Machine Learning', 'Python'],
+          'scheduledAt': Timestamp.fromDate(now.subtract(const Duration(days: 5))),
+          'duration': 90, 'status': 'completed',
+          'sessionMode': 'online', 'meetingPlatform': 'google-meet',
+          'notes': 'Covered numpy, pandas, and basic sklearn models.',
+        },
+        {
+          'host': uids[2], 'participant': uids[3],
+          'title': 'Figma for Developers',
+          'description': 'Teaching developers how to use Figma effectively',
+          'skillsToCover': ['Figma', 'UI Design'],
+          'scheduledAt': Timestamp.fromDate(now.subtract(const Duration(days: 3))),
+          'duration': 45, 'status': 'completed',
+          'sessionMode': 'online', 'meetingPlatform': 'google-meet',
+          'notes': 'Covered auto-layout, components, and design tokens.',
+        },
+        // Upcoming/Scheduled sessions
+        {
+          'host': uids[0], 'participant': uids[8],
+          'title': 'Flutter State Management Deep Dive',
+          'description': 'Exploring Riverpod patterns and best practices',
+          'skillsToCover': ['Flutter', 'Dart'],
+          'scheduledAt': Timestamp.fromDate(now.add(const Duration(days: 2))),
+          'duration': 60, 'status': 'scheduled',
+          'sessionMode': 'online', 'meetingPlatform': 'google-meet',
+          'notes': '',
+        },
+        {
+          'host': uids[1], 'participant': uids[0],
+          'title': 'Python Advanced Patterns',
+          'description': 'Decorators, generators, and async patterns in Python',
+          'skillsToCover': ['Python'],
+          'scheduledAt': Timestamp.fromDate(now.add(const Duration(days: 4))),
+          'duration': 75, 'status': 'scheduled',
+          'sessionMode': 'online', 'meetingPlatform': 'google-meet',
+          'notes': '',
+        },
+        {
+          'host': uids[5], 'participant': uids[2],
+          'title': 'Photography Composition Workshop',
+          'description': 'Learning composition rules and lighting techniques',
+          'skillsToCover': ['Photography'],
+          'scheduledAt': Timestamp.fromDate(now.add(const Duration(days: 6))),
+          'duration': 60, 'status': 'scheduled',
+          'sessionMode': 'offline', 'location': 'Pune Central Park',
+          'notes': '',
+        },
+      ];
+
+      for (final session in sessions) {
+        final host = session['host'] as String;
+        final participant = session['participant'] as String;
+        await _db.collection('sessions').add({
+          ...session,
+          'participants': [host, participant],
+          'isRequest': false,
+          'meetingLink': session['meetingPlatform'] == 'google-meet' ? 'https://meet.google.com/abc-defg-hij' : null,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      debugPrint('Created ${sessions.length} sessions');
 
       // Update connection counts in profiles
       final connectionCount = <String, int>{};

@@ -44,57 +44,58 @@ class SessionsScreen extends ConsumerWidget {
     launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _onComplete(
+  void _onComplete(
     BuildContext context,
     WidgetRef ref,
     SessionModel session,
-  ) async {
-    final confirmed = await showDialog<bool>(
+  ) {
+    showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Complete Session'),
         content: Text(
           'Mark "${session.title}" as completed?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text('Complete'),
           ),
         ],
       ),
-    );
+    ).then((confirmed) async {
+      if (confirmed == true) {
+        try {
+          await ref
+              .read(sessionsNotifierProvider.notifier)
+              .completeSession(session.id);
+          ref.invalidate(upcomingSessionsProvider);
 
-    if (confirmed == true) {
-      try {
-        await ref
-            .read(sessionsNotifierProvider.notifier)
-            .completeSession(session.id);
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Session marked as completed'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to complete session: $e'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: context.colors.destructive,
-            ),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Session marked as completed'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to complete session: $e'),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: context.colors.destructive,
+              ),
+            );
+          }
         }
       }
-    }
+    });
   }
 
   void _onReschedule(BuildContext context, SessionModel session) {
@@ -112,25 +113,25 @@ class SessionsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _onCancel(
+  void _onCancel(
     BuildContext context,
     WidgetRef ref,
     SessionModel session,
-  ) async {
-    final confirmed = await showDialog<bool>(
+  ) {
+    showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Cancel Session'),
         content: Text(
           'Are you sure you want to cancel "${session.title}"? This cannot be undone.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Keep'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             style: TextButton.styleFrom(
               foregroundColor: context.colors.destructive,
             ),
@@ -138,34 +139,35 @@ class SessionsScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ).then((confirmed) async {
+      if (confirmed == true) {
+        try {
+          await ref
+              .read(sessionsNotifierProvider.notifier)
+              .cancelSession(session.id);
+          ref.invalidate(upcomingSessionsProvider);
 
-    if (confirmed == true) {
-      try {
-        await ref
-            .read(sessionsNotifierProvider.notifier)
-            .cancelSession(session.id);
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Session cancelled'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to cancel session: $e'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: context.colors.destructive,
-            ),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Session cancelled'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to cancel session: $e'),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: context.colors.destructive,
+              ),
+            );
+          }
         }
       }
-    }
+    });
   }
 
   // ── Refresh ─────────────────────────────────────────────────────────────

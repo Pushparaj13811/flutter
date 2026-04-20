@@ -487,12 +487,26 @@ class _PostCard extends StatelessWidget {
             // Actions row
             Row(
               children: [
-                Icon(Icons.favorite_border, size: 18, color: colors.mutedForeground),
-                const SizedBox(width: 4),
-                Text(
-                  '$likesCount',
-                  style: AppTextStyles.caption.copyWith(
-                    color: colors.mutedForeground,
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    final postId = post['id'] as String?;
+                    if (postId == null) return;
+                    final service = ref.read(communityFirestoreServiceProvider);
+                    await service.likePost(postId);
+                    ref.invalidate(feedPostsProvider);
+                  },
+                  child: Row(
+                    children: [
+                      Icon(Icons.favorite_border, size: 18, color: colors.mutedForeground),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$likesCount',
+                        style: AppTextStyles.caption.copyWith(
+                          color: colors.mutedForeground,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 16),

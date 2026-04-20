@@ -138,6 +138,19 @@ class CommunityNotifier extends StateNotifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  Future<bool> leaveCircle(String id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _service.leaveCircle(id);
+      state = const AsyncValue.data(null);
+      _ref.invalidate(learningCirclesProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
 }
 
 final communityNotifierProvider =
