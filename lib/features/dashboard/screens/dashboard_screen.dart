@@ -42,6 +42,11 @@ class DashboardScreen extends ConsumerWidget {
         title: const Text('Home'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.calendar_today_outlined),
+            tooltip: 'Sessions',
+            onPressed: () => context.go(RouteNames.bookings),
+          ),
+          IconButton(
             icon: const Icon(Icons.chat_bubble_outline),
             tooltip: 'Messages',
             onPressed: () => context.go(RouteNames.messages),

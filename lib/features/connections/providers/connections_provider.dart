@@ -23,18 +23,29 @@ Future<Map<String, dynamic>> _enrichConnection(Map<String, dynamic> conn) async 
     };
   }
 
-  final profileDoc = await db.collection('profiles').doc(otherUid).get();
-  final userDoc = await db.collection('users').doc(otherUid).get();
-  final profileData = profileDoc.data() ?? {};
-  final userData = userDoc.data() ?? {};
+  try {
+    final profileDoc = await db.collection('profiles').doc(otherUid).get();
+    final userDoc = await db.collection('users').doc(otherUid).get();
+    final profileData = profileDoc.data() ?? {};
+    final userData = userDoc.data() ?? {};
 
-  return {
-    ...conn,
-    'otherUserId': otherUid,
-    'otherUserName': profileData['fullName'] ?? userData['name'] ?? userData['displayName'] ?? 'Unknown',
-    'otherUserAvatar': profileData['avatar'] ?? userData['avatar'] ?? userData['photoURL'],
-    'otherUsername': profileData['username'] ?? userData['username'] ?? '',
-  };
+    return {
+      ...conn,
+      'otherUserId': otherUid,
+      'otherUserName': profileData['fullName'] ?? userData['name'] ?? userData['displayName'] ?? 'User',
+      'otherUserAvatar': profileData['avatar'] ?? userData['avatar'] ?? userData['photoURL'],
+      'otherUsername': profileData['username'] ?? userData['username'] ?? '',
+    };
+  } catch (_) {
+    // Enrichment failed — return connection with fallback display values
+    return {
+      ...conn,
+      'otherUserId': otherUid,
+      'otherUserName': 'User',
+      'otherUserAvatar': null,
+      'otherUsername': '',
+    };
+  }
 }
 
 Future<List<Map<String, dynamic>>> _enrichAll(List<Map<String, dynamic>> list) async {
