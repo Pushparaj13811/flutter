@@ -1,5 +1,6 @@
 // Email/password login with Google OAuth — modern gradient design
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/utils/validators.dart';
+import 'package:skill_exchange/data/seed/seed_data.dart';
 import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/features/auth/widgets/google_oauth_button.dart';
 
@@ -31,6 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   bool _rememberMe = false;
   bool _obscurePassword = true;
+  bool _isSeeding = false;
   _AuthAction _currentAction = _AuthAction.none;
 
   bool get _isLoginLoading => _currentAction == _AuthAction.login;
@@ -40,6 +43,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _runSeed() async {
+    setState(() => _isSeeding = true);
+    try {
+      await SeedData.seed();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Seed data created successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Seed failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSeeding = false);
+    }
   }
 
   void _onLogin() {
@@ -298,6 +321,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // Seed data button (dev only)
+            if (kDebugMode)
+              TextButton.icon(
+                onPressed: _isSeeding ? null : _runSeed,
+                icon: _isSeeding
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.dataset_outlined, size: 18),
+                label: Text(_isSeeding ? 'Seeding...' : 'Seed Test Data'),
+              ),
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),
