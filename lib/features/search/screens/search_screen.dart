@@ -26,6 +26,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final Set<String> _sentRequests = {};
   Timer? _debounceTimer;
 
   @override
@@ -248,17 +249,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             }
 
                             final user = users[index];
+                            final isSent = _sentRequests.contains(user.id);
                             return AnimatedListItem(
                               index: index,
                               child: SearchResultCard(
                                 user: user,
+                                connectLabel: isSent ? 'Sent' : 'Connect',
                                 onTap: () => context.push(
                                   '${RouteNames.profile}/${user.id}',
                                 ),
-                                onConnect: () async {
+                                onConnect: isSent ? null : () async {
                                   try {
                                     await ref.read(connectionFirestoreServiceProvider).sendRequest(user.id);
-                                    if (context.mounted) {
+                                    if (mounted) {
+                                      setState(() => _sentRequests.add(user.id));
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('Connection request sent!')),
                                       );

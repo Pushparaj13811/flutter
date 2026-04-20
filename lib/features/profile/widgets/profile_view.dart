@@ -26,6 +26,8 @@ class ProfileView extends StatelessWidget {
     this.onBlockPressed,
     this.onReportPressed,
     this.onAvatarTap,
+    this.onConnectionsTap,
+    this.onSessionsTap,
   });
 
   final UserProfileModel profile;
@@ -36,6 +38,8 @@ class ProfileView extends StatelessWidget {
   final VoidCallback? onBlockPressed;
   final VoidCallback? onReportPressed;
   final VoidCallback? onAvatarTap;
+  final VoidCallback? onConnectionsTap;
+  final VoidCallback? onSessionsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -402,12 +406,14 @@ class ProfileView extends StatelessWidget {
             colors,
             value: Formatters.number(profile.stats.connectionsCount),
             label: 'Connections',
+            onTap: onConnectionsTap,
           ),
           _verticalDivider(colors),
           _buildStatItem(
             colors,
             value: Formatters.number(profile.stats.sessionsCompleted),
             label: 'Sessions',
+            onTap: onSessionsTap,
           ),
           _verticalDivider(colors),
           _buildStatItem(
@@ -429,31 +435,40 @@ class ProfileView extends StatelessWidget {
     required String value,
     required String label,
     Widget? trailing,
+    VoidCallback? onTap,
   }) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: AppTextStyles.h3.copyWith(
-              color: colors.foreground,
-              fontWeight: FontWeight.bold,
-            ),
+    Widget content = Column(
+      children: [
+        Text(
+          value,
+          style: AppTextStyles.h3.copyWith(
+            color: colors.foreground,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: AppTextStyles.caption.copyWith(
-              color: colors.mutedForeground,
-            ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(
+            color: onTap != null ? colors.primary : colors.mutedForeground,
           ),
-          if (trailing != null) ...[
-            const SizedBox(height: 4),
-            trailing,
-          ],
+        ),
+        if (trailing != null) ...[
+          const SizedBox(height: 4),
+          trailing,
         ],
-      ),
+      ],
     );
+
+    if (onTap != null) {
+      content = GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: content,
+      );
+    }
+
+    return Expanded(child: content);
   }
 
   Widget _verticalDivider(AppColorsExtension colors) {

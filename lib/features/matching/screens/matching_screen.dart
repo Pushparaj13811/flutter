@@ -23,6 +23,7 @@ class MatchingScreen extends ConsumerStatefulWidget {
 
 class _MatchingScreenState extends ConsumerState<MatchingScreen> {
   final ScrollController _scrollController = ScrollController();
+  final Set<String> _sentRequests = {};
 
   static const _sortOptions = <String, String>{
     'compatibility': 'Best Match',
@@ -190,17 +191,20 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                       }
 
                       final match = matches[index];
+                      final isSent = _sentRequests.contains(match.userId);
                       return AnimatedListItem(
                         index: index,
                         child: MatchCard(
                         match: match,
+                        connectLabel: isSent ? 'Sent' : 'Connect',
                         onTap: () => context.push(
                           '${RouteNames.profile}/${match.userId}',
                         ),
-                        onConnect: () async {
+                        onConnect: isSent ? null : () async {
                           try {
                             await ref.read(connectionFirestoreServiceProvider).sendRequest(match.userId);
-                            if (context.mounted) {
+                            if (mounted) {
+                              setState(() => _sentRequests.add(match.userId));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Connection request sent!')),
                               );

@@ -59,6 +59,40 @@ class ConnectionFirestoreService {
   Future<void> removeConnection(String connectionId) async {
     await _db.collection('connections').doc(connectionId).delete();
   }
+
+  /// Returns the connection status between current user and another user.
+  /// Returns: 'connected', 'pending_sent', 'pending_received', or 'none'
+  Future<String> getConnectionStatus(String otherUserId) async {
+    // Check if already connected
+    final connected = await _db.collection('connections')
+        .where('participants', arrayContains: _uid)
+        .where('status', isEqualTo: 'accepted')
+        .get();
+
+    for (final doc in connected.docs) {
+      final data = doc.data();
+      final participants = (data['participants'] as List?)?.cast<String>() ?? [];
+      if (participants.contains(otherUserId)) return 'connected';
+    }
+
+    // Check if I sent a pending request to them
+    final sent = await _db.collection('connections')
+        .where('requester', isEqualTo: _uid)
+        .where('recipient', isEqualTo: otherUserId)
+        .where('status', isEqualTo: 'pending')
+        .get();
+    if (sent.docs.isNotEmpty) return 'pending_sent';
+
+    // Check if they sent a pending request to me
+    final received = await _db.collection('connections')
+        .where('requester', isEqualTo: otherUserId)
+        .where('recipient', isEqualTo: _uid)
+        .where('status', isEqualTo: 'pending')
+        .get();
+    if (received.docs.isNotEmpty) return 'pending_received';
+
+    return 'none';
+  }
 }
 
 final connectionFirestoreServiceProvider = Provider<ConnectionFirestoreService>((ref) {

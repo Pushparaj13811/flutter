@@ -16,12 +16,14 @@ class MatchCard extends StatelessWidget {
     this.onTap,
     this.onConnect,
     this.onBookSession,
+    this.connectLabel = 'Connect',
   });
 
   final MatchScoreModel match;
   final VoidCallback? onTap;
   final VoidCallback? onConnect;
   final VoidCallback? onBookSession;
+  final String connectLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +133,7 @@ class MatchCard extends StatelessWidget {
             children: [
               Expanded(
                 child: AppButton.outline(
-                  label: 'Connect',
+                  label: connectLabel,
                   onPressed: onConnect,
                 ),
               ),

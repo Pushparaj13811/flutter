@@ -150,6 +150,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 isScrollControlled: true,
                 builder: (_) => ReportUserSheet(userId: widget.userId!),
               ),
+              onConnectionsTap: () => context.go(RouteNames.connections),
+              onSessionsTap: () => context.go(RouteNames.bookings),
             ),
           ),
           _OtherUserActions(userId: widget.userId!),
@@ -164,20 +166,103 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       onSettingsPressed: () => context.go(RouteNames.settings),
       onLogoutPressed: _showLogoutDialog,
       onAvatarTap: _onAvatarTap,
+      onConnectionsTap: () => context.go(RouteNames.connections),
+      onSessionsTap: () => context.go(RouteNames.bookings),
     );
   }
 }
 
 // -- Other-user bottom action bar ---------------------------------------------
 
-class _OtherUserActions extends ConsumerWidget {
+class _OtherUserActions extends ConsumerStatefulWidget {
   const _OtherUserActions({required this.userId});
-
   final String userId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_OtherUserActions> createState() => _OtherUserActionsState();
+}
+
+class _OtherUserActionsState extends ConsumerState<_OtherUserActions> {
+  String _status = 'loading';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    try {
+      final status = await ref
+          .read(connectionFirestoreServiceProvider)
+          .getConnectionStatus(widget.userId);
+      if (mounted) setState(() => _status = status);
+    } catch (_) {
+      if (mounted) setState(() => _status = 'none');
+    }
+  }
+
+  Future<void> _sendRequest() async {
+    try {
+      await ref
+          .read(connectionFirestoreServiceProvider)
+          .sendRequest(widget.userId);
+      if (mounted) {
+        setState(() => _status = 'pending_sent');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Connection request sent!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    String buttonLabel;
+    VoidCallback? onPressed;
+    bool isPrimary = true;
+
+    switch (_status) {
+      case 'connected':
+        buttonLabel = 'Connected';
+        onPressed = null;
+        isPrimary = false;
+      case 'pending_sent':
+        buttonLabel = 'Request Sent';
+        onPressed = null;
+        isPrimary = false;
+      case 'pending_received':
+        buttonLabel = 'Accept';
+        onPressed = () async {
+          final pending = await ref
+              .read(connectionFirestoreServiceProvider)
+              .getPendingRequests();
+          final match = pending
+              .where((c) => c['requester'] == widget.userId)
+              .toList();
+          if (match.isNotEmpty) {
+            await ref
+                .read(connectionFirestoreServiceProvider)
+                .acceptRequest(match.first['id'] as String);
+            if (mounted) setState(() => _status = 'connected');
+          }
+        };
+      case 'loading':
+        buttonLabel = '...';
+        onPressed = null;
+      default: // 'none'
+        buttonLabel = 'Connect';
+        onPressed = _sendRequest;
+    }
+
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.symmetric(
@@ -196,39 +281,29 @@ class _OtherUserActions extends ConsumerWidget {
         child: Row(
           children: [
             Expanded(
-              child: AppButton.primary(
-                label: 'Connect',
-                onPressed: () => _sendConnectionRequest(context, ref),
-              ),
+              child: isPrimary
+                  ? AppButton.primary(
+                      label: buttonLabel, onPressed: onPressed)
+                  : AppButton.outline(
+                      label: buttonLabel, onPressed: onPressed),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: AppButton.outline(
-                label: 'Book Session',
-                onPressed: () => context.go(RouteNames.bookings),
+                label: _status == 'connected' ? 'Message' : 'Book Session',
+                onPressed: () {
+                  if (_status == 'connected') {
+                    context.push('${RouteNames.messages}/${widget.userId}');
+                  } else {
+                    context.go(RouteNames.bookings);
+                  }
+                },
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _sendConnectionRequest(BuildContext context, WidgetRef ref) async {
-    try {
-      await ref.read(connectionFirestoreServiceProvider).sendRequest(userId);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connection request sent!')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send request: $e')),
-        );
-      }
-    }
   }
 }
 

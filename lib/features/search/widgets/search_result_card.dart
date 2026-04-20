@@ -14,11 +14,13 @@ class SearchResultCard extends StatelessWidget {
     required this.user,
     this.onTap,
     this.onConnect,
+    this.connectLabel = 'Connect',
   });
 
   final UserProfileModel user;
   final VoidCallback? onTap;
   final VoidCallback? onConnect;
+  final String connectLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +154,7 @@ class SearchResultCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: AppButton.outline(
-              label: 'Connect',
+              label: connectLabel,
               onPressed: onConnect,
             ),
           ),
