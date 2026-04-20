@@ -41,238 +41,250 @@ class ProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
 
-    return CustomScrollView(
-      slivers: [
-        // -- Cover image + transparent overlay AppBar --
-        _buildSliverAppBar(context, colors),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // -- Cover image with avatar overlapping --
+          _buildCoverWithAvatar(context, colors),
 
-        // -- Content --
-        SliverToBoxAdapter(
-          child: Transform.translate(
-            offset: const Offset(0, -48), // half of avatar (88 + 8 border = 96 / 2)
+          // -- Name, username, location --
+          const SizedBox(height: AppSpacing.sm),
+          _buildIdentity(colors),
+          const SizedBox(height: AppSpacing.lg),
+
+          // Stats row
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenPadding,
+            ),
+            child: _buildStatsRow(colors),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // Sections
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenPadding,
+            ),
             child: Column(
               children: [
-                // Avatar
-                _buildAvatar(colors),
-                const SizedBox(height: AppSpacing.sm),
-
-                // Name, username, location
-                _buildIdentity(colors),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Stats row
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenPadding,
-                  ),
-                  child: _buildStatsRow(colors),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Action buttons
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenPadding,
-                  ),
-                  child: _buildActionButtons(colors),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Sections
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenPadding,
-                  ),
-                  child: Column(
-                    children: [
-                      // About / Bio
-                      if (profile.bio != null && profile.bio!.isNotEmpty) ...[
-                        _buildSectionCard(
-                          colors,
-                          icon: Icons.person_outline,
-                          title: 'Bio',
-                          child: Text(
-                            profile.bio!,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: colors.foreground,
-                              height: 1.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                      ],
-
-                      // Skills to Teach
-                      if (profile.skillsToTeach.isNotEmpty) ...[
-                        _buildSkillsSection(
-                          colors,
-                          title: 'Skills to Teach',
-                          icon: Icons.school_outlined,
-                          iconColor: colors.success,
-                          skills: profile.skillsToTeach,
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                      ],
-
-                      // Skills to Learn
-                      if (profile.skillsToLearn.isNotEmpty) ...[
-                        _buildSkillsSection(
-                          colors,
-                          title: 'Skills to Learn',
-                          icon: Icons.auto_stories_outlined,
-                          iconColor: colors.primary,
-                          skills: profile.skillsToLearn,
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                      ],
-
-                      // Availability
-                      _buildSectionCard(
-                        colors,
-                        icon: Icons.calendar_today_outlined,
-                        title: 'Availability',
-                        child: AvailabilityGrid(
-                          availability: profile.availability,
-                          readOnly: true,
-                        ),
+                // About / Bio
+                if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+                  _buildSectionCard(
+                    colors,
+                    icon: Icons.person_outline,
+                    title: 'Bio',
+                    child: Text(
+                      profile.bio!,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: colors.foreground,
+                        height: 1.5,
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
 
-                      // Details (languages, interests)
-                      if (profile.languages.isNotEmpty ||
-                          profile.interests.isNotEmpty) ...[
-                        _buildDetailsSection(colors),
-                        const SizedBox(height: AppSpacing.lg),
-                      ],
+                // Skills to Teach
+                if (profile.skillsToTeach.isNotEmpty) ...[
+                  _buildSkillsSection(
+                    colors,
+                    title: 'Skills to Teach',
+                    icon: Icons.school_outlined,
+                    iconColor: colors.success,
+                    skills: profile.skillsToTeach,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
 
-                      // Footer — Learning style + Member since
-                      _buildFooterCard(colors),
-                      const SizedBox(height: AppSpacing.lg),
+                // Skills to Learn
+                if (profile.skillsToLearn.isNotEmpty) ...[
+                  _buildSkillsSection(
+                    colors,
+                    title: 'Skills to Learn',
+                    icon: Icons.auto_stories_outlined,
+                    iconColor: colors.primary,
+                    skills: profile.skillsToLearn,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
 
-                      const SizedBox(height: AppSpacing.xxl),
-                    ],
+                // Availability
+                _buildSectionCard(
+                  colors,
+                  icon: Icons.calendar_today_outlined,
+                  title: 'Availability',
+                  child: AvailabilityGrid(
+                    availability: profile.availability,
+                    readOnly: true,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // Details (languages, interests)
+                if (profile.languages.isNotEmpty ||
+                    profile.interests.isNotEmpty) ...[
+                  _buildDetailsSection(colors),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+
+                // Footer — Learning style + Member since
+                _buildFooterCard(colors),
+                const SizedBox(height: AppSpacing.lg),
+
+                const SizedBox(height: AppSpacing.xxl),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -- Cover image with avatar overlapping using Stack -----------------------
+
+  Widget _buildCoverWithAvatar(BuildContext context, AppColorsExtension colors) {
+    const double coverHeight = 180.0;
+    const double avatarSize = 88.0;
+    const double borderWidth = 4.0;
+    const double avatarTotal = avatarSize + borderWidth * 2;
+    const double avatarOverlap = avatarTotal / 2;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
+      children: [
+        // Cover image / gradient
+        Column(
+          children: [
+            SizedBox(
+              height: coverHeight + avatarOverlap, // extra space for avatar bottom half
+              child: Stack(
+                children: [
+                  // Cover
+                  SizedBox(
+                    height: coverHeight,
+                    width: double.infinity,
+                    child: _buildCoverImage(context, colors),
+                  ),
+                  // Transparent area below cover for avatar overlap
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        // Avatar positioned at cover bottom boundary
+        Positioned(
+          top: coverHeight - avatarOverlap,
+          child: _buildAvatar(colors),
+        ),
+
+        // Top action bar (overlays the cover)
+        Positioned(
+          top: MediaQuery.of(context).padding.top,
+          left: 0,
+          right: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (isOwnProfile) ...[
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined, color: Colors.white),
+                  tooltip: 'Settings',
+                  onPressed: onSettingsPressed,
+                ),
+                PopupMenuButton<_OwnProfileAction>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onSelected: (action) {
+                    switch (action) {
+                      case _OwnProfileAction.edit:
+                        onEditPressed?.call();
+                      case _OwnProfileAction.logout:
+                        onLogoutPressed?.call();
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: _OwnProfileAction.edit,
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 18),
+                          SizedBox(width: 8),
+                          Text('Edit Profile'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _OwnProfileAction.logout,
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout, size: 18, color: ctx.colors.destructive),
+                          const SizedBox(width: 8),
+                          Text('Log Out', style: TextStyle(color: ctx.colors.destructive)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                PopupMenuButton<_OtherProfileAction>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onSelected: (action) {
+                    switch (action) {
+                      case _OtherProfileAction.block:
+                        onBlockPressed?.call();
+                      case _OtherProfileAction.report:
+                        onReportPressed?.call();
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: _OtherProfileAction.block,
+                      child: Row(
+                        children: [
+                          Icon(Icons.block, size: 18),
+                          SizedBox(width: 8),
+                          Text('Block'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _OtherProfileAction.report,
+                      child: Row(
+                        children: [
+                          Icon(Icons.flag_outlined, size: 18),
+                          SizedBox(width: 8),
+                          Text('Report'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ),
       ],
     );
   }
 
-  // -- SliverAppBar with cover image ------------------------------------------
-
-  Widget _buildSliverAppBar(BuildContext context, AppColorsExtension colors) {
-    const double expandedHeight = 200.0;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return SliverAppBar(
-      expandedHeight: expandedHeight,
-      pinned: true,
-      backgroundColor: isDark ? colors.card : colors.primary,
-      foregroundColor: Colors.white,
-      elevation: 0,
-      actions: [
-        if (isOwnProfile) ...[
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: onSettingsPressed,
-          ),
-          PopupMenuButton<_OwnProfileAction>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (action) {
-              switch (action) {
-                case _OwnProfileAction.edit:
-                  onEditPressed?.call();
-                case _OwnProfileAction.logout:
-                  onLogoutPressed?.call();
-              }
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: _OwnProfileAction.edit,
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Edit Profile'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: _OwnProfileAction.logout,
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, size: 18, color: ctx.colors.destructive),
-                    const SizedBox(width: 8),
-                    Text('Log Out', style: TextStyle(color: ctx.colors.destructive)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ] else ...[
-          PopupMenuButton<_OtherProfileAction>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (action) {
-              switch (action) {
-                case _OtherProfileAction.block:
-                  onBlockPressed?.call();
-                case _OtherProfileAction.report:
-                  onReportPressed?.call();
-              }
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: _OtherProfileAction.block,
-                child: Row(
-                  children: [
-                    Icon(Icons.block, size: 18),
-                    SizedBox(width: 8),
-                    Text('Block'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: _OtherProfileAction.report,
-                child: Row(
-                  children: [
-                    Icon(Icons.flag_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Report'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: _buildCoverImage(colors),
-      ),
-    );
-  }
-
-  Widget _buildCoverImage(AppColorsExtension colors) {
+  Widget _buildCoverImage(BuildContext context, AppColorsExtension colors) {
     if (profile.coverImage != null && profile.coverImage!.isNotEmpty) {
       return CachedNetworkImage(
         imageUrl: profile.coverImage!,
         fit: BoxFit.cover,
         width: double.infinity,
-        errorWidget: (_, _, _) => _buildGradientCover(colors),
+        errorWidget: (_, _, _) => _buildGradientCover(context),
       );
     }
-    return _buildGradientCover(colors);
+    return _buildGradientCover(context);
   }
 
-  Widget _buildGradientCover(AppColorsExtension colors) {
-    return Builder(
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          gradient: AppGradients.heroFor(Theme.of(context).brightness),
-        ),
+  Widget _buildGradientCover(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppGradients.heroFor(Theme.of(context).brightness),
       ),
     );
   }
@@ -450,13 +462,6 @@ class ProfileView extends StatelessWidget {
       height: 40,
       color: colors.border.withValues(alpha: 0.5),
     );
-  }
-
-  // -- Action buttons ---------------------------------------------------------
-
-  Widget _buildActionButtons(AppColorsExtension colors) {
-    // Own profile actions are in the AppBar menu only — no body buttons
-    return const SizedBox.shrink();
   }
 
   // -- Skills section ---------------------------------------------------------
