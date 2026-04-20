@@ -175,8 +175,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 isScrollControlled: true,
                 builder: (_) => ReportUserSheet(userId: widget.userId!),
               ),
-              onConnectionsTap: () => context.go(RouteNames.connections),
-              onSessionsTap: () => context.go(RouteNames.bookings),
+              onConnectionsTap: () => context.push(RouteNames.connections),
+              onSessionsTap: () => context.push(RouteNames.bookings),
             ),
           ),
           _OtherUserActions(userId: widget.userId!),
@@ -188,12 +188,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       profile: profile,
       isOwnProfile: true,
       onEditPressed: _toggleEdit,
-      onSettingsPressed: () => context.go(RouteNames.settings),
+      onSettingsPressed: () => context.push(RouteNames.settings),
       onLogoutPressed: _showLogoutDialog,
       onAvatarTap: _onAvatarTap,
       onCoverTap: _onCoverTap,
-      onConnectionsTap: () => context.go(RouteNames.connections),
-      onSessionsTap: () => context.go(RouteNames.bookings),
+      onConnectionsTap: () => context.push(RouteNames.connections),
+      onSessionsTap: () => context.push(RouteNames.bookings),
     );
   }
 }
@@ -321,7 +321,7 @@ class _OtherUserActionsState extends ConsumerState<_OtherUserActions> {
                   if (_status == 'connected') {
                     context.push('${RouteNames.messages}/${widget.userId}');
                   } else {
-                    context.go(RouteNames.bookings);
+                    context.push(RouteNames.bookings);
                   }
                 },
               ),

@@ -67,19 +67,29 @@ class CommunityFirestoreService {
     return _cloudinary.uploadVideo(file, folder: 'posts/videos');
   }
 
-  // ── Likes ──
+  // ── Likes (toggle) ──
   Future<void> likePost(String postId) async {
-    await _db.collection('posts').doc(postId).update({
-      'likedBy': FieldValue.arrayUnion([_uid]),
-      'likesCount': FieldValue.increment(1),
-    });
+    final postDoc = await _db.collection('posts').doc(postId).get();
+    final likedBy = (postDoc.data()?['likedBy'] as List?)?.cast<String>() ?? [];
+
+    if (likedBy.contains(_uid)) {
+      // Already liked — unlike
+      await _db.collection('posts').doc(postId).update({
+        'likedBy': FieldValue.arrayRemove([_uid]),
+        'likesCount': FieldValue.increment(-1),
+      });
+    } else {
+      // Not liked — like
+      await _db.collection('posts').doc(postId).update({
+        'likedBy': FieldValue.arrayUnion([_uid]),
+        'likesCount': FieldValue.increment(1),
+      });
+    }
   }
 
+  /// Kept for backward compatibility — calls [likePost] which toggles.
   Future<void> unlikePost(String postId) async {
-    await _db.collection('posts').doc(postId).update({
-      'likedBy': FieldValue.arrayRemove([_uid]),
-      'likesCount': FieldValue.increment(-1),
-    });
+    await likePost(postId);
   }
 
   bool hasUserLiked(Map<String, dynamic> postData) {

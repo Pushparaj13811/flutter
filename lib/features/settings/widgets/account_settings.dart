@@ -68,7 +68,7 @@ class AccountSettings extends ConsumerWidget {
   void _showChangePasswordDialog(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Change Password'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
@@ -100,13 +100,13 @@ class AccountSettings extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogCtx).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
               // TODO: implement password change
-              Navigator.of(context).pop();
+              Navigator.of(dialogCtx).pop();
             },
             child: const Text('Update'),
           ),
@@ -149,17 +149,17 @@ class AccountSettings extends ConsumerWidget {
   void _handleLogout(BuildContext context, WidgetRef ref) {
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Log Out'),
         content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogCtx).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogCtx).pop();
               ref.read(authProvider.notifier).logout();
             },
             child: const Text('Log Out'),

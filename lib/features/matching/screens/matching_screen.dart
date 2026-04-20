@@ -217,7 +217,7 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                             }
                           }
                         },
-                        onBookSession: () => context.go(RouteNames.bookings),
+                        onBookSession: () => context.push(RouteNames.bookings),
                       ),
                       );
                     },

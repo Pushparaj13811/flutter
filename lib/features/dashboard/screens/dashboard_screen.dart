@@ -44,12 +44,12 @@ class DashboardScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.calendar_today_outlined),
             tooltip: 'Sessions',
-            onPressed: () => context.go(RouteNames.bookings),
+            onPressed: () => context.push(RouteNames.bookings),
           ),
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline),
             tooltip: 'Messages',
-            onPressed: () => context.go(RouteNames.messages),
+            onPressed: () => context.push(RouteNames.messages),
           ),
           _NotificationBell(ref: ref),
         ],
@@ -98,7 +98,7 @@ class DashboardScreen extends ConsumerWidget {
             // Admin panel (compact)
             if (isAdmin) ...[
               _CompactAdminCard(
-                onTap: () => context.go(RouteNames.adminDashboard),
+                onTap: () => context.push(RouteNames.adminDashboard),
               ),
               const SizedBox(height: AppSpacing.md),
             ],
@@ -136,7 +136,7 @@ class DashboardScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 0),
               child: OutlinedButton.icon(
-                onPressed: () => context.go(RouteNames.bookings),
+                onPressed: () => context.push(RouteNames.bookings),
                 icon: const Icon(Icons.calendar_today_outlined),
                 label: const Text('My Sessions'),
                 style: OutlinedButton.styleFrom(
@@ -331,7 +331,7 @@ class _SessionReminderCard extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
               ],
               TextButton(
-                onPressed: () => context.go(RouteNames.bookings),
+                onPressed: () => context.push(RouteNames.bookings),
                 child: const Text('View Details'),
               ),
             ],
@@ -404,6 +404,9 @@ class _PostCard extends StatelessWidget {
     final content = post['content'] as String? ?? '';
     final likesCount = post['likesCount'] as int? ?? 0;
     final repliesCount = post['repliesCount'] as int? ?? 0;
+    final likedBy = (post['likedBy'] as List?)?.cast<String>() ?? [];
+    final currentUid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+    final hasLiked = likedBy.contains(currentUid);
     final createdAt = post['createdAt'];
     final timeAgoStr = _formatTimeAgo(createdAt);
 
@@ -498,7 +501,11 @@ class _PostCard extends StatelessWidget {
                   },
                   child: Row(
                     children: [
-                      Icon(Icons.favorite_border, size: 18, color: colors.mutedForeground),
+                      Icon(
+                        hasLiked ? Icons.favorite : Icons.favorite_border,
+                        size: 18,
+                        color: hasLiked ? Colors.red : colors.mutedForeground,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '$likesCount',
