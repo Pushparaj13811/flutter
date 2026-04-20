@@ -66,6 +66,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _onCoverTap() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200);
+    if (image == null) return;
+
+    final file = File(image.path);
+    try {
+      await ref.read(profileFirestoreServiceProvider).uploadCoverImage(file);
+      if (mounted) {
+        ref.invalidate(currentProfileProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cover image updated!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload cover: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _showLogoutDialog() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -167,6 +190,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       onSettingsPressed: () => context.go(RouteNames.settings),
       onLogoutPressed: _showLogoutDialog,
       onAvatarTap: _onAvatarTap,
+      onCoverTap: _onCoverTap,
       onConnectionsTap: () => context.go(RouteNames.connections),
       onSessionsTap: () => context.go(RouteNames.bookings),
     );

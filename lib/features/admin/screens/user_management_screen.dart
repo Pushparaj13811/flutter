@@ -36,7 +36,7 @@ class UserManagementScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(reportedContentProvider),
+            onPressed: () => ref.invalidate(allUsersProvider),
           ),
         ],
       ),
@@ -157,68 +157,43 @@ class _UsersList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Use reported content to derive a list of reported user IDs for admin context.
-    // In a full implementation, this would use a dedicated admin users endpoint.
-    final reportsAsync = ref.watch(reportedContentProvider);
+    final usersAsync = ref.watch(allUsersProvider);
 
-    return reportsAsync.when(
+    return usersAsync.when(
       loading: () => ListView.separated(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.screenPadding,
         ),
         itemCount: 5,
-        separatorBuilder: (_, _) =>
+        separatorBuilder: (_, __) =>
             const SizedBox(height: AppSpacing.listItemGap),
-        itemBuilder: (_, _) => const SkeletonCard.profile(),
+        itemBuilder: (_, __) => const SkeletonCard.profile(),
       ),
       error: (e, _) => Center(
         child: ErrorMessage(
           message: 'Could not load users.',
-          onRetry: () => ref.invalidate(reportedContentProvider),
+          onRetry: () => ref.invalidate(allUsersProvider),
         ),
       ),
-      data: (reports) {
-        // Build a deduplicated list of reported user entries
-        final uniqueUserIds = <String>{};
-        final userReports = <_UserEntry>[];
-
-        for (final report in reports) {
-          if (!uniqueUserIds.contains(report.reportedUserId)) {
-            uniqueUserIds.add(report.reportedUserId);
-            final pendingCount = reports
-                .where((r) =>
-                    r.reportedUserId == report.reportedUserId &&
-                    r.status == 'pending')
-                .length;
-            userReports.add(_UserEntry(
-              userId: report.reportedUserId,
-              reporterName: report.reporterName,
-              pendingReports: pendingCount,
-              totalReports: reports
-                  .where(
-                      (r) => r.reportedUserId == report.reportedUserId)
-                  .length,
-            ));
-          }
-        }
-
+      data: (users) {
         // Apply search filter
-        var filteredUsers = userReports.where((entry) {
+        var filteredUsers = users.where((user) {
           if (searchQuery.isEmpty) return true;
           final query = searchQuery.toLowerCase();
-          return entry.userId.toLowerCase().contains(query) ||
-              (entry.reporterName?.toLowerCase().contains(query) ??
-                  false);
+          final name = (user['name'] as String? ?? '').toLowerCase();
+          final email = (user['email'] as String? ?? '').toLowerCase();
+          final id = (user['id'] as String? ?? '').toLowerCase();
+          return name.contains(query) || email.contains(query) || id.contains(query);
         }).toList();
 
         // Apply status filter
         if (statusFilter == UserStatusFilter.active) {
           filteredUsers = filteredUsers
-              .where((entry) => entry.pendingReports == 0)
+              .where((user) => user['isActive'] == true)
               .toList();
         } else if (statusFilter == UserStatusFilter.banned) {
           filteredUsers = filteredUsers
-              .where((entry) => entry.pendingReports > 0)
+              .where((user) => user['isActive'] == false)
               .toList();
         }
 
@@ -233,20 +208,23 @@ class _UsersList extends ConsumerWidget {
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.screenPadding,
+        return RefreshIndicator(
+          onRefresh: () async => ref.invalidate(allUsersProvider),
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenPadding,
+            ),
+            itemCount: filteredUsers.length,
+            separatorBuilder: (_, __) =>
+                const SizedBox(height: AppSpacing.listItemGap),
+            itemBuilder: (context, index) {
+              final user = filteredUsers[index];
+              return _UserListTile(
+                user: user,
+                onTap: () => _showUserActionSheet(context, ref, user),
+              );
+            },
           ),
-          itemCount: filteredUsers.length,
-          separatorBuilder: (_, _) =>
-              const SizedBox(height: AppSpacing.listItemGap),
-          itemBuilder: (context, index) {
-            final entry = filteredUsers[index];
-            return _UserListTile(
-              entry: entry,
-              onTap: () => _showUserActionSheet(context, ref, entry),
-            );
-          },
         );
       },
     );
@@ -255,14 +233,14 @@ class _UsersList extends ConsumerWidget {
   void _showUserActionSheet(
     BuildContext context,
     WidgetRef ref,
-    _UserEntry entry,
+    Map<String, dynamic> userData,
   ) {
-    // Create a minimal UserProfileModel for the action sheet
+    final isBanned = userData['isActive'] == false;
     final user = UserProfileModel(
-      id: entry.userId,
-      username: entry.userId,
-      email: '${entry.userId}@platform.com',
-      fullName: entry.reporterName ?? entry.userId,
+      id: userData['id'] as String? ?? '',
+      username: (userData['email'] as String? ?? '').split('@').first,
+      email: userData['email'] as String? ?? '',
+      fullName: userData['name'] as String? ?? '',
       availability: const AvailabilityModel(),
       joinedAt: '',
       lastActive: '',
@@ -275,41 +253,30 @@ class _UsersList extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => UserActionSheet(
         user: user,
-        isBanned: entry.pendingReports > 0,
+        isBanned: isBanned,
       ),
     );
   }
-}
-
-// ── User Entry ────────────────────────────────────────────────────────────
-
-class _UserEntry {
-  const _UserEntry({
-    required this.userId,
-    this.reporterName,
-    required this.pendingReports,
-    required this.totalReports,
-  });
-
-  final String userId;
-  final String? reporterName;
-  final int pendingReports;
-  final int totalReports;
 }
 
 // ── User List Tile ────────────────────────────────────────────────────────
 
 class _UserListTile extends StatelessWidget {
   const _UserListTile({
-    required this.entry,
+    required this.user,
     required this.onTap,
   });
 
-  final _UserEntry entry;
+  final Map<String, dynamic> user;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final name = user['name'] as String? ?? '';
+    final email = user['email'] as String? ?? '';
+    final role = user['role'] as String? ?? 'user';
+    final isActive = user['isActive'] as bool? ?? true;
+
     return AppCard(
       onTap: onTap,
       padding: const EdgeInsets.all(AppSpacing.cardPadding),
@@ -320,9 +287,7 @@ class _UserListTile extends StatelessWidget {
             radius: 20,
             backgroundColor: context.colors.muted,
             child: Text(
-              entry.userId.isNotEmpty
-                  ? entry.userId[0].toUpperCase()
-                  : '?',
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
               style: AppTextStyles.labelLarge.copyWith(
                 color: context.colors.mutedForeground,
               ),
@@ -335,16 +300,42 @@ class _UserListTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  entry.reporterName ?? entry.userId,
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: context.colors.foreground,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: context.colors.foreground,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (role == 'admin') ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.colors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.chip),
+                        ),
+                        child: Text(
+                          'Admin',
+                          style: AppTextStyles.caption.copyWith(
+                            color: context.colors.primary,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'ID: ${entry.userId}',
+                  email,
                   style: AppTextStyles.caption.copyWith(
                     color: context.colors.mutedForeground,
                   ),
@@ -354,8 +345,8 @@ class _UserListTile extends StatelessWidget {
             ),
           ),
 
-          // Report count badge
-          if (entry.pendingReports > 0)
+          // Status badge
+          if (!isActive)
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.sm,
@@ -365,22 +356,11 @@ class _UserListTile extends StatelessWidget {
                 color: context.colors.destructive.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppRadius.chip),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.flag,
-                    size: 14,
-                    color: context.colors.destructive,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    '${entry.pendingReports}',
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: context.colors.destructive,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Banned',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: context.colors.destructive,
+                ),
               ),
             )
           else
@@ -394,7 +374,7 @@ class _UserListTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.chip),
               ),
               child: Text(
-                'Clear',
+                'Active',
                 style: AppTextStyles.labelSmall.copyWith(
                   color: context.colors.success,
                 ),

@@ -87,9 +87,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '${RouteNames.login}?redirect=${Uri.encodeComponent(state.matchedLocation)}';
       }
 
-      // Authenticated users should not see auth pages
+      // Authenticated users on auth pages
       if (isAuthenticated && isAuthRoute) {
+        // Check if verified
+        final authUser = authState as AuthAuthenticated;
+        if (!authUser.user.isVerified) {
+          return RouteNames.verifyEmail;
+        }
         return RouteNames.dashboard;
+      }
+
+      // Block unverified users from accessing app screens
+      if (isAuthenticated) {
+        final authUser = authState as AuthAuthenticated;
+        if (!authUser.user.isVerified && state.matchedLocation != RouteNames.verifyEmail) {
+          return RouteNames.verifyEmail;
+        }
       }
 
       // Admin route guard

@@ -20,14 +20,25 @@ class AdminCircleModel {
   });
 
   factory AdminCircleModel.fromMap(Map<String, dynamic> map) {
+    final members = map['members'] as List?;
+    final memberCount = (map['memberCount'] as num?)?.toInt() ?? members?.length ?? 0;
+    final createdAt = map['createdAt'];
+    String createdAtStr = '';
+    if (createdAt is String) {
+      createdAtStr = createdAt;
+    } else if (createdAt != null) {
+      try {
+        createdAtStr = (createdAt as dynamic).toDate().toIso8601String() as String;
+      } catch (_) {}
+    }
     return AdminCircleModel(
       id: map['id'] as String? ?? '',
       name: map['name'] as String? ?? '',
       description: map['description'] as String? ?? '',
-      memberCount: (map['memberCount'] as num?)?.toInt() ?? 0,
+      memberCount: memberCount,
       isFeatured: map['isFeatured'] as bool? ?? false,
       isActive: map['isActive'] as bool? ?? true,
-      createdAt: map['createdAt'] as String? ?? '',
+      createdAt: createdAtStr,
       imageUrl: map['imageUrl'] as String?,
     );
   }

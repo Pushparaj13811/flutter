@@ -146,7 +146,7 @@ class FirebaseAuthService {
       name: data['name'] as String,
       avatar: data['avatar'] as String?,
       role: data['role'] as String? ?? 'user',
-      isVerified: credential.user!.emailVerified,
+      isVerified: (data['isVerified'] as bool?) ?? credential.user!.emailVerified,
       isActive: data['isActive'] as bool? ?? true,
     );
   }
@@ -177,7 +177,7 @@ class FirebaseAuthService {
       name: data['name'] as String? ?? '',
       avatar: data['avatar'] as String?,
       role: data['role'] as String? ?? 'user',
-      isVerified: fbUser.emailVerified,
+      isVerified: (data['isVerified'] as bool?) ?? fbUser.emailVerified,
       isActive: data['isActive'] as bool? ?? true,
     );
   }

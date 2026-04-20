@@ -57,6 +57,15 @@ class AdminFirestoreService {
   Future<void> deleteReview(String reviewId) async {
     await _db.collection('reviews').doc(reviewId).delete();
   }
+
+  Future<List<Map<String, dynamic>>> getPosts() async {
+    final snap = await _db.collection('posts').orderBy('createdAt', descending: true).get();
+    return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+  }
+
+  Future<void> deleteCircle(String circleId) async {
+    await _db.collection('circles').doc(circleId).delete();
+  }
 }
 
 final adminFirestoreServiceProvider = Provider<AdminFirestoreService>((ref) {

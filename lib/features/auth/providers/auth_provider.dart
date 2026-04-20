@@ -127,6 +127,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return fb.FirebaseAuth.instance.currentUser?.emailVerified ?? false;
   }
 
+  void refreshUser(User user) {
+    state = AuthAuthenticated(user: user);
+  }
+
   void clearError() {
     if (state is AuthError) {
       state = const AuthUnauthenticated();

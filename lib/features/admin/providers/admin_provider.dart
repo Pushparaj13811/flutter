@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/data/models/activity_log_model.dart';
@@ -7,7 +8,6 @@ import 'package:skill_exchange/data/models/admin_skill_model.dart';
 import 'package:skill_exchange/data/models/analytics_model.dart';
 import 'package:skill_exchange/data/models/announcement_model.dart';
 import 'package:skill_exchange/data/models/platform_stats_model.dart';
-import 'package:skill_exchange/data/models/user_profile_model.dart';
 import 'package:skill_exchange/data/models/user_report_model.dart';
 
 // ── Data Providers ────────────────────────────────────────────────────────
@@ -20,10 +20,9 @@ final platformStatsProvider =
 });
 
 final allUsersProvider =
-    FutureProvider<List<UserProfileModel>>((ref) async {
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final service = ref.watch(adminFirestoreServiceProvider);
-  final data = await service.getUsers();
-  return data.map((d) => UserProfileModel.fromJson(d)).toList();
+  return service.getUsers();
 });
 
 final reportedContentProvider =
@@ -35,14 +34,16 @@ final reportedContentProvider =
 
 final adminPostsProvider =
     FutureProvider<List<AdminPostModel>>((ref) async {
-  // Admin posts not directly supported — stub with empty list
-  return <AdminPostModel>[];
+  final service = ref.watch(adminFirestoreServiceProvider);
+  final result = await service.getPosts();
+  return result.map((d) => AdminPostModel.fromMap(d)).toList();
 });
 
 final adminCirclesProvider =
     FutureProvider<List<AdminCircleModel>>((ref) async {
-  // Admin circles not directly supported — stub with empty list
-  return <AdminCircleModel>[];
+  final service = ref.watch(communityFirestoreServiceProvider);
+  final circles = await service.getCircles();
+  return circles.map((d) => AdminCircleModel.fromMap(d)).toList();
 });
 
 final analyticsProvider = FutureProvider<AnalyticsModel>((ref) async {
@@ -134,17 +135,21 @@ class AdminNotifier extends StateNotifier<AsyncValue<void>> {
       );
 
   Future<bool> featureCircle(String id) => _mutate(
-        () async {}, // stub
+        () async {
+          await FirebaseFirestore.instance.collection('circles').doc(id).update({'isFeatured': true});
+        },
         [adminCirclesProvider],
       );
 
   Future<bool> updateCircle(String id, Map<String, dynamic> data) => _mutate(
-        () async {}, // stub
+        () async {
+          await FirebaseFirestore.instance.collection('circles').doc(id).update(data);
+        },
         [adminCirclesProvider],
       );
 
   Future<bool> deleteCircle(String id) => _mutate(
-        () async {}, // stub
+        () => _service.deleteCircle(id),
         [adminCirclesProvider],
       );
 

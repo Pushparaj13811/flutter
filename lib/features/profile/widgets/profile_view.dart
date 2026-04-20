@@ -26,6 +26,7 @@ class ProfileView extends StatelessWidget {
     this.onBlockPressed,
     this.onReportPressed,
     this.onAvatarTap,
+    this.onCoverTap,
     this.onConnectionsTap,
     this.onSessionsTap,
   });
@@ -38,6 +39,7 @@ class ProfileView extends StatelessWidget {
   final VoidCallback? onBlockPressed;
   final VoidCallback? onReportPressed;
   final VoidCallback? onAvatarTap;
+  final VoidCallback? onCoverTap;
   final VoidCallback? onConnectionsTap;
   final VoidCallback? onSessionsTap;
 
@@ -274,15 +276,47 @@ class ProfileView extends StatelessWidget {
   }
 
   Widget _buildCoverImage(BuildContext context, AppColorsExtension colors) {
+    Widget cover;
     if (profile.coverImage != null && profile.coverImage!.isNotEmpty) {
-      return CachedNetworkImage(
+      cover = CachedNetworkImage(
         imageUrl: profile.coverImage!,
         fit: BoxFit.cover,
         width: double.infinity,
         errorWidget: (_, _, _) => _buildGradientCover(context),
       );
+    } else {
+      cover = _buildGradientCover(context);
     }
-    return _buildGradientCover(context);
+
+    if (isOwnProfile && onCoverTap != null) {
+      return GestureDetector(
+        onTap: onCoverTap,
+        child: Stack(
+          children: [
+            cover,
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return cover;
   }
 
   Widget _buildGradientCover(BuildContext context) {
