@@ -12,6 +12,7 @@ import 'package:skill_exchange/features/matching/providers/matching_provider.dar
 import 'package:skill_exchange/features/matching/widgets/match_card.dart';
 import 'package:skill_exchange/features/matching/widgets/matching_filters.dart';
 import 'package:skill_exchange/core/widgets/animated_list_item.dart';
+import 'package:skill_exchange/config/di/providers.dart';
 
 class MatchingScreen extends ConsumerStatefulWidget {
   const MatchingScreen({super.key});
@@ -191,12 +192,23 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                         onTap: () => context.push(
                           '${RouteNames.profile}/${match.userId}',
                         ),
-                        onConnect: () {
-                          // TODO: Wire to connection request
+                        onConnect: () async {
+                          try {
+                            await ref.read(connectionFirestoreServiceProvider).sendRequest(match.userId);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Connection request sent!')),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed: $e')),
+                              );
+                            }
+                          }
                         },
-                        onBookSession: () {
-                          // TODO: Wire to session booking
-                        },
+                        onBookSession: () => context.go(RouteNames.bookings),
                       ),
                       );
                     },

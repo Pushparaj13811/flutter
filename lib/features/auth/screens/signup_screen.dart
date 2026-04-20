@@ -13,6 +13,7 @@ import 'package:skill_exchange/core/utils/validators.dart';
 import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/features/auth/widgets/google_oauth_button.dart';
 import 'package:skill_exchange/features/auth/widgets/password_strength_indicator.dart';
+import 'package:skill_exchange/config/di/providers.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   static const routeName = '/signup';
@@ -60,11 +61,25 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       return;
     }
 
+    final username = _usernameController.text.trim();
+    final isAvailable = await ref.read(firebaseAuthServiceProvider).isUsernameAvailable(username);
+    if (!isAvailable) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Username already taken'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
     await ref.read(authProvider.notifier).signup(
           _nameController.text.trim(),
           _emailController.text.trim(),
           _passwordController.text,
-          username: _usernameController.text.trim(),
+          username: username,
         );
   }
 
@@ -98,8 +113,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 top: MediaQuery.of(context).padding.top + AppSpacing.xl,
                 bottom: AppSpacing.xxxl,
               ),
-              decoration: const BoxDecoration(
-                gradient: AppGradients.hero,
+              decoration: BoxDecoration(
+                gradient: AppGradients.heroFor(Theme.of(context).brightness),
               ),
               child: Column(
                 children: [

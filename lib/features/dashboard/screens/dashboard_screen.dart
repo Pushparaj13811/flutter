@@ -155,6 +155,14 @@ class _NotificationBell extends StatelessWidget {
     return StreamBuilder(
       stream: service.notificationsStream(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
+            onPressed: () {},
+          );
+        }
+
         int unreadCount = 0;
         if (snapshot.hasData) {
           unreadCount = snapshot.data!.docs

@@ -14,6 +14,7 @@ import 'package:skill_exchange/features/search/providers/search_provider.dart';
 import 'package:skill_exchange/features/search/widgets/search_filters_sheet.dart';
 import 'package:skill_exchange/features/search/widgets/search_result_card.dart';
 import 'package:skill_exchange/core/widgets/animated_list_item.dart';
+import 'package:skill_exchange/config/di/providers.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -254,8 +255,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 onTap: () => context.push(
                                   '${RouteNames.profile}/${user.id}',
                                 ),
-                                onConnect: () {
-                                  // TODO: Wire to connection request
+                                onConnect: () async {
+                                  try {
+                                    await ref.read(connectionFirestoreServiceProvider).sendRequest(user.id);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Connection request sent!')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Failed: $e')),
+                                      );
+                                    }
+                                  }
                                 },
                               ),
                             );

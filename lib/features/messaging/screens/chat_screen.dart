@@ -35,10 +35,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
+  String _getOtherUserId(String threadId) {
+    final parts = threadId.split('_');
+    final myUid = FirebaseAuth.instance.currentUser!.uid;
+    return parts.firstWhere((p) => p != myUid, orElse: () => parts.last);
+  }
+
   void _onSend(String content) {
+    final receiverId = _getOtherUserId(widget.conversationId);
     ref
         .read(messagingNotifierProvider.notifier)
-        .sendMessage(widget.conversationId, content);
+        .sendMessage(receiverId, content);
   }
 
   void _onTypingChanged(bool isTyping) {

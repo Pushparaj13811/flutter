@@ -22,6 +22,24 @@ class AppGradients {
     stops: [0.0, 0.6, 1.0],
   );
 
+  /// Returns a theme-appropriate hero gradient
+  static LinearGradient heroFor(Brightness brightness) {
+    if (brightness == Brightness.dark) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF0A0F0D), Color(0xFF0D2818), Color(0xFF1A0A2E)],
+        stops: [0.0, 0.6, 1.0],
+      );
+    }
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF059669), Color(0xFF047857), Color(0xFF7C3AED)],
+      stops: [0.0, 0.5, 1.0],
+    );
+  }
+
   static const LinearGradient card = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,

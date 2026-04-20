@@ -77,8 +77,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 top: MediaQuery.of(context).padding.top + AppSpacing.xxl,
                 bottom: AppSpacing.xxxl,
               ),
-              decoration: const BoxDecoration(
-                gradient: AppGradients.hero,
+              decoration: BoxDecoration(
+                gradient: AppGradients.heroFor(Theme.of(context).brightness),
               ),
               child: Column(
                 children: [

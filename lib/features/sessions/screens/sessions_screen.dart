@@ -13,6 +13,7 @@ import 'package:skill_exchange/features/sessions/providers/session_provider.dart
 import 'package:skill_exchange/features/sessions/widgets/reschedule_session_sheet.dart';
 import 'package:skill_exchange/features/sessions/widgets/session_booking_sheet.dart';
 import 'package:skill_exchange/features/sessions/widgets/session_card.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SessionsScreen extends ConsumerWidget {
   const SessionsScreen({super.key});
@@ -32,14 +33,16 @@ class SessionsScreen extends ConsumerWidget {
 
   void _onJoinMeeting(BuildContext context, SessionModel session) {
     final link = session.meetingLink;
-    if (link != null && link.isNotEmpty) {
+    if (link == null || link.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Opening meeting link: $link'),
+        const SnackBar(
+          content: Text('No meeting link available'),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      return;
     }
+    launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication);
   }
 
   Future<void> _onComplete(
