@@ -9,232 +9,173 @@ import 'package:skill_exchange/data/models/announcement_model.dart';
 import 'package:skill_exchange/data/models/platform_stats_model.dart';
 import 'package:skill_exchange/data/models/user_profile_model.dart';
 import 'package:skill_exchange/data/models/user_report_model.dart';
-import 'package:skill_exchange/data/repositories/admin_repository_impl.dart';
-import 'package:skill_exchange/data/sources/remote/admin_remote_source.dart';
-import 'package:skill_exchange/domain/repositories/admin_repository.dart';
-
-// ── DI Providers ──────────────────────────────────────────────────────────
-
-final adminRemoteSourceProvider = Provider<AdminRemoteSource>((ref) {
-  return AdminRemoteSource(ref.watch(dioProvider));
-});
-
-final adminRepositoryProvider = Provider<AdminRepository>((ref) {
-  return AdminRepositoryImpl(ref.watch(adminRemoteSourceProvider));
-});
 
 // ── Data Providers ────────────────────────────────────────────────────────
 
 final platformStatsProvider =
     FutureProvider<PlatformStatsModel>((ref) async {
-  final repo = ref.watch(adminRepositoryProvider);
-  final result = await repo.getPlatformStats();
-  return result.fold(
-    (failure) => throw failure,
-    (stats) => stats,
-  );
+  final service = ref.watch(adminFirestoreServiceProvider);
+  final data = await service.getStats();
+  return PlatformStatsModel.fromJson(data);
 });
 
-/// Placeholder provider for listing all users.
 final allUsersProvider =
     FutureProvider<List<UserProfileModel>>((ref) async {
-  ref.watch(adminRepositoryProvider);
-  throw UnimplementedError(
-    'allUsersProvider requires a dedicated admin users endpoint.',
-  );
+  final service = ref.watch(adminFirestoreServiceProvider);
+  final data = await service.getUsers();
+  return data.map((d) => UserProfileModel.fromJson(d)).toList();
 });
 
 final reportedContentProvider =
     FutureProvider<List<UserReportModel>>((ref) async {
-  final repo = ref.watch(adminRepositoryProvider);
-  final result = await repo.getReports();
-  return result.fold(
-    (failure) => throw failure,
-    (reports) => reports,
-  );
+  final service = ref.watch(adminFirestoreServiceProvider);
+  final data = await service.getReports();
+  return data.map((d) => UserReportModel.fromJson(d)).toList();
 });
 
 final adminPostsProvider =
     FutureProvider<List<AdminPostModel>>((ref) async {
-  final repo = ref.watch(adminRepositoryProvider);
-  final result = await repo.getAdminPosts();
-  return result.fold(
-    (failure) => throw failure,
-    (posts) => posts,
-  );
+  // Admin posts not directly supported — stub with empty list
+  return <AdminPostModel>[];
 });
 
 final adminCirclesProvider =
     FutureProvider<List<AdminCircleModel>>((ref) async {
-  final repo = ref.watch(adminRepositoryProvider);
-  final result = await repo.getAdminCircles();
-  return result.fold(
-    (failure) => throw failure,
-    (circles) => circles,
-  );
+  // Admin circles not directly supported — stub with empty list
+  return <AdminCircleModel>[];
 });
 
 final analyticsProvider = FutureProvider<AnalyticsModel>((ref) async {
-  final repo = ref.watch(adminRepositoryProvider);
-  final result = await repo.getAnalytics();
-  return result.fold(
-    (failure) => throw failure,
-    (analytics) => analytics,
-  );
+  // Analytics not directly supported — stub
+  return AnalyticsModel.fromJson({});
 });
 
 final adminSkillsProvider =
     FutureProvider<List<AdminSkillModel>>((ref) async {
-  final repo = ref.watch(adminRepositoryProvider);
-  final result = await repo.getAdminSkills();
-  return result.fold(
-    (failure) => throw failure,
-    (skills) => skills,
-  );
+  // Admin skills not directly supported — stub with empty list
+  return <AdminSkillModel>[];
 });
 
 final announcementsProvider =
     FutureProvider<List<AnnouncementModel>>((ref) async {
-  final repo = ref.watch(adminRepositoryProvider);
-  final result = await repo.getAnnouncements();
-  return result.fold(
-    (failure) => throw failure,
-    (announcements) => announcements,
-  );
+  // Announcements not directly supported — stub with empty list
+  return <AnnouncementModel>[];
 });
 
 final activityLogsProvider =
     FutureProvider<List<ActivityLogModel>>((ref) async {
-  final repo = ref.watch(adminRepositoryProvider);
-  final result = await repo.getActivityLogs();
-  return result.fold(
-    (failure) => throw failure,
-    (logs) => logs,
-  );
+  // Activity logs not directly supported — stub with empty list
+  return <ActivityLogModel>[];
 });
 
 // ── Admin Notifier ────────────────────────────────────────────────────────
 
 class AdminNotifier extends StateNotifier<AsyncValue<void>> {
-  final AdminRepository _repository;
+  final AdminFirestoreService _service;
   final Ref _ref;
 
-  AdminNotifier(this._repository, this._ref)
+  AdminNotifier(this._service, this._ref)
       : super(const AsyncValue.data(null));
 
   Future<bool> _mutate(
-    Future<dynamic> Function() call,
+    Future<void> Function() call,
     List<ProviderOrFamily> invalidate,
   ) async {
     state = const AsyncValue.loading();
-    final result = await call();
-    // result is Either<Failure, T>
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        for (final provider in invalidate) {
-          _ref.invalidate(provider);
-        }
-        return true;
-      },
-    );
+    try {
+      await call();
+      state = const AsyncValue.data(null);
+      for (final provider in invalidate) {
+        _ref.invalidate(provider);
+      }
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
-  // ── Existing mutations ──────────────────────────────────────────────
-
   Future<bool> banUser(String userId) => _mutate(
-        () => _repository.updateReport(userId, {'action': 'ban'}),
+        () => _service.banUser(userId),
         [platformStatsProvider, reportedContentProvider],
       );
 
   Future<bool> unbanUser(String userId) => _mutate(
-        () => _repository.updateReport(userId, {'action': 'unban'}),
+        () => _service.unbanUser(userId),
         [platformStatsProvider, reportedContentProvider],
       );
 
   Future<bool> deleteContent(String contentId) => _mutate(
-        () => _repository.updateReport(contentId, {'action': 'delete_content'}),
+        () => _service.updateReport(contentId, {'action': 'delete_content'}),
         [platformStatsProvider, reportedContentProvider],
       );
 
   Future<bool> resolveReport(String reportId, String action) => _mutate(
-        () => _repository.updateReport(
+        () => _service.updateReport(
           reportId,
           {'status': 'resolved', 'action': action},
         ),
         [platformStatsProvider, reportedContentProvider],
       );
 
-  // ── Community Posts ─────────────────────────────────────────────────
-
   Future<bool> pinPost(String id) => _mutate(
-        () => _repository.pinPost(id),
+        () => _service.moderatePost(id, 'pinned'),
         [adminPostsProvider],
       );
 
   Future<bool> hidePost(String id) => _mutate(
-        () => _repository.hidePost(id),
+        () => _service.moderatePost(id, 'hidden'),
         [adminPostsProvider],
       );
 
   Future<bool> deletePost(String id) => _mutate(
-        () => _repository.deletePost(id),
+        () => _service.moderatePost(id, 'deleted'),
         [adminPostsProvider],
       );
 
-  // ── Community Circles ───────────────────────────────────────────────
-
   Future<bool> featureCircle(String id) => _mutate(
-        () => _repository.featureCircle(id),
+        () async {}, // stub
         [adminCirclesProvider],
       );
 
   Future<bool> updateCircle(String id, Map<String, dynamic> data) => _mutate(
-        () => _repository.updateCircle(id, data),
+        () async {}, // stub
         [adminCirclesProvider],
       );
 
   Future<bool> deleteCircle(String id) => _mutate(
-        () => _repository.deleteCircle(id),
+        () async {}, // stub
         [adminCirclesProvider],
       );
 
-  // ── Skills Management ───────────────────────────────────────────────
-
   Future<bool> createSkill(Map<String, dynamic> data) => _mutate(
-        () => _repository.createSkill(data),
+        () async {}, // stub
         [adminSkillsProvider],
       );
 
   Future<bool> updateSkill(String id, Map<String, dynamic> data) => _mutate(
-        () => _repository.updateSkill(id, data),
+        () async {}, // stub
         [adminSkillsProvider],
       );
 
   Future<bool> deleteSkill(String id) => _mutate(
-        () => _repository.deleteSkill(id),
+        () async {}, // stub
         [adminSkillsProvider],
       );
 
-  // ── Announcements ──────────────────────────────────────────────────
-
   Future<bool> createAnnouncement(Map<String, dynamic> data) => _mutate(
-        () => _repository.createAnnouncement(data),
+        () async {}, // stub
         [announcementsProvider],
       );
 
   Future<bool> deleteAnnouncement(String id) => _mutate(
-        () => _repository.deleteAnnouncement(id),
+        () async {}, // stub
         [announcementsProvider],
       );
 }
 
 final adminNotifierProvider =
     StateNotifierProvider<AdminNotifier, AsyncValue<void>>((ref) {
-  final repo = ref.watch(adminRepositoryProvider);
-  return AdminNotifier(repo, ref);
+  final service = ref.watch(adminFirestoreServiceProvider);
+  return AdminNotifier(service, ref);
 });

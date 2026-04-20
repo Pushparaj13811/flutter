@@ -3,59 +3,37 @@ import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/data/models/discussion_post_model.dart';
 import 'package:skill_exchange/data/models/leaderboard_entry_model.dart';
 import 'package:skill_exchange/data/models/learning_circle_model.dart';
-import 'package:skill_exchange/data/repositories/community_repository_impl.dart';
-import 'package:skill_exchange/data/sources/remote/community_remote_source.dart';
-import 'package:skill_exchange/domain/repositories/community_repository.dart';
-
-// ── DI Providers ──────────────────────────────────────────────────────────
-
-final communityRemoteSourceProvider = Provider<CommunityRemoteSource>((ref) {
-  return CommunityRemoteSource(ref.watch(dioProvider));
-});
-
-final communityRepositoryProvider = Provider<CommunityRepository>((ref) {
-  return CommunityRepositoryImpl(ref.watch(communityRemoteSourceProvider));
-});
 
 // ── Data Providers ────────────────────────────────────────────────────────
 
 final discussionPostsProvider =
     FutureProvider<List<DiscussionPostModel>>((ref) async {
-  final repo = ref.watch(communityRepositoryProvider);
-  final result = await repo.getPosts();
-  return result.fold(
-    (failure) => throw failure,
-    (posts) => posts,
-  );
+  final service = ref.watch(communityFirestoreServiceProvider);
+  final data = await service.getPosts();
+  return data.map((d) => DiscussionPostModel.fromJson(d)).toList();
 });
 
 final learningCirclesProvider =
     FutureProvider<List<LearningCircleModel>>((ref) async {
-  final repo = ref.watch(communityRepositoryProvider);
-  final result = await repo.getCircles();
-  return result.fold(
-    (failure) => throw failure,
-    (circles) => circles,
-  );
+  final service = ref.watch(communityFirestoreServiceProvider);
+  final data = await service.getCircles();
+  return data.map((d) => LearningCircleModel.fromJson(d)).toList();
 });
 
 final leaderboardProvider =
     FutureProvider<List<LeaderboardEntryModel>>((ref) async {
-  final repo = ref.watch(communityRepositoryProvider);
-  final result = await repo.getLeaderboard();
-  return result.fold(
-    (failure) => throw failure,
-    (entries) => entries,
-  );
+  final service = ref.watch(communityFirestoreServiceProvider);
+  final data = await service.getLeaderboard();
+  return data.map((d) => LeaderboardEntryModel.fromJson(d)).toList();
 });
 
 // ── Community Notifier ────────────────────────────────────────────────────
 
 class CommunityNotifier extends StateNotifier<AsyncValue<void>> {
-  final CommunityRepository _repository;
+  final CommunityFirestoreService _service;
   final Ref _ref;
 
-  CommunityNotifier(this._repository, this._ref)
+  CommunityNotifier(this._service, this._ref)
       : super(const AsyncValue.data(null));
 
   Future<bool> createPost(
@@ -64,35 +42,32 @@ class CommunityNotifier extends StateNotifier<AsyncValue<void>> {
     List<String> tags,
   ) async {
     state = const AsyncValue.loading();
-    final dto = CreatePostDto(title: title, content: content, tags: tags);
-    final result = await _repository.createPost(dto);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(discussionPostsProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.createPost({
+        'title': title,
+        'content': content,
+        'tags': tags,
+      });
+      state = const AsyncValue.data(null);
+      _ref.invalidate(discussionPostsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<bool> likePost(String id) async {
     state = const AsyncValue.loading();
-    final result = await _repository.likePost(id);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(discussionPostsProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.likePost(id);
+      state = const AsyncValue.data(null);
+      _ref.invalidate(discussionPostsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<bool> createCircle(
@@ -102,45 +77,38 @@ class CommunityNotifier extends StateNotifier<AsyncValue<void>> {
     int maxMembers,
   ) async {
     state = const AsyncValue.loading();
-    final dto = CreateCircleDto(
-      name: name,
-      description: description,
-      skillFocus: skillFocus,
-      maxMembers: maxMembers,
-    );
-    final result = await _repository.createCircle(dto);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(learningCirclesProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.createCircle({
+        'name': name,
+        'description': description,
+        'skillFocus': skillFocus,
+        'maxMembers': maxMembers,
+      });
+      state = const AsyncValue.data(null);
+      _ref.invalidate(learningCirclesProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<bool> joinCircle(String id) async {
     state = const AsyncValue.loading();
-    final result = await _repository.joinCircle(id);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(learningCirclesProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.joinCircle(id);
+      state = const AsyncValue.data(null);
+      _ref.invalidate(learningCirclesProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 }
 
 final communityNotifierProvider =
     StateNotifierProvider<CommunityNotifier, AsyncValue<void>>((ref) {
-  final repo = ref.watch(communityRepositoryProvider);
-  return CommunityNotifier(repo, ref);
+  final service = ref.watch(communityFirestoreServiceProvider);
+  return CommunityNotifier(service, ref);
 });

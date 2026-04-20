@@ -1,0 +1,21 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "skill-share-aa449",
+                    "appId": "1:670208959586:android:7557bfa8a55fa0e1661d3b",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "skill-share-aa449",
+                    "configurations": {
+                        "android": "1:670208959586:android:7557bfa8a55fa0e1661d3b"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -3,108 +3,85 @@ import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/data/models/create_session_dto.dart';
 import 'package:skill_exchange/data/models/reschedule_session_dto.dart';
 import 'package:skill_exchange/data/models/session_model.dart';
-import 'package:skill_exchange/data/repositories/session_repository_impl.dart';
-import 'package:skill_exchange/data/sources/remote/session_remote_source.dart';
-import 'package:skill_exchange/domain/repositories/session_repository.dart';
-
-// ── DI Providers ──────────────────────────────────────────────────────────
-
-final sessionRemoteSourceProvider = Provider<SessionRemoteSource>((ref) {
-  return SessionRemoteSource(ref.watch(dioProvider));
-});
-
-final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
-  return SessionRepositoryImpl(ref.watch(sessionRemoteSourceProvider));
-});
 
 // ── Data Providers ────────────────────────────────────────────────────────
 
 final upcomingSessionsProvider =
     FutureProvider<List<SessionModel>>((ref) async {
-  final repo = ref.watch(sessionRepositoryProvider);
-  final result = await repo.getUpcomingSessions();
-  return result.fold(
-    (failure) => throw failure,
-    (sessions) => sessions,
-  );
+  final service = ref.watch(sessionFirestoreServiceProvider);
+  final data = await service.getMySessions();
+  return data.map((d) => SessionModel.fromJson(d)).toList();
 });
 
 // ── Sessions Notifier ─────────────────────────────────────────────────────
 
 class SessionsNotifier extends StateNotifier<AsyncValue<void>> {
-  final SessionRepository _repository;
+  final SessionFirestoreService _service;
   final Ref _ref;
 
-  SessionsNotifier(this._repository, this._ref)
+  SessionsNotifier(this._service, this._ref)
       : super(const AsyncValue.data(null));
 
   Future<bool> createSession(CreateSessionDto dto) async {
     state = const AsyncValue.loading();
-    final result = await _repository.createSession(dto);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(upcomingSessionsProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.bookSession(dto.toJson());
+      state = const AsyncValue.data(null);
+      _ref.invalidate(upcomingSessionsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<bool> cancelSession(String id, {String? reason}) async {
     state = const AsyncValue.loading();
-    final result = await _repository.cancelSession(id, reason: reason);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(upcomingSessionsProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.cancelSession(id);
+      state = const AsyncValue.data(null);
+      _ref.invalidate(upcomingSessionsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<bool> completeSession(String id) async {
     state = const AsyncValue.loading();
-    final result = await _repository.completeSession(id);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(upcomingSessionsProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.completeSession(id);
+      state = const AsyncValue.data(null);
+      _ref.invalidate(upcomingSessionsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<bool> rescheduleSession(String id, RescheduleSessionDto dto) async {
     state = const AsyncValue.loading();
-    final result = await _repository.rescheduleSession(id, dto);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(upcomingSessionsProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.rescheduleSession(
+        id,
+        DateTime.parse(dto.newScheduledAt),
+        dto.newDuration,
+        reason: dto.reason,
+      );
+      state = const AsyncValue.data(null);
+      _ref.invalidate(upcomingSessionsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 }
 
 final sessionsNotifierProvider =
     StateNotifierProvider<SessionsNotifier, AsyncValue<void>>((ref) {
-  final repo = ref.watch(sessionRepositoryProvider);
-  return SessionsNotifier(repo, ref);
+  final service = ref.watch(sessionFirestoreServiceProvider);
+  return SessionsNotifier(service, ref);
 });

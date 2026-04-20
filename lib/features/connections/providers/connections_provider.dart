@@ -1,125 +1,108 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/data/models/connection_model.dart';
-import 'package:skill_exchange/data/repositories/connection_repository_impl.dart';
-import 'package:skill_exchange/data/sources/remote/connection_remote_source.dart';
-import 'package:skill_exchange/domain/repositories/connection_repository.dart';
-
-// ── DI Providers ──────────────────────────────────────────────────────────
-
-final connectionRemoteSourceProvider = Provider<ConnectionRemoteSource>((ref) {
-  return ConnectionRemoteSource(ref.watch(dioProvider));
-});
-
-final connectionRepositoryProvider = Provider<ConnectionRepository>((ref) {
-  return ConnectionRepositoryImpl(ref.watch(connectionRemoteSourceProvider));
-});
 
 // ── Data Providers ────────────────────────────────────────────────────────
 
 final connectionsProvider =
     FutureProvider<List<ConnectionModel>>((ref) async {
-  final repo = ref.watch(connectionRepositoryProvider);
-  final result = await repo.getConnections();
-  return result.fold(
-    (failure) => throw failure,
-    (connections) => connections,
-  );
+  final service = ref.watch(connectionFirestoreServiceProvider);
+  final data = await service.getMyConnections();
+  return data.map((d) => ConnectionModel.fromJson(d)).toList();
 });
 
 final pendingRequestsProvider =
     FutureProvider<List<ConnectionModel>>((ref) async {
-  final repo = ref.watch(connectionRepositoryProvider);
-  final result = await repo.getPendingRequests();
-  return result.fold(
-    (failure) => throw failure,
-    (requests) => requests,
-  );
+  final service = ref.watch(connectionFirestoreServiceProvider);
+  final data = await service.getPendingRequests();
+  return data.map((d) => ConnectionModel.fromJson(d)).toList();
 });
 
 final sentRequestsProvider =
     FutureProvider<List<ConnectionModel>>((ref) async {
-  final repo = ref.watch(connectionRepositoryProvider);
-  final result = await repo.getSentRequests();
-  return result.fold(
-    (failure) => throw failure,
-    (requests) => requests,
-  );
+  final service = ref.watch(connectionFirestoreServiceProvider);
+  final data = await service.getSentRequests();
+  return data.map((d) => ConnectionModel.fromJson(d)).toList();
 });
 
 final connectionStatusProvider =
     FutureProvider.family<String, String>((ref, userId) async {
-  final repo = ref.watch(connectionRepositoryProvider);
-  final result = await repo.getConnectionStatus(userId);
-  return result.fold(
-    (failure) => throw failure,
-    (status) => status,
-  );
+  // Determine connection status by checking existing connections
+  final service = ref.watch(connectionFirestoreServiceProvider);
+  final connections = await service.getMyConnections();
+  final pending = await service.getPendingRequests();
+  final sent = await service.getSentRequests();
+
+  if (connections.any((c) => c['id'] == userId || c['requester'] == userId || c['recipient'] == userId)) {
+    return 'connected';
+  }
+  if (pending.any((c) => c['requester'] == userId)) {
+    return 'pending_received';
+  }
+  if (sent.any((c) => c['recipient'] == userId)) {
+    return 'pending_sent';
+  }
+  return 'none';
 });
 
 // ── Connections Notifier ─────────────────────────────────────────────────
 
 class ConnectionsNotifier extends StateNotifier<AsyncValue<void>> {
-  final ConnectionRepository _repository;
+  final ConnectionFirestoreService _service;
   final Ref _ref;
 
-  ConnectionsNotifier(this._repository, this._ref)
+  ConnectionsNotifier(this._service, this._ref)
       : super(const AsyncValue.data(null));
 
   Future<bool> sendRequest(String toUserId, String? message) async {
     state = const AsyncValue.loading();
-    final result = await _repository.sendRequest(toUserId, message);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(connectionsProvider);
-        _ref.invalidate(sentRequestsProvider);
-        _ref.invalidate(pendingRequestsProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.sendRequest(toUserId, message: message);
+      state = const AsyncValue.data(null);
+      _ref.invalidate(connectionsProvider);
+      _ref.invalidate(sentRequestsProvider);
+      _ref.invalidate(pendingRequestsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<bool> respondToRequest(String id, bool accept) async {
     state = const AsyncValue.loading();
-    final result = await _repository.respondToRequest(id, accept);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(connectionsProvider);
-        _ref.invalidate(pendingRequestsProvider);
-        return true;
-      },
-    );
+    try {
+      if (accept) {
+        await _service.acceptRequest(id);
+      } else {
+        await _service.rejectRequest(id);
+      }
+      state = const AsyncValue.data(null);
+      _ref.invalidate(connectionsProvider);
+      _ref.invalidate(pendingRequestsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 
   Future<bool> removeConnection(String id) async {
     state = const AsyncValue.loading();
-    final result = await _repository.removeConnection(id);
-    return result.fold(
-      (failure) {
-        state = AsyncValue.error(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncValue.data(null);
-        _ref.invalidate(connectionsProvider);
-        return true;
-      },
-    );
+    try {
+      await _service.removeConnection(id);
+      state = const AsyncValue.data(null);
+      _ref.invalidate(connectionsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 }
 
 final connectionsNotifierProvider =
     StateNotifierProvider<ConnectionsNotifier, AsyncValue<void>>((ref) {
-  final repo = ref.watch(connectionRepositoryProvider);
-  return ConnectionsNotifier(repo, ref);
+  final service = ref.watch(connectionFirestoreServiceProvider);
+  return ConnectionsNotifier(service, ref);
 });
