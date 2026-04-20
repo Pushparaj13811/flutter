@@ -125,14 +125,50 @@ class FirebaseAuthService {
     );
     final uid = credential.user!.uid;
 
-    // Update last login
-    await _firestore.collection('users').doc(uid).update({
-      'lastLogin': FieldValue.serverTimestamp(),
-    });
-
-    // Fetch user doc
+    // Ensure user doc exists (may be missing for pre-existing auth users)
     final userDoc = await _firestore.collection('users').doc(uid).get();
-    final data = userDoc.data()!;
+    if (!userDoc.exists) {
+      // Create missing user doc
+      final name = credential.user!.displayName ?? email.split('@').first;
+      await _firestore.collection('users').doc(uid).set({
+        'name': name,
+        'email': email,
+        'role': 'user',
+        'isVerified': credential.user!.emailVerified,
+        'isActive': true,
+        'lastLogin': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      // Create missing profile
+      final username = email.split('@').first.toLowerCase();
+      await _firestore.collection('profiles').doc(uid).set({
+        'fullName': name,
+        'username': username,
+        'avatar': null, 'coverImage': null, 'bio': '', 'location': '', 'timezone': '',
+        'languages': <String>[], 'skillsToTeach': <Map>[], 'skillsToLearn': <Map>[],
+        'interests': <String>[], 'preferredLearningStyle': 'visual',
+        'availability': {'monday': false, 'tuesday': false, 'wednesday': false, 'thursday': false, 'friday': false, 'saturday': false, 'sunday': false},
+        'stats': {'connectionsCount': 0, 'sessionsCompleted': 0, 'reviewsReceived': 0, 'averageRating': 0.0},
+        'privacyPreferences': {'profileVisibility': 'public', 'showEmail': false, 'showLocation': true, 'showOnlineStatus': true, 'allowMessages': 'everyone'},
+        'notificationPreferences': {'emailNotifications': true, 'pushNotifications': true, 'connectionRequests': true, 'sessionReminders': true, 'newMessages': true, 'reviewsReceived': true, 'marketingEmails': false},
+        'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await _firestore.collection('matchPool').doc(uid).set({
+        'username': username, 'avatar': null, 'skillsToTeach': <Map>[], 'skillsToLearn': <Map>[],
+        'availability': {'monday': false, 'tuesday': false, 'wednesday': false, 'thursday': false, 'friday': false, 'saturday': false, 'sunday': false},
+        'location': '', 'averageRating': 0.0, 'sessionsCompleted': 0, 'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      // Update last login
+      await _firestore.collection('users').doc(uid).update({
+        'lastLogin': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Re-fetch user doc
+    final freshDoc = await _firestore.collection('users').doc(uid).get();
+    final data = freshDoc.data() ?? {};
 
     // Check if banned
     if (data['isActive'] == false) {
@@ -143,7 +179,7 @@ class FirebaseAuthService {
     return User(
       id: uid,
       email: email,
-      name: data['name'] as String,
+      name: data['name'] as String? ?? email.split('@').first,
       avatar: data['avatar'] as String?,
       role: data['role'] as String? ?? 'user',
       isVerified: (data['isVerified'] as bool?) ?? credential.user!.emailVerified,

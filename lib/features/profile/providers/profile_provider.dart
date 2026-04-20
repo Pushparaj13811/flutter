@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/data/models/skill_model.dart';
 import 'package:skill_exchange/data/models/update_profile_dto.dart';
 import 'package:skill_exchange/data/models/user_profile_model.dart';
@@ -47,13 +48,14 @@ Map<String, dynamic> _sanitizeProfileData(Map<String, dynamic> raw) {
 
 final currentProfileProvider =
     FutureProvider<UserProfileModel>((ref) async {
-  // Get UID directly — don't go through service which may have stale _uid
-  var uid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
-  if (uid.isEmpty) {
-    await Future.delayed(const Duration(milliseconds: 300));
-    uid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+  // Watch auth state so this provider re-evaluates when user logs in/out
+  final authState = ref.watch(authProvider);
+
+  // Only fetch if authenticated
+  final uid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+  if (uid.isEmpty || authState is! AuthAuthenticated) {
+    throw Exception('Not authenticated');
   }
-  if (uid.isEmpty) throw Exception('Not authenticated');
 
   final db = FirebaseFirestore.instance;
   final doc = await db.collection('profiles').doc(uid).get();
