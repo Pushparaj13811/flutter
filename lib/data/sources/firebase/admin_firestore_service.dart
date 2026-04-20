@@ -5,26 +5,29 @@ class AdminFirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<Map<String, dynamic>> getStats() async {
-    final users = await _db.collection('users').count().get();
-    final activeUsers = await _db.collection('users').where('isActive', isEqualTo: true).count().get();
-    final allSessions = await _db.collection('sessions').count().get();
-    final completedSessions = await _db.collection('sessions').where('status', isEqualTo: 'completed').count().get();
-    final connections = await _db.collection('connections').where('status', isEqualTo: 'accepted').count().get();
-    final reviews = await _db.collection('reviews').count().get();
-    final posts = await _db.collection('posts').where('moderationStatus', isEqualTo: 'active').count().get();
-    final circles = await _db.collection('circles').count().get();
-    final pendingReports = await _db.collection('reports').where('status', isEqualTo: 'pending').count().get();
+    final users = await _db.collection('users').get();
+    final activeUsers = users.docs.where((d) => d.data()['isActive'] == true).length;
+    final sessions = await _db.collection('sessions').get();
+    final completedSessions = sessions.docs.where((d) => d.data()['status'] == 'completed').length;
+    final connections = await _db.collection('connections').get();
+    final acceptedConnections = connections.docs.where((d) => d.data()['status'] == 'accepted').length;
+    final reviews = await _db.collection('reviews').get();
+    final posts = await _db.collection('posts').get();
+    final activePosts = posts.docs.where((d) => d.data()['moderationStatus'] == 'active').length;
+    final circles = await _db.collection('circles').get();
+    final reports = await _db.collection('reports').get();
+    final pendingReports = reports.docs.where((d) => d.data()['status'] == 'pending').length;
 
     return {
-      'totalUsers': users.count ?? 0,
-      'activeUsers': activeUsers.count ?? 0,
-      'totalSessions': allSessions.count ?? 0,
-      'completedSessions': completedSessions.count ?? 0,
-      'totalConnections': connections.count ?? 0,
-      'totalReviews': reviews.count ?? 0,
-      'totalPosts': posts.count ?? 0,
-      'totalCircles': circles.count ?? 0,
-      'pendingReports': pendingReports.count ?? 0,
+      'totalUsers': users.size,
+      'activeUsers': activeUsers,
+      'totalSessions': sessions.size,
+      'completedSessions': completedSessions,
+      'totalConnections': acceptedConnections,
+      'totalReviews': reviews.size,
+      'totalPosts': activePosts,
+      'totalCircles': circles.size,
+      'pendingReports': pendingReports,
     };
   }
 

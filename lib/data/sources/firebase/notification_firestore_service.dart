@@ -16,9 +16,8 @@ class NotificationFirestoreService {
   Future<int> getUnreadCount() async {
     final snap = await _db.collection('notifications').doc(_uid).collection('items')
         .where('isRead', isEqualTo: false)
-        .count()
         .get();
-    return snap.count ?? 0;
+    return snap.size;
   }
 
   Future<void> markAsRead(String notifId) async {

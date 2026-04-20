@@ -83,19 +83,18 @@ final analyticsProvider = FutureProvider<AnalyticsModel>((ref) async {
             .compareTo((a['teachCount'] as int) + (a['learnCount'] as int)));
 
   // Get session stats
-  final allSessions = await db.collection('sessions').count().get();
-  final completedSessions = await db.collection('sessions').where('status', isEqualTo: 'completed').count().get();
-  final activeUsers = await db.collection('users').where('isActive', isEqualTo: true).count().get();
-  final totalUsers = await db.collection('users').count().get();
+  final allSessions = await db.collection('sessions').get();
+  final completedCount = allSessions.docs.where((d) => d.data()['status'] == 'completed').length;
+  final usersSnap = await db.collection('users').get();
+  final activeUsersCount = usersSnap.docs.where((d) => d.data()['isActive'] == true).length;
 
-  final totalSessionCount = allSessions.count ?? 0;
-  final completedCount = completedSessions.count ?? 0;
+  final totalSessionCount = allSessions.size;
   final completionRate = totalSessionCount > 0 ? completedCount / totalSessionCount : 0.0;
 
   return AnalyticsModel.fromMap({
     'overview': {
-      'totalUsers': totalUsers.count ?? 0,
-      'activeUsers': activeUsers.count ?? 0,
+      'totalUsers': usersSnap.size,
+      'activeUsers': activeUsersCount,
       'totalSessions': totalSessionCount,
       'completionRate': completionRate,
       'newUsersThisWeek': 0,
