@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
+import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
 import 'package:skill_exchange/data/models/session_model.dart';
+import 'package:skill_exchange/data/models/connection_model.dart';
+import 'package:skill_exchange/features/connections/providers/connections_provider.dart';
 import 'package:skill_exchange/features/sessions/providers/session_provider.dart';
 import 'package:skill_exchange/features/sessions/widgets/reschedule_session_sheet.dart';
+import 'package:skill_exchange/features/sessions/widgets/session_booking_sheet.dart';
 import 'package:skill_exchange/features/sessions/widgets/session_card.dart';
 
 class SessionsScreen extends ConsumerWidget {
@@ -15,12 +19,14 @@ class SessionsScreen extends ConsumerWidget {
 
   // ── Actions ─────────────────────────────────────────────────────────────
 
-  void _onNewBooking(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Select a connection first'),
-        behavior: SnackBarBehavior.floating,
+  void _onNewBooking(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      builder: (_) => _ConnectionPickerSheet(ref: ref),
     );
   }
 
@@ -177,7 +183,7 @@ class SessionsScreen extends ConsumerWidget {
         title: const Text('Sessions'),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _onNewBooking(context),
+        onPressed: () => _onNewBooking(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('New Booking'),
       ),
@@ -239,6 +245,141 @@ class SessionsScreen extends ConsumerWidget {
       separatorBuilder: (_, _) =>
           const SizedBox(height: AppSpacing.listItemGap),
       itemBuilder: (_, _) => const SkeletonCard.session(),
+    );
+  }
+}
+
+// ── Connection Picker Sheet ──────────────────────────────────────────────────
+
+class _ConnectionPickerSheet extends ConsumerWidget {
+  const _ConnectionPickerSheet({required this.ref});
+
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connectionsAsync = ref.watch(connectionsProvider);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: AppSpacing.screenPadding,
+        right: AppSpacing.screenPadding,
+        top: AppSpacing.lg,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.muted,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Select a Connection',
+            style: AppTextStyles.h4.copyWith(color: context.colors.foreground),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Choose who to book a session with',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: context.colors.mutedForeground,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          connectionsAsync.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.xl),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Text(
+                'Failed to load connections.',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: context.colors.destructive,
+                ),
+              ),
+            ),
+            data: (connections) {
+              final accepted = connections
+                  .where((c) => c.status == ConnectionStatus.accepted)
+                  .toList();
+
+              if (accepted.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(AppSpacing.xl),
+                  child: EmptyState(
+                    icon: Icons.people_outline,
+                    title: 'No connections yet',
+                    description: 'Connect with people first to book sessions.',
+                  ),
+                );
+              }
+
+              return ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: accepted.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final connection = accepted[index];
+                    final otherUser = connection.toUser ?? connection.fromUser;
+                    final name = otherUser?.fullName ?? 'Unknown User';
+                    final userId = connection.toUserId == connection.fromUserId
+                        ? connection.toUserId
+                        : (otherUser?.id ?? connection.toUserId);
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: context.colors.muted,
+                        child: Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style: AppTextStyles.labelLarge.copyWith(
+                            color: context.colors.foreground,
+                          ),
+                        ),
+                      ),
+                      title: Text(name),
+                      trailing: Icon(
+                        Icons.chevron_right,
+                        color: context.colors.mutedForeground,
+                      ),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          builder: (_) => SessionBookingSheet(
+                            participantId: userId,
+                            participantName: name,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

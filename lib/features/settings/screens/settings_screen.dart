@@ -1,5 +1,7 @@
 // Settings screen — modern mobile settings pattern
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
@@ -256,122 +258,38 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  // ── Dialogs ───────────────────────────────────────────────────────────────
+  // ── Bottom Sheets ─────────────────────────────────────────────────────────
 
   void _showChangePasswordDialog(BuildContext context) {
-    showDialog<void>(
+    showModalBottomSheet(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Change Password'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Current Password',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: AppSpacing.inputGap),
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'New Password',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: AppSpacing.inputGap),
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Confirm New Password',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Update'),
-          ),
-        ],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) => const _ChangePasswordSheet(),
     );
   }
 
   void _showChangeEmailDialog(BuildContext context) {
-    showDialog<void>(
+    showModalBottomSheet(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Change Email'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Current Password',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: AppSpacing.inputGap),
-            TextField(
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: 'New Email',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Update'),
-          ),
-        ],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) => const _ChangeEmailSheet(),
     );
   }
 
   void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
-    final colors = context.colors;
-    showDialog<void>(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to delete your account? '
-          'This action cannot be undone and all your data will be '
-          'permanently removed.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: colors.destructive,
-              foregroundColor: colors.destructiveForeground,
-            ),
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-            },
-            child: const Text('Delete'),
-          ),
-        ],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) => _DeleteAccountSheet(ref: ref),
     );
   }
 
@@ -648,6 +566,443 @@ class _ThemeSegmentedControl extends StatelessWidget {
       style: const ButtonStyle(
         visualDensity: VisualDensity.compact,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+}
+
+// ── Change Password Bottom Sheet ─────────────────────────────────────────────
+
+class _ChangePasswordSheet extends StatefulWidget {
+  const _ChangePasswordSheet();
+
+  @override
+  State<_ChangePasswordSheet> createState() => _ChangePasswordSheetState();
+}
+
+class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _changePassword() async {
+    final currentPassword = _currentPasswordController.text;
+    final newPassword = _newPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      _showError('Please fill in all fields.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      _showError('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword != confirmPassword) {
+      _showError('New passwords do not match.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(newPassword);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password updated successfully'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      _showError(e.message ?? 'Failed to change password.');
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showError('Failed to change password: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: context.colors.destructive,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.muted,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Change Password', style: AppTextStyles.h3),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _currentPasswordController,
+            obscureText: true,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'Current Password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.input),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.inputGap),
+          TextField(
+            controller: _newPasswordController,
+            obscureText: true,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'New Password',
+              prefixIcon: const Icon(Icons.lock_reset),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.input),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.inputGap),
+          TextField(
+            controller: _confirmPasswordController,
+            obscureText: true,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'Confirm New Password',
+              prefixIcon: const Icon(Icons.lock_reset),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.input),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _isLoading ? null : _changePassword,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Update Password'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Change Email Bottom Sheet ────────────────────────────────────────────────
+
+class _ChangeEmailSheet extends StatefulWidget {
+  const _ChangeEmailSheet();
+
+  @override
+  State<_ChangeEmailSheet> createState() => _ChangeEmailSheetState();
+}
+
+class _ChangeEmailSheetState extends State<_ChangeEmailSheet> {
+  final _passwordController = TextEditingController();
+  final _newEmailController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _newEmailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _changeEmail() async {
+    final password = _passwordController.text;
+    final newEmail = _newEmailController.text.trim();
+
+    if (password.isEmpty || newEmail.isEmpty) {
+      _showError('Please fill in all fields.');
+      return;
+    }
+    if (!newEmail.contains('@')) {
+      _showError('Please enter a valid email address.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+      await user.verifyBeforeUpdateEmail(newEmail);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Verification email sent to new address. Please verify to complete the change.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      _showError(e.message ?? 'Failed to change email.');
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showError('Failed to change email: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: context.colors.destructive,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.muted,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Change Email', style: AppTextStyles.h3),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'Current Password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.input),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.inputGap),
+          TextField(
+            controller: _newEmailController,
+            keyboardType: TextInputType.emailAddress,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'New Email',
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.input),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _isLoading ? null : _changeEmail,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Update Email'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Delete Account Bottom Sheet ──────────────────────────────────────────────
+
+class _DeleteAccountSheet extends StatefulWidget {
+  const _DeleteAccountSheet({required this.ref});
+
+  final WidgetRef ref;
+
+  @override
+  State<_DeleteAccountSheet> createState() => _DeleteAccountSheetState();
+}
+
+class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _deleteAccount() async {
+    final password = _passwordController.text;
+    if (password.isEmpty) {
+      _showError('Please enter your password to confirm.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+
+      // Mark as inactive in Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({'isActive': false});
+
+      await user.delete();
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        widget.ref.read(authProvider.notifier).logout();
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      _showError(e.message ?? 'Failed to delete account.');
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showError('Failed to delete account: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: context.colors.destructive,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.muted,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Delete Account', style: AppTextStyles.h3.copyWith(color: colors.destructive)),
+          const SizedBox(height: 12),
+          Text(
+            'This action cannot be undone. All your data will be permanently removed.',
+            style: AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'Enter password to confirm',
+              prefixIcon: const Icon(Icons.lock_outline),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.input),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _isLoading ? null : _deleteAccount,
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.destructive,
+              foregroundColor: colors.destructiveForeground,
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Delete My Account'),
+          ),
+        ],
       ),
     );
   }

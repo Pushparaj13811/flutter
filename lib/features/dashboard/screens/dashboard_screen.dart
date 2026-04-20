@@ -54,10 +54,32 @@ class DashboardScreen extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.all(AppSpacing.screenPadding),
               children: [
-                // Welcome message
-                Text(
-                  'Welcome back, $firstName!',
-                  style: AppTextStyles.h2,
+                // Welcome message with avatar
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundImage: profile.avatar != null && profile.avatar!.isNotEmpty
+                          ? NetworkImage(profile.avatar!)
+                          : null,
+                      backgroundColor: context.colors.muted,
+                      child: profile.avatar == null || profile.avatar!.isEmpty
+                          ? Text(
+                              firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
+                              style: AppTextStyles.h3.copyWith(
+                                color: context.colors.foreground,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        'Welcome back, $firstName!',
+                        style: AppTextStyles.h2,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.sectionGap),
 
@@ -310,6 +332,8 @@ class _QuickActions extends StatelessWidget {
                 icon: Icons.search,
                 label: 'Find Matches',
                 onTap: onFindMatches,
+                iconColor: const Color(0xFF10B981),
+                iconBackgroundColor: const Color(0xFF10B981).withValues(alpha: 0.1),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -318,6 +342,8 @@ class _QuickActions extends StatelessWidget {
                 icon: Icons.school_outlined,
                 label: 'Browse Skills',
                 onTap: onBrowseSkills,
+                iconColor: const Color(0xFF6366F1),
+                iconBackgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.1),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -326,6 +352,8 @@ class _QuickActions extends StatelessWidget {
                 icon: Icons.groups_outlined,
                 label: 'Community',
                 onTap: onCommunity,
+                iconColor: const Color(0xFFF59E0B),
+                iconBackgroundColor: const Color(0xFFF59E0B).withValues(alpha: 0.1),
               ),
             ),
           ],
@@ -504,17 +532,25 @@ class _ActionChip extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.iconColor,
+    this.iconBackgroundColor,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color? iconColor;
+  final Color? iconBackgroundColor;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colors = context.colors;
+    final effectiveIconColor = iconColor ?? colors.primary;
+    final effectiveBgColor =
+        iconBackgroundColor ?? colors.primary.withValues(alpha: 0.1);
+
     return Material(
-      color: theme.colorScheme.primaryContainer,
+      color: colors.card,
       borderRadius: const BorderRadius.all(Radius.circular(12)),
       child: InkWell(
         onTap: onTap,
@@ -526,12 +562,20 @@ class _ActionChip extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(icon, color: theme.colorScheme.primary),
-              const SizedBox(height: AppSpacing.xs),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: effectiveBgColor,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, color: effectiveIconColor),
+              ),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 label,
                 style: AppTextStyles.labelSmall.copyWith(
-                  color: theme.colorScheme.primary,
+                  color: colors.foreground,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
