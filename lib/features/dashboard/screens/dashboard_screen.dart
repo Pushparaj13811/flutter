@@ -1,142 +1,560 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
-import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
-import 'package:skill_exchange/features/dashboard/widgets/stats_grid.dart';
+import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/features/matching/providers/matching_provider.dart';
 import 'package:skill_exchange/features/sessions/providers/session_provider.dart';
-import 'package:skill_exchange/features/dashboard/widgets/top_matches_section.dart';
-import 'package:skill_exchange/features/dashboard/widgets/upcoming_sessions_section.dart';
-import 'package:skill_exchange/features/profile/providers/profile_provider.dart';
+import 'package:skill_exchange/data/models/match_score_model.dart';
+import 'package:skill_exchange/data/models/session_model.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+
+// ── Feed Posts Provider ──────────────────────────────────────────────────────
+
+final feedPostsProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final service = ref.watch(communityFirestoreServiceProvider);
+  return service.getPosts(limit: 10);
+});
+
+// ── Dashboard Screen ─────────────────────────────────────────────────────────
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(currentProfileProvider);
+    final authState = ref.watch(authProvider);
+    final isAdmin = authState is AuthAuthenticated && authState.user.isAdmin;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('Home'),
         actions: [
           _NotificationBell(ref: ref),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(currentProfileProvider);
-          ref.invalidate(topMatchesProvider(5));
+          ref.invalidate(feedPostsProvider);
           ref.invalidate(upcomingSessionsProvider);
+          ref.invalidate(topMatchesProvider(5));
         },
-        child: profileAsync.when(
-          loading: () => _buildLoading(),
-          error: (e, _) => Center(
-            child: ErrorMessage(
-              message: e.toString(),
-              onRetry: () => ref.invalidate(currentProfileProvider),
-            ),
-          ),
-          data: (profile) {
-            final firstName = profile.fullName.split(' ').first;
-            final authState = ref.watch(authProvider);
-            final isAdmin =
-                authState is AuthAuthenticated && authState.user.isAdmin;
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
+          children: [
+            // Admin panel (compact)
+            if (isAdmin) ...[
+              _CompactAdminCard(
+                onTap: () => context.go(RouteNames.adminDashboard),
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
 
-            return ListView(
-              padding: const EdgeInsets.all(AppSpacing.screenPadding),
-              children: [
-                // Welcome message with avatar
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundImage: profile.avatar != null && profile.avatar!.isNotEmpty
-                          ? NetworkImage(profile.avatar!)
-                          : null,
-                      backgroundColor: context.colors.muted,
-                      child: profile.avatar == null || profile.avatar!.isEmpty
-                          ? Text(
-                              firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                              style: AppTextStyles.h3.copyWith(
-                                color: context.colors.foreground,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Text(
-                        'Welcome back, $firstName!',
-                        style: AppTextStyles.h2,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sectionGap),
+            // Session reminder
+            _SessionReminderSection(ref: ref),
 
-                // Admin panel card
-                if (isAdmin) ...[
-                  _AdminPanelCard(
-                    onDashboard: () =>
-                        context.go(RouteNames.adminDashboard),
-                    onUsers: () => context.go(RouteNames.adminUsers),
-                    onModeration: () =>
-                        context.go(RouteNames.adminModeration),
-                    onCommunity: () =>
-                        context.go(RouteNames.adminCommunity),
-                    onAnalytics: () =>
-                        context.go(RouteNames.adminAnalytics),
-                    onSkills: () =>
-                        context.go(RouteNames.adminSkills),
-                  ),
-                  const SizedBox(height: AppSpacing.sectionGap),
-                ],
+            // Community feed
+            _SectionHeader(title: 'Community Feed'),
+            const SizedBox(height: AppSpacing.sm),
+            _FeedSection(ref: ref),
 
-                // Stats grid
-                StatsGrid(stats: profile.stats),
-                const SizedBox(height: AppSpacing.sectionGap),
+            const SizedBox(height: AppSpacing.sectionGap),
 
-                // Top matches
-                _TopMatchesConsumer(ref: ref),
-                const SizedBox(height: AppSpacing.sectionGap),
+            // Suggested users
+            _SectionHeader(title: 'Suggested for You'),
+            const SizedBox(height: AppSpacing.sm),
+            _SuggestedUsersSection(ref: ref),
 
-                // Upcoming sessions
-                _UpcomingSessionsConsumer(ref: ref),
-                const SizedBox(height: AppSpacing.sectionGap),
-
-                // Quick actions
-                _QuickActions(
-                  onFindMatches: () => context.go(RouteNames.matching),
-                  onBrowseSkills: () => context.go(RouteNames.search),
-                  onCommunity: () => context.go(RouteNames.community),
-                ),
-              ],
-            );
-          },
+            const SizedBox(height: AppSpacing.xl),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildLoading() {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.screenPadding),
-      children: const [
-        SkeletonCard.profile(),
-        SizedBox(height: AppSpacing.md),
-        SkeletonCard.match(),
-        SizedBox(height: AppSpacing.md),
-        SkeletonCard.session(),
-      ],
+// ── Section Header ───────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: Text(
+        title,
+        style: AppTextStyles.h4.copyWith(color: colors.foreground),
+      ),
+    );
+  }
+}
+
+// ── Compact Admin Card ───────────────────────────────────────────────────────
+
+class _CompactAdminCard extends StatelessWidget {
+  const _CompactAdminCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Material(
+      color: colors.card,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(
+              color: colors.secondary.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.admin_panel_settings,
+                color: colors.secondary,
+                size: 20,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'Admin Panel',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: colors.foreground,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: colors.mutedForeground,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Session Reminder ─────────────────────────────────────────────────────────
+
+class _SessionReminderSection extends StatelessWidget {
+  const _SessionReminderSection({required this.ref});
+
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final sessionsAsync = ref.watch(upcomingSessionsProvider);
+
+    return sessionsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (sessions) {
+        // Find the next session within 24 hours
+        final now = DateTime.now();
+        final upcoming = sessions.where((s) {
+          if (s.status != SessionStatus.scheduled) return false;
+          final scheduled = DateTime.tryParse(s.scheduledAt);
+          if (scheduled == null) return false;
+          final diff = scheduled.difference(now);
+          return diff.inHours < 24 && !diff.isNegative;
+        }).toList();
+
+        if (upcoming.isEmpty) return const SizedBox.shrink();
+
+        final next = upcoming.first;
+        return _SessionReminderCard(session: next);
+      },
+    );
+  }
+}
+
+class _SessionReminderCard extends StatelessWidget {
+  const _SessionReminderCard({required this.session});
+
+  final SessionModel session;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final scheduled = DateTime.tryParse(session.scheduledAt);
+    final timeUntil = scheduled != null
+        ? timeago.format(scheduled, allowFromNow: true)
+        : '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.event, size: 20, color: colors.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  session.title,
+                  style: AppTextStyles.labelLarge.copyWith(
+                    color: colors.foreground,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            timeUntil,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: colors.mutedForeground,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              if (session.meetingLink != null &&
+                  session.meetingLink!.isNotEmpty) ...[
+                OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.videocam, size: 16),
+                  label: const Text('Join'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.xs,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+              ],
+              TextButton(
+                onPressed: () => context.go(RouteNames.bookings),
+                child: const Text('View Details'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Feed Section ─────────────────────────────────────────────────────────────
+
+class _FeedSection extends StatelessWidget {
+  const _FeedSection({required this.ref});
+
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final postsAsync = ref.watch(feedPostsProvider);
+
+    return postsAsync.when(
+      loading: () => Column(
+        children: const [
+          SkeletonCard.match(),
+          SizedBox(height: AppSpacing.md),
+          SkeletonCard.match(),
+        ],
+      ),
+      error: (e, _) => ErrorMessage(
+        message: 'Could not load feed.',
+        onRetry: () => ref.invalidate(feedPostsProvider),
+      ),
+      data: (posts) {
+        if (posts.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+            child: Center(
+              child: Text(
+                'No posts yet. Be the first to share!',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: context.colors.mutedForeground,
+                ),
+              ),
+            ),
+          );
+        }
+        return Column(
+          children: posts.map((post) => _PostCard(post: post, ref: ref)).toList(),
+        );
+      },
+    );
+  }
+}
+
+// ── Post Card ────────────────────────────────────────────────────────────────
+
+class _PostCard extends StatelessWidget {
+  const _PostCard({required this.post, required this.ref});
+
+  final Map<String, dynamic> post;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final authorName = post['authorName'] as String? ?? 'Unknown';
+    final authorAvatar = post['authorAvatar'] as String?;
+    final title = post['title'] as String? ?? '';
+    final content = post['content'] as String? ?? '';
+    final likesCount = post['likesCount'] as int? ?? 0;
+    final repliesCount = post['repliesCount'] as int? ?? 0;
+    final createdAt = post['createdAt'];
+    final timeAgoStr = _formatTimeAgo(createdAt);
+
+    return GestureDetector(
+      onTap: () => context.go(RouteNames.community),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: colors.border.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Author row
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundImage: authorAvatar != null && authorAvatar.isNotEmpty
+                      ? NetworkImage(authorAvatar)
+                      : null,
+                  backgroundColor: colors.muted,
+                  child: authorAvatar == null || authorAvatar.isEmpty
+                      ? Text(
+                          authorName.isNotEmpty
+                              ? authorName[0].toUpperCase()
+                              : '?',
+                          style: AppTextStyles.labelMedium.copyWith(
+                            color: colors.foreground,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        authorName,
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: colors.foreground,
+                        ),
+                      ),
+                      if (timeAgoStr.isNotEmpty)
+                        Text(
+                          timeAgoStr,
+                          style: AppTextStyles.caption.copyWith(
+                            color: colors.mutedForeground,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (title.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: colors.foreground,
+                ),
+              ),
+            ],
+            if (content.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                content,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: colors.foreground,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            // Actions row
+            Row(
+              children: [
+                Icon(Icons.favorite_border, size: 18, color: colors.mutedForeground),
+                const SizedBox(width: 4),
+                Text(
+                  '$likesCount',
+                  style: AppTextStyles.caption.copyWith(
+                    color: colors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.chat_bubble_outline, size: 18, color: colors.mutedForeground),
+                const SizedBox(width: 4),
+                Text(
+                  '$repliesCount',
+                  style: AppTextStyles.caption.copyWith(
+                    color: colors.mutedForeground,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Suggested Users Section ──────────────────────────────────────────────────
+
+class _SuggestedUsersSection extends StatelessWidget {
+  const _SuggestedUsersSection({required this.ref});
+
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final matchesAsync = ref.watch(topMatchesProvider(5));
+
+    return matchesAsync.when(
+      loading: () => const SizedBox(
+        height: 180,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (matches) {
+        if (matches.isEmpty) return const SizedBox.shrink();
+        return SizedBox(
+          height: 190,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: matches.length,
+            itemBuilder: (context, index) {
+              return _SuggestedUserCard(
+                match: matches[index],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SuggestedUserCard extends StatelessWidget {
+  const _SuggestedUserCard({required this.match});
+
+  final MatchScoreModel match;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final profile = match.profile;
+    final avatar = profile.avatar;
+    final topSkill = profile.skillsToTeach.isNotEmpty
+        ? profile.skillsToTeach.first.name
+        : null;
+
+    return Container(
+      width: 140,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundImage: avatar != null && avatar.isNotEmpty
+                ? NetworkImage(avatar)
+                : null,
+            backgroundColor: colors.muted,
+            child: avatar == null || avatar.isEmpty
+                ? Text(
+                    profile.fullName.isNotEmpty
+                        ? profile.fullName[0].toUpperCase()
+                        : '?',
+                    style: AppTextStyles.h4.copyWith(color: colors.foreground),
+                  )
+                : null,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            profile.fullName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.labelMedium.copyWith(
+              color: colors.foreground,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (topSkill != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              topSkill,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption.copyWith(
+                color: colors.mutedForeground,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () =>
+                  context.push('${RouteNames.profile}/${match.userId}'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                textStyle: AppTextStyles.caption,
+              ),
+              child: const Text('Connect'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -186,7 +604,8 @@ class _NotificationBell extends StatelessWidget {
     );
   }
 
-  void _showNotificationsSheet(BuildContext context, NotificationFirestoreService service) {
+  void _showNotificationsSheet(
+      BuildContext context, NotificationFirestoreService service) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -239,7 +658,9 @@ class _NotificationBell extends StatelessWidget {
                           leading: Icon(
                             Icons.circle,
                             size: 10,
-                            color: isRead ? Colors.transparent : Theme.of(context).colorScheme.primary,
+                            color: isRead
+                                ? Colors.transparent
+                                : Theme.of(context).colorScheme.primary,
                           ),
                           title: Text(data['title'] ?? 'Notification'),
                           subtitle: Text(data['body'] ?? ''),
@@ -261,338 +682,20 @@ class _NotificationBell extends StatelessWidget {
   }
 }
 
-// ── Top matches section with its own async state ─────────────────────────────
+// ── Time Ago Helper ──────────────────────────────────────────────────────────
 
-class _TopMatchesConsumer extends StatelessWidget {
-  const _TopMatchesConsumer({required this.ref});
-
-  final WidgetRef ref;
-
-  @override
-  Widget build(BuildContext context) {
-    final matchesAsync = ref.watch(topMatchesProvider(5));
-
-    return matchesAsync.when(
-      loading: () => const SkeletonCard.match(),
-      error: (e, _) => ErrorMessage(
-        message: 'Could not load matches.',
-        onRetry: () => ref.invalidate(topMatchesProvider(5)),
-      ),
-      data: (matches) => TopMatchesSection(
-        matches: matches,
-        onViewAll: () => context.go(RouteNames.matching),
-        onMatchTap: (userId) => context.push('${RouteNames.profile}/$userId'),
-      ),
-    );
+String _formatTimeAgo(dynamic timestamp) {
+  if (timestamp == null) return '';
+  DateTime date;
+  if (timestamp is String) {
+    date = DateTime.tryParse(timestamp) ?? DateTime.now();
+  } else {
+    // Firestore Timestamp
+    try {
+      date = (timestamp as dynamic).toDate();
+    } catch (_) {
+      date = DateTime.now();
+    }
   }
-}
-
-// ── Upcoming sessions section with its own async state ───────────────────────
-
-class _UpcomingSessionsConsumer extends StatelessWidget {
-  const _UpcomingSessionsConsumer({required this.ref});
-
-  final WidgetRef ref;
-
-  @override
-  Widget build(BuildContext context) {
-    final sessionsAsync = ref.watch(upcomingSessionsProvider);
-
-    return sessionsAsync.when(
-      loading: () => const SkeletonCard.session(),
-      error: (e, _) => ErrorMessage(
-        message: 'Could not load sessions.',
-        onRetry: () => ref.invalidate(upcomingSessionsProvider),
-      ),
-      data: (sessions) => UpcomingSessionsSection(
-        sessions: sessions,
-        onViewAll: () => context.go(RouteNames.bookings),
-        onSessionTap: (sessionId) => context.go(RouteNames.bookings),
-      ),
-    );
-  }
-}
-
-// ── Quick action buttons ─────────────────────────────────────────────────────
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.onFindMatches,
-    required this.onBrowseSkills,
-    required this.onCommunity,
-  });
-
-  final VoidCallback onFindMatches;
-  final VoidCallback onBrowseSkills;
-  final VoidCallback onCommunity;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick Actions', style: AppTextStyles.h4),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: _ActionChip(
-                icon: Icons.search,
-                label: 'Find Matches',
-                onTap: onFindMatches,
-                iconColor: const Color(0xFF10B981),
-                iconBackgroundColor: const Color(0xFF10B981).withValues(alpha: 0.1),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _ActionChip(
-                icon: Icons.school_outlined,
-                label: 'Browse Skills',
-                onTap: onBrowseSkills,
-                iconColor: const Color(0xFF6366F1),
-                iconBackgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.1),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _ActionChip(
-                icon: Icons.groups_outlined,
-                label: 'Community',
-                onTap: onCommunity,
-                iconColor: const Color(0xFFF59E0B),
-                iconBackgroundColor: const Color(0xFFF59E0B).withValues(alpha: 0.1),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// ── Admin panel card ──────────────────────────────────────────────────────────
-
-class _AdminPanelCard extends StatelessWidget {
-  const _AdminPanelCard({
-    required this.onDashboard,
-    required this.onUsers,
-    required this.onModeration,
-    required this.onCommunity,
-    required this.onAnalytics,
-    required this.onSkills,
-  });
-
-  final VoidCallback onDashboard;
-  final VoidCallback onUsers;
-  final VoidCallback onModeration;
-  final VoidCallback onCommunity;
-  final VoidCallback onAnalytics;
-  final VoidCallback onSkills;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colors.secondary.withValues(alpha: 0.1),
-            colors.primary.withValues(alpha: 0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: colors.secondary.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.admin_panel_settings,
-                color: colors.secondary,
-                size: 22,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Admin Panel',
-                style: AppTextStyles.labelLarge.copyWith(
-                  color: colors.foreground,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _AdminAction(
-                  icon: Icons.dashboard_outlined,
-                  label: 'Dashboard',
-                  onTap: onDashboard,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _AdminAction(
-                  icon: Icons.people_outline,
-                  label: 'Users',
-                  onTap: onUsers,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _AdminAction(
-                  icon: Icons.shield_outlined,
-                  label: 'Moderation',
-                  onTap: onModeration,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: _AdminAction(
-                  icon: Icons.groups_outlined,
-                  label: 'Community',
-                  onTap: onCommunity,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _AdminAction(
-                  icon: Icons.bar_chart,
-                  label: 'Analytics',
-                  onTap: onAnalytics,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _AdminAction(
-                  icon: Icons.category_outlined,
-                  label: 'Skills',
-                  onTap: onSkills,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AdminAction extends StatelessWidget {
-  const _AdminAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Material(
-      color: colors.card,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: AppSpacing.sm,
-            horizontal: AppSpacing.xs,
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 20, color: colors.secondary),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                label,
-                style: AppTextStyles.caption.copyWith(
-                  color: colors.foreground,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionChip extends StatelessWidget {
-  const _ActionChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.iconColor,
-    this.iconBackgroundColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? iconColor;
-  final Color? iconBackgroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final effectiveIconColor = iconColor ?? colors.primary;
-    final effectiveBgColor =
-        iconBackgroundColor ?? colors.primary.withValues(alpha: 0.1);
-
-    return Material(
-      color: colors.card,
-      borderRadius: const BorderRadius.all(Radius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: AppSpacing.md,
-            horizontal: AppSpacing.sm,
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: effectiveBgColor,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Icon(icon, color: effectiveIconColor),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                label,
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: colors.foreground,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  return timeago.format(date);
 }
