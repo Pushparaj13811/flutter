@@ -21,11 +21,16 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$UserModel {
-  String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: '_id')
+  String? get mongoId => throw _privateConstructorUsedError;
+  String? get id => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String? get avatar => throw _privateConstructorUsedError;
   String get role => throw _privateConstructorUsedError;
+  bool get isVerified => throw _privateConstructorUsedError;
+  bool get isActive => throw _privateConstructorUsedError;
+  String? get lastLogin => throw _privateConstructorUsedError;
 
   /// Serializes this UserModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -43,11 +48,15 @@ abstract class $UserModelCopyWith<$Res> {
       _$UserModelCopyWithImpl<$Res, UserModel>;
   @useResult
   $Res call({
-    String id,
+    @JsonKey(name: '_id') String? mongoId,
+    String? id,
     String email,
     String name,
     String? avatar,
     String role,
+    bool isVerified,
+    bool isActive,
+    String? lastLogin,
   });
 }
 
@@ -66,18 +75,26 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
+    Object? mongoId = freezed,
+    Object? id = freezed,
     Object? email = null,
     Object? name = null,
     Object? avatar = freezed,
     Object? role = null,
+    Object? isVerified = null,
+    Object? isActive = null,
+    Object? lastLogin = freezed,
   }) {
     return _then(
       _value.copyWith(
-            id: null == id
+            mongoId: freezed == mongoId
+                ? _value.mongoId
+                : mongoId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            id: freezed == id
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
-                      as String,
+                      as String?,
             email: null == email
                 ? _value.email
                 : email // ignore: cast_nullable_to_non_nullable
@@ -94,6 +111,18 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
                 ? _value.role
                 : role // ignore: cast_nullable_to_non_nullable
                       as String,
+            isVerified: null == isVerified
+                ? _value.isVerified
+                : isVerified // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            isActive: null == isActive
+                ? _value.isActive
+                : isActive // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            lastLogin: freezed == lastLogin
+                ? _value.lastLogin
+                : lastLogin // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -110,11 +139,15 @@ abstract class _$$UserModelImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String id,
+    @JsonKey(name: '_id') String? mongoId,
+    String? id,
     String email,
     String name,
     String? avatar,
     String role,
+    bool isVerified,
+    bool isActive,
+    String? lastLogin,
   });
 }
 
@@ -132,18 +165,26 @@ class __$$UserModelImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
+    Object? mongoId = freezed,
+    Object? id = freezed,
     Object? email = null,
     Object? name = null,
     Object? avatar = freezed,
     Object? role = null,
+    Object? isVerified = null,
+    Object? isActive = null,
+    Object? lastLogin = freezed,
   }) {
     return _then(
       _$UserModelImpl(
-        id: null == id
+        mongoId: freezed == mongoId
+            ? _value.mongoId
+            : mongoId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        id: freezed == id
             ? _value.id
             : id // ignore: cast_nullable_to_non_nullable
-                  as String,
+                  as String?,
         email: null == email
             ? _value.email
             : email // ignore: cast_nullable_to_non_nullable
@@ -160,6 +201,18 @@ class __$$UserModelImplCopyWithImpl<$Res>
             ? _value.role
             : role // ignore: cast_nullable_to_non_nullable
                   as String,
+        isVerified: null == isVerified
+            ? _value.isVerified
+            : isVerified // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        isActive: null == isActive
+            ? _value.isActive
+            : isActive // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        lastLogin: freezed == lastLogin
+            ? _value.lastLogin
+            : lastLogin // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -169,18 +222,25 @@ class __$$UserModelImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$UserModelImpl implements _UserModel {
   const _$UserModelImpl({
-    required this.id,
+    @JsonKey(name: '_id') this.mongoId,
+    this.id,
     required this.email,
     required this.name,
     this.avatar,
     this.role = 'user',
+    this.isVerified = false,
+    this.isActive = true,
+    this.lastLogin,
   });
 
   factory _$UserModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserModelImplFromJson(json);
 
   @override
-  final String id;
+  @JsonKey(name: '_id')
+  final String? mongoId;
+  @override
+  final String? id;
   @override
   final String email;
   @override
@@ -190,10 +250,18 @@ class _$UserModelImpl implements _UserModel {
   @override
   @JsonKey()
   final String role;
+  @override
+  @JsonKey()
+  final bool isVerified;
+  @override
+  @JsonKey()
+  final bool isActive;
+  @override
+  final String? lastLogin;
 
   @override
   String toString() {
-    return 'UserModel(id: $id, email: $email, name: $name, avatar: $avatar, role: $role)';
+    return 'UserModel(mongoId: $mongoId, id: $id, email: $email, name: $name, avatar: $avatar, role: $role, isVerified: $isVerified, isActive: $isActive, lastLogin: $lastLogin)';
   }
 
   @override
@@ -201,16 +269,34 @@ class _$UserModelImpl implements _UserModel {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$UserModelImpl &&
+            (identical(other.mongoId, mongoId) || other.mongoId == mongoId) &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.email, email) || other.email == email) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.avatar, avatar) || other.avatar == avatar) &&
-            (identical(other.role, role) || other.role == role));
+            (identical(other.role, role) || other.role == role) &&
+            (identical(other.isVerified, isVerified) ||
+                other.isVerified == isVerified) &&
+            (identical(other.isActive, isActive) ||
+                other.isActive == isActive) &&
+            (identical(other.lastLogin, lastLogin) ||
+                other.lastLogin == lastLogin));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, email, name, avatar, role);
+  int get hashCode => Object.hash(
+    runtimeType,
+    mongoId,
+    id,
+    email,
+    name,
+    avatar,
+    role,
+    isVerified,
+    isActive,
+    lastLogin,
+  );
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -228,18 +314,25 @@ class _$UserModelImpl implements _UserModel {
 
 abstract class _UserModel implements UserModel {
   const factory _UserModel({
-    required final String id,
+    @JsonKey(name: '_id') final String? mongoId,
+    final String? id,
     required final String email,
     required final String name,
     final String? avatar,
     final String role,
+    final bool isVerified,
+    final bool isActive,
+    final String? lastLogin,
   }) = _$UserModelImpl;
 
   factory _UserModel.fromJson(Map<String, dynamic> json) =
       _$UserModelImpl.fromJson;
 
   @override
-  String get id;
+  @JsonKey(name: '_id')
+  String? get mongoId;
+  @override
+  String? get id;
   @override
   String get email;
   @override
@@ -248,6 +341,12 @@ abstract class _UserModel implements UserModel {
   String? get avatar;
   @override
   String get role;
+  @override
+  bool get isVerified;
+  @override
+  bool get isActive;
+  @override
+  String? get lastLogin;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.

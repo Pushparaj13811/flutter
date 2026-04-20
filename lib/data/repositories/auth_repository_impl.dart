@@ -15,11 +15,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
   User _toEntity(dynamic model) {
     return User(
-      id: model.id as String,
+      id: (model.mongoId ?? model.id ?? '') as String,
       email: model.email as String,
       name: model.name as String,
       avatar: model.avatar as String?,
       role: model.role as String,
+      isVerified: (model.isVerified ?? false) as bool,
+      isActive: (model.isActive ?? true) as bool,
     );
   }
 

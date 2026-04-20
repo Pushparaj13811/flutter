@@ -22,10 +22,12 @@ UserProfileModel _$UserProfileModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$UserProfileModel {
   String get id => throw _privateConstructorUsedError;
+  String? get userId => throw _privateConstructorUsedError;
   String get username => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
   String get fullName => throw _privateConstructorUsedError;
   String? get avatar => throw _privateConstructorUsedError;
+  String? get coverImage => throw _privateConstructorUsedError;
   String? get bio => throw _privateConstructorUsedError;
   String? get location => throw _privateConstructorUsedError;
   String? get timezone => throw _privateConstructorUsedError;
@@ -38,6 +40,10 @@ mixin _$UserProfileModel {
   String get joinedAt => throw _privateConstructorUsedError;
   String get lastActive => throw _privateConstructorUsedError;
   UserStatsModel get stats => throw _privateConstructorUsedError;
+  PrivacyPreferencesModel? get privacyPreferences =>
+      throw _privateConstructorUsedError;
+  NotificationPreferencesModel? get notificationPreferences =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this UserProfileModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -58,10 +64,12 @@ abstract class $UserProfileModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
+    String? userId,
     String username,
     String email,
     String fullName,
     String? avatar,
+    String? coverImage,
     String? bio,
     String? location,
     String? timezone,
@@ -74,10 +82,14 @@ abstract class $UserProfileModelCopyWith<$Res> {
     String joinedAt,
     String lastActive,
     UserStatsModel stats,
+    PrivacyPreferencesModel? privacyPreferences,
+    NotificationPreferencesModel? notificationPreferences,
   });
 
   $AvailabilityModelCopyWith<$Res> get availability;
   $UserStatsModelCopyWith<$Res> get stats;
+  $PrivacyPreferencesModelCopyWith<$Res>? get privacyPreferences;
+  $NotificationPreferencesModelCopyWith<$Res>? get notificationPreferences;
 }
 
 /// @nodoc
@@ -96,10 +108,12 @@ class _$UserProfileModelCopyWithImpl<$Res, $Val extends UserProfileModel>
   @override
   $Res call({
     Object? id = null,
+    Object? userId = freezed,
     Object? username = null,
     Object? email = null,
     Object? fullName = null,
     Object? avatar = freezed,
+    Object? coverImage = freezed,
     Object? bio = freezed,
     Object? location = freezed,
     Object? timezone = freezed,
@@ -112,6 +126,8 @@ class _$UserProfileModelCopyWithImpl<$Res, $Val extends UserProfileModel>
     Object? joinedAt = null,
     Object? lastActive = null,
     Object? stats = null,
+    Object? privacyPreferences = freezed,
+    Object? notificationPreferences = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -119,6 +135,10 @@ class _$UserProfileModelCopyWithImpl<$Res, $Val extends UserProfileModel>
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
                       as String,
+            userId: freezed == userId
+                ? _value.userId
+                : userId // ignore: cast_nullable_to_non_nullable
+                      as String?,
             username: null == username
                 ? _value.username
                 : username // ignore: cast_nullable_to_non_nullable
@@ -134,6 +154,10 @@ class _$UserProfileModelCopyWithImpl<$Res, $Val extends UserProfileModel>
             avatar: freezed == avatar
                 ? _value.avatar
                 : avatar // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            coverImage: freezed == coverImage
+                ? _value.coverImage
+                : coverImage // ignore: cast_nullable_to_non_nullable
                       as String?,
             bio: freezed == bio
                 ? _value.bio
@@ -183,6 +207,14 @@ class _$UserProfileModelCopyWithImpl<$Res, $Val extends UserProfileModel>
                 ? _value.stats
                 : stats // ignore: cast_nullable_to_non_nullable
                       as UserStatsModel,
+            privacyPreferences: freezed == privacyPreferences
+                ? _value.privacyPreferences
+                : privacyPreferences // ignore: cast_nullable_to_non_nullable
+                      as PrivacyPreferencesModel?,
+            notificationPreferences: freezed == notificationPreferences
+                ? _value.notificationPreferences
+                : notificationPreferences // ignore: cast_nullable_to_non_nullable
+                      as NotificationPreferencesModel?,
           )
           as $Val,
     );
@@ -207,6 +239,39 @@ class _$UserProfileModelCopyWithImpl<$Res, $Val extends UserProfileModel>
       return _then(_value.copyWith(stats: value) as $Val);
     });
   }
+
+  /// Create a copy of UserProfileModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PrivacyPreferencesModelCopyWith<$Res>? get privacyPreferences {
+    if (_value.privacyPreferences == null) {
+      return null;
+    }
+
+    return $PrivacyPreferencesModelCopyWith<$Res>(_value.privacyPreferences!, (
+      value,
+    ) {
+      return _then(_value.copyWith(privacyPreferences: value) as $Val);
+    });
+  }
+
+  /// Create a copy of UserProfileModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $NotificationPreferencesModelCopyWith<$Res>? get notificationPreferences {
+    if (_value.notificationPreferences == null) {
+      return null;
+    }
+
+    return $NotificationPreferencesModelCopyWith<$Res>(
+      _value.notificationPreferences!,
+      (value) {
+        return _then(_value.copyWith(notificationPreferences: value) as $Val);
+      },
+    );
+  }
 }
 
 /// @nodoc
@@ -220,10 +285,12 @@ abstract class _$$UserProfileModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
+    String? userId,
     String username,
     String email,
     String fullName,
     String? avatar,
+    String? coverImage,
     String? bio,
     String? location,
     String? timezone,
@@ -236,12 +303,18 @@ abstract class _$$UserProfileModelImplCopyWith<$Res>
     String joinedAt,
     String lastActive,
     UserStatsModel stats,
+    PrivacyPreferencesModel? privacyPreferences,
+    NotificationPreferencesModel? notificationPreferences,
   });
 
   @override
   $AvailabilityModelCopyWith<$Res> get availability;
   @override
   $UserStatsModelCopyWith<$Res> get stats;
+  @override
+  $PrivacyPreferencesModelCopyWith<$Res>? get privacyPreferences;
+  @override
+  $NotificationPreferencesModelCopyWith<$Res>? get notificationPreferences;
 }
 
 /// @nodoc
@@ -259,10 +332,12 @@ class __$$UserProfileModelImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? userId = freezed,
     Object? username = null,
     Object? email = null,
     Object? fullName = null,
     Object? avatar = freezed,
+    Object? coverImage = freezed,
     Object? bio = freezed,
     Object? location = freezed,
     Object? timezone = freezed,
@@ -275,6 +350,8 @@ class __$$UserProfileModelImplCopyWithImpl<$Res>
     Object? joinedAt = null,
     Object? lastActive = null,
     Object? stats = null,
+    Object? privacyPreferences = freezed,
+    Object? notificationPreferences = freezed,
   }) {
     return _then(
       _$UserProfileModelImpl(
@@ -282,6 +359,10 @@ class __$$UserProfileModelImplCopyWithImpl<$Res>
             ? _value.id
             : id // ignore: cast_nullable_to_non_nullable
                   as String,
+        userId: freezed == userId
+            ? _value.userId
+            : userId // ignore: cast_nullable_to_non_nullable
+                  as String?,
         username: null == username
             ? _value.username
             : username // ignore: cast_nullable_to_non_nullable
@@ -297,6 +378,10 @@ class __$$UserProfileModelImplCopyWithImpl<$Res>
         avatar: freezed == avatar
             ? _value.avatar
             : avatar // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        coverImage: freezed == coverImage
+            ? _value.coverImage
+            : coverImage // ignore: cast_nullable_to_non_nullable
                   as String?,
         bio: freezed == bio
             ? _value.bio
@@ -346,6 +431,14 @@ class __$$UserProfileModelImplCopyWithImpl<$Res>
             ? _value.stats
             : stats // ignore: cast_nullable_to_non_nullable
                   as UserStatsModel,
+        privacyPreferences: freezed == privacyPreferences
+            ? _value.privacyPreferences
+            : privacyPreferences // ignore: cast_nullable_to_non_nullable
+                  as PrivacyPreferencesModel?,
+        notificationPreferences: freezed == notificationPreferences
+            ? _value.notificationPreferences
+            : notificationPreferences // ignore: cast_nullable_to_non_nullable
+                  as NotificationPreferencesModel?,
       ),
     );
   }
@@ -356,10 +449,12 @@ class __$$UserProfileModelImplCopyWithImpl<$Res>
 class _$UserProfileModelImpl implements _UserProfileModel {
   const _$UserProfileModelImpl({
     required this.id,
+    this.userId,
     required this.username,
     required this.email,
     required this.fullName,
     this.avatar,
+    this.coverImage,
     this.bio,
     this.location,
     this.timezone,
@@ -372,6 +467,8 @@ class _$UserProfileModelImpl implements _UserProfileModel {
     required this.joinedAt,
     required this.lastActive,
     required this.stats,
+    this.privacyPreferences,
+    this.notificationPreferences,
   }) : _languages = languages,
        _skillsToTeach = skillsToTeach,
        _skillsToLearn = skillsToLearn,
@@ -383,6 +480,8 @@ class _$UserProfileModelImpl implements _UserProfileModel {
   @override
   final String id;
   @override
+  final String? userId;
+  @override
   final String username;
   @override
   final String email;
@@ -390,6 +489,8 @@ class _$UserProfileModelImpl implements _UserProfileModel {
   final String fullName;
   @override
   final String? avatar;
+  @override
+  final String? coverImage;
   @override
   final String? bio;
   @override
@@ -443,10 +544,14 @@ class _$UserProfileModelImpl implements _UserProfileModel {
   final String lastActive;
   @override
   final UserStatsModel stats;
+  @override
+  final PrivacyPreferencesModel? privacyPreferences;
+  @override
+  final NotificationPreferencesModel? notificationPreferences;
 
   @override
   String toString() {
-    return 'UserProfileModel(id: $id, username: $username, email: $email, fullName: $fullName, avatar: $avatar, bio: $bio, location: $location, timezone: $timezone, languages: $languages, skillsToTeach: $skillsToTeach, skillsToLearn: $skillsToLearn, interests: $interests, availability: $availability, preferredLearningStyle: $preferredLearningStyle, joinedAt: $joinedAt, lastActive: $lastActive, stats: $stats)';
+    return 'UserProfileModel(id: $id, userId: $userId, username: $username, email: $email, fullName: $fullName, avatar: $avatar, coverImage: $coverImage, bio: $bio, location: $location, timezone: $timezone, languages: $languages, skillsToTeach: $skillsToTeach, skillsToLearn: $skillsToLearn, interests: $interests, availability: $availability, preferredLearningStyle: $preferredLearningStyle, joinedAt: $joinedAt, lastActive: $lastActive, stats: $stats, privacyPreferences: $privacyPreferences, notificationPreferences: $notificationPreferences)';
   }
 
   @override
@@ -455,12 +560,15 @@ class _$UserProfileModelImpl implements _UserProfileModel {
         (other.runtimeType == runtimeType &&
             other is _$UserProfileModelImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.userId, userId) || other.userId == userId) &&
             (identical(other.username, username) ||
                 other.username == username) &&
             (identical(other.email, email) || other.email == email) &&
             (identical(other.fullName, fullName) ||
                 other.fullName == fullName) &&
             (identical(other.avatar, avatar) || other.avatar == avatar) &&
+            (identical(other.coverImage, coverImage) ||
+                other.coverImage == coverImage) &&
             (identical(other.bio, bio) || other.bio == bio) &&
             (identical(other.location, location) ||
                 other.location == location) &&
@@ -490,18 +598,27 @@ class _$UserProfileModelImpl implements _UserProfileModel {
                 other.joinedAt == joinedAt) &&
             (identical(other.lastActive, lastActive) ||
                 other.lastActive == lastActive) &&
-            (identical(other.stats, stats) || other.stats == stats));
+            (identical(other.stats, stats) || other.stats == stats) &&
+            (identical(other.privacyPreferences, privacyPreferences) ||
+                other.privacyPreferences == privacyPreferences) &&
+            (identical(
+                  other.notificationPreferences,
+                  notificationPreferences,
+                ) ||
+                other.notificationPreferences == notificationPreferences));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     runtimeType,
     id,
+    userId,
     username,
     email,
     fullName,
     avatar,
+    coverImage,
     bio,
     location,
     timezone,
@@ -514,7 +631,9 @@ class _$UserProfileModelImpl implements _UserProfileModel {
     joinedAt,
     lastActive,
     stats,
-  );
+    privacyPreferences,
+    notificationPreferences,
+  ]);
 
   /// Create a copy of UserProfileModel
   /// with the given fields replaced by the non-null parameter values.
@@ -536,10 +655,12 @@ class _$UserProfileModelImpl implements _UserProfileModel {
 abstract class _UserProfileModel implements UserProfileModel {
   const factory _UserProfileModel({
     required final String id,
+    final String? userId,
     required final String username,
     required final String email,
     required final String fullName,
     final String? avatar,
+    final String? coverImage,
     final String? bio,
     final String? location,
     final String? timezone,
@@ -552,6 +673,8 @@ abstract class _UserProfileModel implements UserProfileModel {
     required final String joinedAt,
     required final String lastActive,
     required final UserStatsModel stats,
+    final PrivacyPreferencesModel? privacyPreferences,
+    final NotificationPreferencesModel? notificationPreferences,
   }) = _$UserProfileModelImpl;
 
   factory _UserProfileModel.fromJson(Map<String, dynamic> json) =
@@ -560,6 +683,8 @@ abstract class _UserProfileModel implements UserProfileModel {
   @override
   String get id;
   @override
+  String? get userId;
+  @override
   String get username;
   @override
   String get email;
@@ -567,6 +692,8 @@ abstract class _UserProfileModel implements UserProfileModel {
   String get fullName;
   @override
   String? get avatar;
+  @override
+  String? get coverImage;
   @override
   String? get bio;
   @override
@@ -591,6 +718,10 @@ abstract class _UserProfileModel implements UserProfileModel {
   String get lastActive;
   @override
   UserStatsModel get stats;
+  @override
+  PrivacyPreferencesModel? get privacyPreferences;
+  @override
+  NotificationPreferencesModel? get notificationPreferences;
 
   /// Create a copy of UserProfileModel
   /// with the given fields replaced by the non-null parameter values.
@@ -1143,4 +1274,605 @@ abstract class _UserStatsModel implements UserStatsModel {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$UserStatsModelImplCopyWith<_$UserStatsModelImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+PrivacyPreferencesModel _$PrivacyPreferencesModelFromJson(
+  Map<String, dynamic> json,
+) {
+  return _PrivacyPreferencesModel.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PrivacyPreferencesModel {
+  String get profileVisibility => throw _privateConstructorUsedError;
+  bool get showEmail => throw _privateConstructorUsedError;
+  bool get showLocation => throw _privateConstructorUsedError;
+  bool get showOnlineStatus => throw _privateConstructorUsedError;
+  String get allowMessages => throw _privateConstructorUsedError;
+
+  /// Serializes this PrivacyPreferencesModel to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PrivacyPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PrivacyPreferencesModelCopyWith<PrivacyPreferencesModel> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PrivacyPreferencesModelCopyWith<$Res> {
+  factory $PrivacyPreferencesModelCopyWith(
+    PrivacyPreferencesModel value,
+    $Res Function(PrivacyPreferencesModel) then,
+  ) = _$PrivacyPreferencesModelCopyWithImpl<$Res, PrivacyPreferencesModel>;
+  @useResult
+  $Res call({
+    String profileVisibility,
+    bool showEmail,
+    bool showLocation,
+    bool showOnlineStatus,
+    String allowMessages,
+  });
+}
+
+/// @nodoc
+class _$PrivacyPreferencesModelCopyWithImpl<
+  $Res,
+  $Val extends PrivacyPreferencesModel
+>
+    implements $PrivacyPreferencesModelCopyWith<$Res> {
+  _$PrivacyPreferencesModelCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PrivacyPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? profileVisibility = null,
+    Object? showEmail = null,
+    Object? showLocation = null,
+    Object? showOnlineStatus = null,
+    Object? allowMessages = null,
+  }) {
+    return _then(
+      _value.copyWith(
+            profileVisibility: null == profileVisibility
+                ? _value.profileVisibility
+                : profileVisibility // ignore: cast_nullable_to_non_nullable
+                      as String,
+            showEmail: null == showEmail
+                ? _value.showEmail
+                : showEmail // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            showLocation: null == showLocation
+                ? _value.showLocation
+                : showLocation // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            showOnlineStatus: null == showOnlineStatus
+                ? _value.showOnlineStatus
+                : showOnlineStatus // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            allowMessages: null == allowMessages
+                ? _value.allowMessages
+                : allowMessages // ignore: cast_nullable_to_non_nullable
+                      as String,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$PrivacyPreferencesModelImplCopyWith<$Res>
+    implements $PrivacyPreferencesModelCopyWith<$Res> {
+  factory _$$PrivacyPreferencesModelImplCopyWith(
+    _$PrivacyPreferencesModelImpl value,
+    $Res Function(_$PrivacyPreferencesModelImpl) then,
+  ) = __$$PrivacyPreferencesModelImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({
+    String profileVisibility,
+    bool showEmail,
+    bool showLocation,
+    bool showOnlineStatus,
+    String allowMessages,
+  });
+}
+
+/// @nodoc
+class __$$PrivacyPreferencesModelImplCopyWithImpl<$Res>
+    extends
+        _$PrivacyPreferencesModelCopyWithImpl<
+          $Res,
+          _$PrivacyPreferencesModelImpl
+        >
+    implements _$$PrivacyPreferencesModelImplCopyWith<$Res> {
+  __$$PrivacyPreferencesModelImplCopyWithImpl(
+    _$PrivacyPreferencesModelImpl _value,
+    $Res Function(_$PrivacyPreferencesModelImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of PrivacyPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? profileVisibility = null,
+    Object? showEmail = null,
+    Object? showLocation = null,
+    Object? showOnlineStatus = null,
+    Object? allowMessages = null,
+  }) {
+    return _then(
+      _$PrivacyPreferencesModelImpl(
+        profileVisibility: null == profileVisibility
+            ? _value.profileVisibility
+            : profileVisibility // ignore: cast_nullable_to_non_nullable
+                  as String,
+        showEmail: null == showEmail
+            ? _value.showEmail
+            : showEmail // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        showLocation: null == showLocation
+            ? _value.showLocation
+            : showLocation // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        showOnlineStatus: null == showOnlineStatus
+            ? _value.showOnlineStatus
+            : showOnlineStatus // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        allowMessages: null == allowMessages
+            ? _value.allowMessages
+            : allowMessages // ignore: cast_nullable_to_non_nullable
+                  as String,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$PrivacyPreferencesModelImpl implements _PrivacyPreferencesModel {
+  const _$PrivacyPreferencesModelImpl({
+    this.profileVisibility = 'public',
+    this.showEmail = false,
+    this.showLocation = true,
+    this.showOnlineStatus = true,
+    this.allowMessages = 'everyone',
+  });
+
+  factory _$PrivacyPreferencesModelImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PrivacyPreferencesModelImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final String profileVisibility;
+  @override
+  @JsonKey()
+  final bool showEmail;
+  @override
+  @JsonKey()
+  final bool showLocation;
+  @override
+  @JsonKey()
+  final bool showOnlineStatus;
+  @override
+  @JsonKey()
+  final String allowMessages;
+
+  @override
+  String toString() {
+    return 'PrivacyPreferencesModel(profileVisibility: $profileVisibility, showEmail: $showEmail, showLocation: $showLocation, showOnlineStatus: $showOnlineStatus, allowMessages: $allowMessages)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PrivacyPreferencesModelImpl &&
+            (identical(other.profileVisibility, profileVisibility) ||
+                other.profileVisibility == profileVisibility) &&
+            (identical(other.showEmail, showEmail) ||
+                other.showEmail == showEmail) &&
+            (identical(other.showLocation, showLocation) ||
+                other.showLocation == showLocation) &&
+            (identical(other.showOnlineStatus, showOnlineStatus) ||
+                other.showOnlineStatus == showOnlineStatus) &&
+            (identical(other.allowMessages, allowMessages) ||
+                other.allowMessages == allowMessages));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    profileVisibility,
+    showEmail,
+    showLocation,
+    showOnlineStatus,
+    allowMessages,
+  );
+
+  /// Create a copy of PrivacyPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PrivacyPreferencesModelImplCopyWith<_$PrivacyPreferencesModelImpl>
+  get copyWith =>
+      __$$PrivacyPreferencesModelImplCopyWithImpl<
+        _$PrivacyPreferencesModelImpl
+      >(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PrivacyPreferencesModelImplToJson(this);
+  }
+}
+
+abstract class _PrivacyPreferencesModel implements PrivacyPreferencesModel {
+  const factory _PrivacyPreferencesModel({
+    final String profileVisibility,
+    final bool showEmail,
+    final bool showLocation,
+    final bool showOnlineStatus,
+    final String allowMessages,
+  }) = _$PrivacyPreferencesModelImpl;
+
+  factory _PrivacyPreferencesModel.fromJson(Map<String, dynamic> json) =
+      _$PrivacyPreferencesModelImpl.fromJson;
+
+  @override
+  String get profileVisibility;
+  @override
+  bool get showEmail;
+  @override
+  bool get showLocation;
+  @override
+  bool get showOnlineStatus;
+  @override
+  String get allowMessages;
+
+  /// Create a copy of PrivacyPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PrivacyPreferencesModelImplCopyWith<_$PrivacyPreferencesModelImpl>
+  get copyWith => throw _privateConstructorUsedError;
+}
+
+NotificationPreferencesModel _$NotificationPreferencesModelFromJson(
+  Map<String, dynamic> json,
+) {
+  return _NotificationPreferencesModel.fromJson(json);
+}
+
+/// @nodoc
+mixin _$NotificationPreferencesModel {
+  bool get emailNotifications => throw _privateConstructorUsedError;
+  bool get pushNotifications => throw _privateConstructorUsedError;
+  bool get connectionRequests => throw _privateConstructorUsedError;
+  bool get sessionReminders => throw _privateConstructorUsedError;
+  bool get newMessages => throw _privateConstructorUsedError;
+  bool get reviewsReceived => throw _privateConstructorUsedError;
+  bool get marketingEmails => throw _privateConstructorUsedError;
+
+  /// Serializes this NotificationPreferencesModel to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of NotificationPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $NotificationPreferencesModelCopyWith<NotificationPreferencesModel>
+  get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $NotificationPreferencesModelCopyWith<$Res> {
+  factory $NotificationPreferencesModelCopyWith(
+    NotificationPreferencesModel value,
+    $Res Function(NotificationPreferencesModel) then,
+  ) =
+      _$NotificationPreferencesModelCopyWithImpl<
+        $Res,
+        NotificationPreferencesModel
+      >;
+  @useResult
+  $Res call({
+    bool emailNotifications,
+    bool pushNotifications,
+    bool connectionRequests,
+    bool sessionReminders,
+    bool newMessages,
+    bool reviewsReceived,
+    bool marketingEmails,
+  });
+}
+
+/// @nodoc
+class _$NotificationPreferencesModelCopyWithImpl<
+  $Res,
+  $Val extends NotificationPreferencesModel
+>
+    implements $NotificationPreferencesModelCopyWith<$Res> {
+  _$NotificationPreferencesModelCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of NotificationPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? emailNotifications = null,
+    Object? pushNotifications = null,
+    Object? connectionRequests = null,
+    Object? sessionReminders = null,
+    Object? newMessages = null,
+    Object? reviewsReceived = null,
+    Object? marketingEmails = null,
+  }) {
+    return _then(
+      _value.copyWith(
+            emailNotifications: null == emailNotifications
+                ? _value.emailNotifications
+                : emailNotifications // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            pushNotifications: null == pushNotifications
+                ? _value.pushNotifications
+                : pushNotifications // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            connectionRequests: null == connectionRequests
+                ? _value.connectionRequests
+                : connectionRequests // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            sessionReminders: null == sessionReminders
+                ? _value.sessionReminders
+                : sessionReminders // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            newMessages: null == newMessages
+                ? _value.newMessages
+                : newMessages // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            reviewsReceived: null == reviewsReceived
+                ? _value.reviewsReceived
+                : reviewsReceived // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            marketingEmails: null == marketingEmails
+                ? _value.marketingEmails
+                : marketingEmails // ignore: cast_nullable_to_non_nullable
+                      as bool,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$NotificationPreferencesModelImplCopyWith<$Res>
+    implements $NotificationPreferencesModelCopyWith<$Res> {
+  factory _$$NotificationPreferencesModelImplCopyWith(
+    _$NotificationPreferencesModelImpl value,
+    $Res Function(_$NotificationPreferencesModelImpl) then,
+  ) = __$$NotificationPreferencesModelImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({
+    bool emailNotifications,
+    bool pushNotifications,
+    bool connectionRequests,
+    bool sessionReminders,
+    bool newMessages,
+    bool reviewsReceived,
+    bool marketingEmails,
+  });
+}
+
+/// @nodoc
+class __$$NotificationPreferencesModelImplCopyWithImpl<$Res>
+    extends
+        _$NotificationPreferencesModelCopyWithImpl<
+          $Res,
+          _$NotificationPreferencesModelImpl
+        >
+    implements _$$NotificationPreferencesModelImplCopyWith<$Res> {
+  __$$NotificationPreferencesModelImplCopyWithImpl(
+    _$NotificationPreferencesModelImpl _value,
+    $Res Function(_$NotificationPreferencesModelImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of NotificationPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? emailNotifications = null,
+    Object? pushNotifications = null,
+    Object? connectionRequests = null,
+    Object? sessionReminders = null,
+    Object? newMessages = null,
+    Object? reviewsReceived = null,
+    Object? marketingEmails = null,
+  }) {
+    return _then(
+      _$NotificationPreferencesModelImpl(
+        emailNotifications: null == emailNotifications
+            ? _value.emailNotifications
+            : emailNotifications // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        pushNotifications: null == pushNotifications
+            ? _value.pushNotifications
+            : pushNotifications // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        connectionRequests: null == connectionRequests
+            ? _value.connectionRequests
+            : connectionRequests // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        sessionReminders: null == sessionReminders
+            ? _value.sessionReminders
+            : sessionReminders // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        newMessages: null == newMessages
+            ? _value.newMessages
+            : newMessages // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        reviewsReceived: null == reviewsReceived
+            ? _value.reviewsReceived
+            : reviewsReceived // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        marketingEmails: null == marketingEmails
+            ? _value.marketingEmails
+            : marketingEmails // ignore: cast_nullable_to_non_nullable
+                  as bool,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$NotificationPreferencesModelImpl
+    implements _NotificationPreferencesModel {
+  const _$NotificationPreferencesModelImpl({
+    this.emailNotifications = true,
+    this.pushNotifications = true,
+    this.connectionRequests = true,
+    this.sessionReminders = true,
+    this.newMessages = true,
+    this.reviewsReceived = true,
+    this.marketingEmails = false,
+  });
+
+  factory _$NotificationPreferencesModelImpl.fromJson(
+    Map<String, dynamic> json,
+  ) => _$$NotificationPreferencesModelImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final bool emailNotifications;
+  @override
+  @JsonKey()
+  final bool pushNotifications;
+  @override
+  @JsonKey()
+  final bool connectionRequests;
+  @override
+  @JsonKey()
+  final bool sessionReminders;
+  @override
+  @JsonKey()
+  final bool newMessages;
+  @override
+  @JsonKey()
+  final bool reviewsReceived;
+  @override
+  @JsonKey()
+  final bool marketingEmails;
+
+  @override
+  String toString() {
+    return 'NotificationPreferencesModel(emailNotifications: $emailNotifications, pushNotifications: $pushNotifications, connectionRequests: $connectionRequests, sessionReminders: $sessionReminders, newMessages: $newMessages, reviewsReceived: $reviewsReceived, marketingEmails: $marketingEmails)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$NotificationPreferencesModelImpl &&
+            (identical(other.emailNotifications, emailNotifications) ||
+                other.emailNotifications == emailNotifications) &&
+            (identical(other.pushNotifications, pushNotifications) ||
+                other.pushNotifications == pushNotifications) &&
+            (identical(other.connectionRequests, connectionRequests) ||
+                other.connectionRequests == connectionRequests) &&
+            (identical(other.sessionReminders, sessionReminders) ||
+                other.sessionReminders == sessionReminders) &&
+            (identical(other.newMessages, newMessages) ||
+                other.newMessages == newMessages) &&
+            (identical(other.reviewsReceived, reviewsReceived) ||
+                other.reviewsReceived == reviewsReceived) &&
+            (identical(other.marketingEmails, marketingEmails) ||
+                other.marketingEmails == marketingEmails));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    emailNotifications,
+    pushNotifications,
+    connectionRequests,
+    sessionReminders,
+    newMessages,
+    reviewsReceived,
+    marketingEmails,
+  );
+
+  /// Create a copy of NotificationPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$NotificationPreferencesModelImplCopyWith<
+    _$NotificationPreferencesModelImpl
+  >
+  get copyWith =>
+      __$$NotificationPreferencesModelImplCopyWithImpl<
+        _$NotificationPreferencesModelImpl
+      >(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$NotificationPreferencesModelImplToJson(this);
+  }
+}
+
+abstract class _NotificationPreferencesModel
+    implements NotificationPreferencesModel {
+  const factory _NotificationPreferencesModel({
+    final bool emailNotifications,
+    final bool pushNotifications,
+    final bool connectionRequests,
+    final bool sessionReminders,
+    final bool newMessages,
+    final bool reviewsReceived,
+    final bool marketingEmails,
+  }) = _$NotificationPreferencesModelImpl;
+
+  factory _NotificationPreferencesModel.fromJson(Map<String, dynamic> json) =
+      _$NotificationPreferencesModelImpl.fromJson;
+
+  @override
+  bool get emailNotifications;
+  @override
+  bool get pushNotifications;
+  @override
+  bool get connectionRequests;
+  @override
+  bool get sessionReminders;
+  @override
+  bool get newMessages;
+  @override
+  bool get reviewsReceived;
+  @override
+  bool get marketingEmails;
+
+  /// Create a copy of NotificationPreferencesModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$NotificationPreferencesModelImplCopyWith<
+    _$NotificationPreferencesModelImpl
+  >
+  get copyWith => throw _privateConstructorUsedError;
 }

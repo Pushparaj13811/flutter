@@ -8,10 +8,12 @@ part 'user_profile_model.g.dart';
 class UserProfileModel with _$UserProfileModel {
   const factory UserProfileModel({
     required String id,
+    String? userId,
     required String username,
     required String email,
     required String fullName,
     String? avatar,
+    String? coverImage,
     String? bio,
     String? location,
     String? timezone,
@@ -24,6 +26,8 @@ class UserProfileModel with _$UserProfileModel {
     required String joinedAt,
     required String lastActive,
     required UserStatsModel stats,
+    PrivacyPreferencesModel? privacyPreferences,
+    NotificationPreferencesModel? notificationPreferences,
   }) = _UserProfileModel;
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) =>
@@ -57,4 +61,34 @@ class UserStatsModel with _$UserStatsModel {
 
   factory UserStatsModel.fromJson(Map<String, dynamic> json) =>
       _$UserStatsModelFromJson(json);
+}
+
+@freezed
+class PrivacyPreferencesModel with _$PrivacyPreferencesModel {
+  const factory PrivacyPreferencesModel({
+    @Default('public') String profileVisibility,
+    @Default(false) bool showEmail,
+    @Default(true) bool showLocation,
+    @Default(true) bool showOnlineStatus,
+    @Default('everyone') String allowMessages,
+  }) = _PrivacyPreferencesModel;
+
+  factory PrivacyPreferencesModel.fromJson(Map<String, dynamic> json) =>
+      _$PrivacyPreferencesModelFromJson(json);
+}
+
+@freezed
+class NotificationPreferencesModel with _$NotificationPreferencesModel {
+  const factory NotificationPreferencesModel({
+    @Default(true) bool emailNotifications,
+    @Default(true) bool pushNotifications,
+    @Default(true) bool connectionRequests,
+    @Default(true) bool sessionReminders,
+    @Default(true) bool newMessages,
+    @Default(true) bool reviewsReceived,
+    @Default(false) bool marketingEmails,
+  }) = _NotificationPreferencesModel;
+
+  factory NotificationPreferencesModel.fromJson(Map<String, dynamic> json) =>
+      _$NotificationPreferencesModelFromJson(json);
 }

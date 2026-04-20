@@ -6,11 +6,15 @@ part 'user_model.g.dart';
 @freezed
 class UserModel with _$UserModel {
   const factory UserModel({
-    required String id,
+    @JsonKey(name: '_id') String? mongoId,
+    String? id,
     required String email,
     required String name,
     String? avatar,
     @Default('user') String role,
+    @Default(false) bool isVerified,
+    @Default(true) bool isActive,
+    String? lastLogin,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>
