@@ -1,23 +1,56 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class CreateSessionDto {
+  final String participantId;
+  final String title;
+  final String? description;
+  final List<String> skillsToCover;
+  final String scheduledAt;
+  final int duration;
+  final String sessionMode;
+  final String? meetingPlatform;
+  final String? meetingLink;
+  final String? location;
 
-part 'create_session_dto.freezed.dart';
-part 'create_session_dto.g.dart';
+  const CreateSessionDto({
+    this.participantId = '',
+    this.title = '',
+    this.description,
+    this.skillsToCover = const [],
+    this.scheduledAt = '',
+    this.duration = 60,
+    this.sessionMode = 'online',
+    this.meetingPlatform,
+    this.meetingLink,
+    this.location,
+  });
 
-@freezed
-class CreateSessionDto with _$CreateSessionDto {
-  const factory CreateSessionDto({
-    required String participantId,
-    required String title,
-    String? description,
-    @Default([]) List<String> skillsToCover,
-    required String scheduledAt,
-    required int duration,
-    @Default('online') String sessionMode,
-    String? meetingPlatform,
-    String? meetingLink,
-    String? location,
-  }) = _CreateSessionDto;
+  factory CreateSessionDto.fromMap(Map<String, dynamic> map) {
+    return CreateSessionDto(
+      participantId: map['participantId'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      description: map['description'] as String?,
+      skillsToCover: (map['skillsToCover'] as List?)?.cast<String>() ?? [],
+      scheduledAt: map['scheduledAt'] as String? ?? '',
+      duration: (map['duration'] as num?)?.toInt() ?? 60,
+      sessionMode: map['sessionMode'] as String? ?? 'online',
+      meetingPlatform: map['meetingPlatform'] as String?,
+      meetingLink: map['meetingLink'] as String?,
+      location: map['location'] as String?,
+    );
+  }
 
-  factory CreateSessionDto.fromJson(Map<String, dynamic> json) =>
-      _$CreateSessionDtoFromJson(json);
+  Map<String, dynamic> toMap() => {
+        'participantId': participantId,
+        'title': title,
+        'description': description,
+        'skillsToCover': skillsToCover,
+        'scheduledAt': scheduledAt,
+        'duration': duration,
+        'sessionMode': sessionMode,
+        'meetingPlatform': meetingPlatform,
+        'meetingLink': meetingLink,
+        'location': location,
+      };
+
+  /// Legacy compatibility alias
+  Map<String, dynamic> toJson() => toMap();
 }

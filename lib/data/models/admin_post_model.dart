@@ -1,23 +1,57 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class AdminPostModel {
+  final String id;
+  final String authorName;
+  final String? authorAvatar;
+  final String content;
+  final String skillTag;
+  final int likesCount;
+  final int repliesCount;
+  final bool isPinned;
+  final bool isHidden;
+  final String createdAt;
 
-part 'admin_post_model.freezed.dart';
-part 'admin_post_model.g.dart';
+  const AdminPostModel({
+    this.id = '',
+    this.authorName = '',
+    this.authorAvatar,
+    this.content = '',
+    this.skillTag = '',
+    this.likesCount = 0,
+    this.repliesCount = 0,
+    this.isPinned = false,
+    this.isHidden = false,
+    this.createdAt = '',
+  });
 
-@freezed
-class AdminPostModel with _$AdminPostModel {
-  const factory AdminPostModel({
-    required String id,
-    required String authorName,
-    String? authorAvatar,
-    required String content,
-    @Default('') String skillTag,
-    @Default(0) int likesCount,
-    @Default(0) int repliesCount,
-    @Default(false) bool isPinned,
-    @Default(false) bool isHidden,
-    required String createdAt,
-  }) = _AdminPostModel;
+  factory AdminPostModel.fromMap(Map<String, dynamic> map) {
+    return AdminPostModel(
+      id: map['id'] as String? ?? '',
+      authorName: map['authorName'] as String? ?? '',
+      authorAvatar: map['authorAvatar'] as String?,
+      content: map['content'] as String? ?? '',
+      skillTag: map['skillTag'] as String? ?? '',
+      likesCount: (map['likesCount'] as num?)?.toInt() ?? 0,
+      repliesCount: (map['repliesCount'] as num?)?.toInt() ?? 0,
+      isPinned: map['isPinned'] as bool? ?? false,
+      isHidden: map['isHidden'] as bool? ?? false,
+      createdAt: map['createdAt'] as String? ?? '',
+    );
+  }
 
-  factory AdminPostModel.fromJson(Map<String, dynamic> json) =>
-      _$AdminPostModelFromJson(json);
+  /// Legacy compatibility alias
+  factory AdminPostModel.fromJson(Map<String, dynamic> json) =
+      AdminPostModel.fromMap;
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'authorName': authorName,
+        'authorAvatar': authorAvatar,
+        'content': content,
+        'skillTag': skillTag,
+        'likesCount': likesCount,
+        'repliesCount': repliesCount,
+        'isPinned': isPinned,
+        'isHidden': isHidden,
+        'createdAt': createdAt,
+      };
 }

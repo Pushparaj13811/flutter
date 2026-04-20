@@ -1,21 +1,49 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class AdminCircleModel {
+  final String id;
+  final String name;
+  final String description;
+  final int memberCount;
+  final bool isFeatured;
+  final bool isActive;
+  final String createdAt;
+  final String? imageUrl;
 
-part 'admin_circle_model.freezed.dart';
-part 'admin_circle_model.g.dart';
+  const AdminCircleModel({
+    this.id = '',
+    this.name = '',
+    this.description = '',
+    this.memberCount = 0,
+    this.isFeatured = false,
+    this.isActive = true,
+    this.createdAt = '',
+    this.imageUrl,
+  });
 
-@freezed
-class AdminCircleModel with _$AdminCircleModel {
-  const factory AdminCircleModel({
-    required String id,
-    required String name,
-    @Default('') String description,
-    @Default(0) int memberCount,
-    @Default(false) bool isFeatured,
-    @Default(true) bool isActive,
-    required String createdAt,
-    String? imageUrl,
-  }) = _AdminCircleModel;
+  factory AdminCircleModel.fromMap(Map<String, dynamic> map) {
+    return AdminCircleModel(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      memberCount: (map['memberCount'] as num?)?.toInt() ?? 0,
+      isFeatured: map['isFeatured'] as bool? ?? false,
+      isActive: map['isActive'] as bool? ?? true,
+      createdAt: map['createdAt'] as String? ?? '',
+      imageUrl: map['imageUrl'] as String?,
+    );
+  }
 
-  factory AdminCircleModel.fromJson(Map<String, dynamic> json) =>
-      _$AdminCircleModelFromJson(json);
+  /// Legacy compatibility alias
+  factory AdminCircleModel.fromJson(Map<String, dynamic> json) =
+      AdminCircleModel.fromMap;
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'memberCount': memberCount,
+        'isFeatured': isFeatured,
+        'isActive': isActive,
+        'createdAt': createdAt,
+        'imageUrl': imageUrl,
+      };
 }

@@ -1,18 +1,36 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class CreateReviewDto {
+  final String toUserId;
+  final int rating;
+  final String comment;
+  final List<String> skillsReviewed;
+  final String? sessionId;
 
-part 'create_review_dto.freezed.dart';
-part 'create_review_dto.g.dart';
+  const CreateReviewDto({
+    this.toUserId = '',
+    this.rating = 0,
+    this.comment = '',
+    this.skillsReviewed = const [],
+    this.sessionId,
+  });
 
-@freezed
-class CreateReviewDto with _$CreateReviewDto {
-  const factory CreateReviewDto({
-    required String toUserId,
-    required int rating,
-    required String comment,
-    @Default([]) List<String> skillsReviewed,
-    String? sessionId,
-  }) = _CreateReviewDto;
+  factory CreateReviewDto.fromMap(Map<String, dynamic> map) {
+    return CreateReviewDto(
+      toUserId: map['toUserId'] as String? ?? '',
+      rating: (map['rating'] as num?)?.toInt() ?? 0,
+      comment: map['comment'] as String? ?? '',
+      skillsReviewed: (map['skillsReviewed'] as List?)?.cast<String>() ?? [],
+      sessionId: map['sessionId'] as String?,
+    );
+  }
 
-  factory CreateReviewDto.fromJson(Map<String, dynamic> json) =>
-      _$CreateReviewDtoFromJson(json);
+  Map<String, dynamic> toMap() => {
+        'toUserId': toUserId,
+        'rating': rating,
+        'comment': comment,
+        'skillsReviewed': skillsReviewed,
+        'sessionId': sessionId,
+      };
+
+  /// Legacy compatibility alias
+  Map<String, dynamic> toJson() => toMap();
 }

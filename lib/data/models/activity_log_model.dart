@@ -1,20 +1,45 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class ActivityLogModel {
+  final String id;
+  final String adminName;
+  final String action;
+  final String targetType;
+  final String targetId;
+  final String details;
+  final String timestamp;
 
-part 'activity_log_model.freezed.dart';
-part 'activity_log_model.g.dart';
+  const ActivityLogModel({
+    this.id = '',
+    this.adminName = '',
+    this.action = '',
+    this.targetType = '',
+    this.targetId = '',
+    this.details = '',
+    this.timestamp = '',
+  });
 
-@freezed
-class ActivityLogModel with _$ActivityLogModel {
-  const factory ActivityLogModel({
-    required String id,
-    required String adminName,
-    required String action,
-    required String targetType,
-    @Default('') String targetId,
-    @Default('') String details,
-    required String timestamp,
-  }) = _ActivityLogModel;
+  factory ActivityLogModel.fromMap(Map<String, dynamic> map) {
+    return ActivityLogModel(
+      id: map['id'] as String? ?? '',
+      adminName: map['adminName'] as String? ?? '',
+      action: map['action'] as String? ?? '',
+      targetType: map['targetType'] as String? ?? '',
+      targetId: map['targetId'] as String? ?? '',
+      details: map['details'] as String? ?? '',
+      timestamp: map['timestamp'] as String? ?? '',
+    );
+  }
 
-  factory ActivityLogModel.fromJson(Map<String, dynamic> json) =>
-      _$ActivityLogModelFromJson(json);
+  /// Legacy compatibility alias
+  factory ActivityLogModel.fromJson(Map<String, dynamic> json) =
+      ActivityLogModel.fromMap;
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'adminName': adminName,
+        'action': action,
+        'targetType': targetType,
+        'targetId': targetId,
+        'details': details,
+        'timestamp': timestamp,
+      };
 }

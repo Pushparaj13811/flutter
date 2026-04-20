@@ -1,38 +1,123 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:skill_exchange/data/models/user_profile_model.dart';
 
-part 'learning_circle_model.freezed.dart';
-part 'learning_circle_model.g.dart';
+class LearningCircleModel {
+  final String id;
+  final String name;
+  final String description;
+  final String creatorId;
+  final List<String> skillFocus;
+  final int membersCount;
+  final int maxMembers;
+  final bool isJoinedByMe;
+  final String createdAt;
+  final String updatedAt;
+  final UserProfileModel? creator;
 
-@freezed
-class LearningCircleModel with _$LearningCircleModel {
-  const factory LearningCircleModel({
-    required String id,
-    required String name,
-    required String description,
-    required String creatorId,
-    @Default([]) List<String> skillFocus,
-    @Default(0) int membersCount,
-    @Default(20) int maxMembers,
-    @Default(false) bool isJoinedByMe,
-    required String createdAt,
-    required String updatedAt,
+  const LearningCircleModel({
+    this.id = '',
+    this.name = '',
+    this.description = '',
+    this.creatorId = '',
+    this.skillFocus = const [],
+    this.membersCount = 0,
+    this.maxMembers = 20,
+    this.isJoinedByMe = false,
+    this.createdAt = '',
+    this.updatedAt = '',
+    this.creator,
+  });
+
+  factory LearningCircleModel.fromMap(Map<String, dynamic> map) {
+    return LearningCircleModel(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      creatorId: map['creatorId'] as String? ?? '',
+      skillFocus: (map['skillFocus'] as List?)?.cast<String>() ?? [],
+      membersCount: (map['membersCount'] as num?)?.toInt() ?? 0,
+      maxMembers: (map['maxMembers'] as num?)?.toInt() ?? 20,
+      isJoinedByMe: map['isJoinedByMe'] as bool? ?? false,
+      createdAt: map['createdAt'] as String? ?? '',
+      updatedAt: map['updatedAt'] as String? ?? '',
+      creator: map['creator'] is Map
+          ? UserProfileModel.fromMap(
+              Map<String, dynamic>.from(map['creator'] as Map))
+          : null,
+    );
+  }
+
+  /// Legacy compatibility alias
+  factory LearningCircleModel.fromJson(Map<String, dynamic> json) =
+      LearningCircleModel.fromMap;
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'creatorId': creatorId,
+        'skillFocus': skillFocus,
+        'membersCount': membersCount,
+        'maxMembers': maxMembers,
+        'isJoinedByMe': isJoinedByMe,
+        'createdAt': createdAt,
+        'updatedAt': updatedAt,
+      };
+
+  LearningCircleModel copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? creatorId,
+    List<String>? skillFocus,
+    int? membersCount,
+    int? maxMembers,
+    bool? isJoinedByMe,
+    String? createdAt,
+    String? updatedAt,
     UserProfileModel? creator,
-  }) = _LearningCircleModel;
-
-  factory LearningCircleModel.fromJson(Map<String, dynamic> json) =>
-      _$LearningCircleModelFromJson(json);
+  }) {
+    return LearningCircleModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      creatorId: creatorId ?? this.creatorId,
+      skillFocus: skillFocus ?? this.skillFocus,
+      membersCount: membersCount ?? this.membersCount,
+      maxMembers: maxMembers ?? this.maxMembers,
+      isJoinedByMe: isJoinedByMe ?? this.isJoinedByMe,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      creator: creator ?? this.creator,
+    );
+  }
 }
 
-@freezed
-class CreateCircleDto with _$CreateCircleDto {
-  const factory CreateCircleDto({
-    required String name,
-    required String description,
-    @Default([]) List<String> skillFocus,
-    @Default(20) int maxMembers,
-  }) = _CreateCircleDto;
+class CreateCircleDto {
+  final String name;
+  final String description;
+  final List<String> skillFocus;
+  final int maxMembers;
 
-  factory CreateCircleDto.fromJson(Map<String, dynamic> json) =>
-      _$CreateCircleDtoFromJson(json);
+  const CreateCircleDto({
+    this.name = '',
+    this.description = '',
+    this.skillFocus = const [],
+    this.maxMembers = 20,
+  });
+
+  factory CreateCircleDto.fromMap(Map<String, dynamic> map) {
+    return CreateCircleDto(
+      name: map['name'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      skillFocus: (map['skillFocus'] as List?)?.cast<String>() ?? [],
+      maxMembers: (map['maxMembers'] as num?)?.toInt() ?? 20,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'description': description,
+        'skillFocus': skillFocus,
+        'maxMembers': maxMembers,
+      };
 }

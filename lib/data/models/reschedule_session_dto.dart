@@ -1,16 +1,28 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class RescheduleSessionDto {
+  final String newScheduledAt;
+  final int newDuration;
+  final String? reason;
 
-part 'reschedule_session_dto.freezed.dart';
-part 'reschedule_session_dto.g.dart';
+  const RescheduleSessionDto({
+    this.newScheduledAt = '',
+    this.newDuration = 60,
+    this.reason,
+  });
 
-@freezed
-class RescheduleSessionDto with _$RescheduleSessionDto {
-  const factory RescheduleSessionDto({
-    required String newScheduledAt,
-    required int newDuration,
-    String? reason,
-  }) = _RescheduleSessionDto;
+  factory RescheduleSessionDto.fromMap(Map<String, dynamic> map) {
+    return RescheduleSessionDto(
+      newScheduledAt: map['newScheduledAt'] as String? ?? '',
+      newDuration: (map['newDuration'] as num?)?.toInt() ?? 60,
+      reason: map['reason'] as String?,
+    );
+  }
 
-  factory RescheduleSessionDto.fromJson(Map<String, dynamic> json) =>
-      _$RescheduleSessionDtoFromJson(json);
+  Map<String, dynamic> toMap() => {
+        'newScheduledAt': newScheduledAt,
+        'newDuration': newDuration,
+        'reason': reason,
+      };
+
+  /// Legacy compatibility alias
+  Map<String, dynamic> toJson() => toMap();
 }

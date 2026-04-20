@@ -1,16 +1,32 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class ReviewStatsModel {
+  final double averageRating;
+  final int totalReviews;
+  final Map<String, int> ratingDistribution;
 
-part 'review_stats_model.freezed.dart';
-part 'review_stats_model.g.dart';
+  const ReviewStatsModel({
+    this.averageRating = 0.0,
+    this.totalReviews = 0,
+    this.ratingDistribution = const {},
+  });
 
-@freezed
-class ReviewStatsModel with _$ReviewStatsModel {
-  const factory ReviewStatsModel({
-    @Default(0.0) double averageRating,
-    @Default(0) int totalReviews,
-    @Default({}) Map<String, int> ratingDistribution,
-  }) = _ReviewStatsModel;
+  factory ReviewStatsModel.fromMap(Map<String, dynamic> map) {
+    return ReviewStatsModel(
+      averageRating: (map['averageRating'] as num?)?.toDouble() ?? 0.0,
+      totalReviews: (map['totalReviews'] as num?)?.toInt() ?? 0,
+      ratingDistribution: map['ratingDistribution'] is Map
+          ? (map['ratingDistribution'] as Map)
+              .map((k, v) => MapEntry(k.toString(), (v as num).toInt()))
+          : {},
+    );
+  }
 
-  factory ReviewStatsModel.fromJson(Map<String, dynamic> json) =>
-      _$ReviewStatsModelFromJson(json);
+  /// Legacy compatibility alias
+  factory ReviewStatsModel.fromJson(Map<String, dynamic> json) =
+      ReviewStatsModel.fromMap;
+
+  Map<String, dynamic> toMap() => {
+        'averageRating': averageRating,
+        'totalReviews': totalReviews,
+        'ratingDistribution': ratingDistribution,
+      };
 }
