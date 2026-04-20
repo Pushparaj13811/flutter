@@ -8,7 +8,6 @@ import 'package:skill_exchange/core/widgets/app_card.dart';
 import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/user_avatar.dart';
 import 'package:skill_exchange/core/widgets/animated_list_item.dart';
-import 'package:skill_exchange/data/models/connection_model.dart';
 
 class ConnectionList extends StatelessWidget {
   const ConnectionList({
@@ -20,7 +19,7 @@ class ConnectionList extends StatelessWidget {
     this.onProfileTap,
   });
 
-  final List<ConnectionModel> connections;
+  final List<Map<String, dynamic>> connections;
   final ValueChanged<String>? onMessage;
   final ValueChanged<String>? onBook;
   final Function(String id)? onRemove;
@@ -42,7 +41,7 @@ class ConnectionList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       itemCount: connections.length,
-      separatorBuilder: (_, _) =>
+      separatorBuilder: (_, __) =>
           const SizedBox(height: AppSpacing.listItemGap),
       itemBuilder: (_, index) => AnimatedListItem(
         index: index,
@@ -51,13 +50,13 @@ class ConnectionList extends StatelessWidget {
     );
   }
 
-  Widget _buildConnectionCard(BuildContext context, ConnectionModel connection) {
-    final profile = connection.toUser ?? connection.fromUser;
-    final String fullName = profile?.fullName ?? 'Unknown';
-    final String username = profile?.username ?? '';
-    final String? avatarUrl = profile?.avatar;
-    final String userId = profile?.id ?? connection.toUserId;
-    final String connectedDate = _formatDate(connection.createdAt);
+  Widget _buildConnectionCard(BuildContext context, Map<String, dynamic> connection) {
+    final String fullName = connection['otherUserName'] as String? ?? 'Unknown';
+    final String username = connection['otherUsername'] as String? ?? '';
+    final String? avatarUrl = connection['otherUserAvatar'] as String?;
+    final String userId = connection['otherUserId'] as String? ?? '';
+    final String connectionId = connection['id'] as String? ?? '';
+    final String connectedDate = _formatDate(connection['createdAt']);
 
     return AppCard(
       onTap: onProfileTap != null ? () => onProfileTap!(userId) : null,
@@ -132,7 +131,7 @@ class ConnectionList extends StatelessWidget {
                 icon: Icons.person_remove_outlined,
                 tooltip: 'Remove connection',
                 onPressed: onRemove != null
-                    ? () => _confirmRemove(context, connection.id, fullName)
+                    ? () => _confirmRemove(context, connectionId, fullName)
                     : null,
               ),
             ],
@@ -175,12 +174,18 @@ class ConnectionList extends StatelessWidget {
     }
   }
 
-  String _formatDate(String isoDate) {
+  String _formatDate(dynamic dateValue) {
+    if (dateValue == null) return '';
     try {
-      final date = DateTime.parse(isoDate);
+      if (dateValue is String) {
+        final date = DateTime.parse(dateValue);
+        return DateFormat.yMMMd().format(date);
+      }
+      // Firestore Timestamp
+      final date = (dateValue as dynamic).toDate() as DateTime;
       return DateFormat.yMMMd().format(date);
     } catch (_) {
-      return isoDate;
+      return '';
     }
   }
 }

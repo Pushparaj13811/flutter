@@ -6,7 +6,6 @@ import 'package:skill_exchange/core/widgets/app_button.dart';
 import 'package:skill_exchange/core/widgets/app_card.dart';
 import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/user_avatar.dart';
-import 'package:skill_exchange/data/models/connection_model.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class PendingRequests extends StatelessWidget {
@@ -17,7 +16,7 @@ class PendingRequests extends StatelessWidget {
     this.onProfileTap,
   });
 
-  final List<ConnectionModel> requests;
+  final List<Map<String, dynamic>> requests;
   final Function(String id, bool accept)? onRespond;
   final ValueChanged<String>? onProfileTap;
 
@@ -36,18 +35,19 @@ class PendingRequests extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       itemCount: requests.length,
-      separatorBuilder: (_, _) =>
+      separatorBuilder: (_, __) =>
           const SizedBox(height: AppSpacing.listItemGap),
       itemBuilder: (_, index) => _buildRequestCard(context, requests[index]),
     );
   }
 
-  Widget _buildRequestCard(BuildContext context, ConnectionModel request) {
-    final profile = request.fromUser;
-    final String fullName = profile?.fullName ?? 'Unknown';
-    final String? avatarUrl = profile?.avatar;
-    final String userId = profile?.id ?? request.fromUserId;
-    final String timeSince = _formatTimeAgo(request.createdAt);
+  Widget _buildRequestCard(BuildContext context, Map<String, dynamic> request) {
+    final String fullName = request['otherUserName'] as String? ?? 'Unknown';
+    final String? avatarUrl = request['otherUserAvatar'] as String?;
+    final String userId = request['otherUserId'] as String? ?? '';
+    final String connectionId = request['id'] as String? ?? '';
+    final String? message = request['message'] as String?;
+    final String timeSince = _formatTimeAgo(request['createdAt']);
 
     return AppCard(
       onTap: onProfileTap != null ? () => onProfileTap!(userId) : null,
@@ -86,7 +86,7 @@ class PendingRequests extends StatelessWidget {
               ),
             ],
           ),
-          if (request.message != null && request.message!.isNotEmpty) ...[
+          if (message != null && message.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Container(
               width: double.infinity,
@@ -96,7 +96,7 @@ class PendingRequests extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSpacing.sm),
               ),
               child: Text(
-                request.message!,
+                message,
                 style: AppTextStyles.bodySmall.copyWith(
                   color: context.colors.mutedForeground,
                 ),
@@ -112,7 +112,7 @@ class PendingRequests extends StatelessWidget {
                 child: AppButton.outline(
                   label: 'Decline',
                   onPressed: onRespond != null
-                      ? () => onRespond!(request.id, false)
+                      ? () => onRespond!(connectionId, false)
                       : null,
                 ),
               ),
@@ -121,7 +121,7 @@ class PendingRequests extends StatelessWidget {
                 child: AppButton.primary(
                   label: 'Accept',
                   onPressed: onRespond != null
-                      ? () => onRespond!(request.id, true)
+                      ? () => onRespond!(connectionId, true)
                       : null,
                 ),
               ),
@@ -132,12 +132,19 @@ class PendingRequests extends StatelessWidget {
     );
   }
 
-  String _formatTimeAgo(String isoDate) {
+  String _formatTimeAgo(dynamic dateValue) {
+    if (dateValue == null) return '';
     try {
-      final date = DateTime.parse(isoDate);
+      DateTime date;
+      if (dateValue is String) {
+        date = DateTime.parse(dateValue);
+      } else {
+        // Firestore Timestamp
+        date = (dateValue as dynamic).toDate() as DateTime;
+      }
       return timeago.format(date);
     } catch (_) {
-      return isoDate;
+      return '';
     }
   }
 }

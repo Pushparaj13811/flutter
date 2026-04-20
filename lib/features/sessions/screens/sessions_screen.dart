@@ -7,7 +7,6 @@ import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
 import 'package:skill_exchange/data/models/session_model.dart';
-import 'package:skill_exchange/data/models/connection_model.dart';
 import 'package:skill_exchange/features/connections/providers/connections_provider.dart';
 import 'package:skill_exchange/features/sessions/providers/session_provider.dart';
 import 'package:skill_exchange/features/sessions/widgets/reschedule_session_sheet.dart';
@@ -314,11 +313,7 @@ class _ConnectionPickerSheet extends ConsumerWidget {
               ),
             ),
             data: (connections) {
-              final accepted = connections
-                  .where((c) => c.status == ConnectionStatus.accepted)
-                  .toList();
-
-              if (accepted.isEmpty) {
+              if (connections.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(AppSpacing.xl),
                   child: EmptyState(
@@ -335,15 +330,12 @@ class _ConnectionPickerSheet extends ConsumerWidget {
                 ),
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: accepted.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemCount: connections.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
-                    final connection = accepted[index];
-                    final otherUser = connection.toUser ?? connection.fromUser;
-                    final name = otherUser?.fullName ?? 'Unknown User';
-                    final userId = connection.toUserId == connection.fromUserId
-                        ? connection.toUserId
-                        : (otherUser?.id ?? connection.toUserId);
+                    final connection = connections[index];
+                    final name = connection['otherUserName'] as String? ?? 'Unknown User';
+                    final userId = connection['otherUserId'] as String? ?? '';
 
                     return ListTile(
                       leading: CircleAvatar(

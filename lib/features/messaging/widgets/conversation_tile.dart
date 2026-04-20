@@ -4,7 +4,6 @@ import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/user_avatar.dart';
-import 'package:skill_exchange/data/models/conversation_model.dart';
 
 class ConversationTile extends StatelessWidget {
   const ConversationTile({
@@ -13,28 +12,22 @@ class ConversationTile extends StatelessWidget {
     this.onTap,
   });
 
-  final ConversationModel conversation;
+  final Map<String, dynamic> conversation;
   final VoidCallback? onTap;
 
-  bool get _isUnread => conversation.unreadCount > 0;
+  bool get _isUnread => (conversation['unreadCount'] as int? ?? 0) > 0;
+  int get _unreadCount => conversation['unreadCount'] as int? ?? 0;
 
-  /// Returns the first participant profile (the "other" user).
   String get _otherName {
-    if (conversation.participantProfiles.isNotEmpty) {
-      return conversation.participantProfiles.first.fullName;
-    }
-    return 'Unknown';
+    return conversation['otherUserName'] as String? ?? 'Unknown';
   }
 
   String? get _otherAvatar {
-    if (conversation.participantProfiles.isNotEmpty) {
-      return conversation.participantProfiles.first.avatar;
-    }
-    return null;
+    return conversation['otherUserAvatar'] as String?;
   }
 
   String get _relativeTime {
-    final raw = conversation.lastMessageAt;
+    final raw = conversation['lastMessageAt'] as String?;
     if (raw == null || raw.isEmpty) return '';
     final dt = raw.toDateTimeOrNull;
     if (dt == null) return '';
@@ -43,6 +36,8 @@ class ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final id = conversation['id'] as String? ?? '';
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.sm),
@@ -57,7 +52,7 @@ class ConversationTile extends StatelessWidget {
               name: _otherName,
               imageUrl: _otherAvatar,
               size: 48,
-              heroTag: 'avatar_${conversation.id}',
+              heroTag: 'avatar_$id',
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -93,7 +88,7 @@ class ConversationTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          conversation.lastMessage ?? '',
+                          conversation['lastMessage'] as String? ?? '',
                           style: _isUnread
                               ? AppTextStyles.bodySmall.copyWith(
                                   fontWeight: FontWeight.w600,
@@ -132,9 +127,7 @@ class ConversationTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.xl),
       ),
       child: Text(
-        conversation.unreadCount > 99
-            ? '99+'
-            : '${conversation.unreadCount}',
+        _unreadCount > 99 ? '99+' : '$_unreadCount',
         style: AppTextStyles.labelSmall.copyWith(
           color: context.colors.primaryForeground,
           fontSize: 10,

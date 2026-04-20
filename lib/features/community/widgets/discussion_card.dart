@@ -3,10 +3,9 @@ import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
-import 'package:skill_exchange/data/models/discussion_post_model.dart';
 
 class DiscussionCard extends StatelessWidget {
-  final DiscussionPostModel post;
+  final Map<String, dynamic> post;
   final VoidCallback? onLike;
   final VoidCallback? onComment;
   final VoidCallback? onTap;
@@ -21,6 +20,14 @@ class DiscussionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final title = post['title'] as String? ?? '';
+    final content = post['content'] as String? ?? '';
+    final tags = (post['tags'] as List?)?.cast<String>() ?? [];
+    final isLikedByMe = post['isLikedByMe'] as bool? ?? false;
+    final likesCount = (post['likesCount'] as num?)?.toInt() ?? 0;
+    final commentsCount = (post['commentsCount'] as num?)?.toInt() ??
+        (post['repliesCount'] as num?)?.toInt() ?? 0;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -36,26 +43,26 @@ class DiscussionCard extends StatelessWidget {
             _buildHeader(context),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              post.title,
+              title,
               style: AppTextStyles.h4,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              post.content,
+              content,
               style: AppTextStyles.bodyMedium.copyWith(
                 color: context.colors.mutedForeground,
               ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
-            if (post.tags.isNotEmpty) ...[
+            if (tags.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
-              _buildTags(context),
+              _buildTags(context, tags),
             ],
             const SizedBox(height: AppSpacing.md),
-            _buildActions(context),
+            _buildActions(context, isLikedByMe, likesCount, commentsCount),
           ],
         ),
       ),
@@ -63,8 +70,9 @@ class DiscussionCard extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final authorName = post.author?.fullName ?? 'Unknown';
-    final avatarUrl = post.author?.avatar;
+    final authorName = post['authorName'] as String? ?? 'Unknown';
+    final avatarUrl = post['authorAvatar'] as String?;
+    final createdAt = post['createdAt'];
 
     return Row(
       children: [
@@ -72,8 +80,8 @@ class DiscussionCard extends StatelessWidget {
           radius: 16,
           backgroundColor: context.colors.muted,
           backgroundImage:
-              avatarUrl != null ? NetworkImage(avatarUrl) : null,
-          child: avatarUrl == null
+              avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl == null || avatarUrl.isEmpty
               ? Text(
                   authorName.isNotEmpty ? authorName[0].toUpperCase() : '?',
                   style: AppTextStyles.labelMedium.copyWith(
@@ -94,7 +102,7 @@ class DiscussionCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                _formatDate(post.createdAt),
+                _formatDate(createdAt),
                 style: AppTextStyles.caption.copyWith(
                   color: context.colors.mutedForeground,
                 ),
@@ -106,11 +114,11 @@ class DiscussionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTags(BuildContext context) {
+  Widget _buildTags(BuildContext context, List<String> tags) {
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
-      children: post.tags.map((tag) {
+      children: tags.map((tag) {
         return Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.sm,
@@ -131,19 +139,19 @@ class DiscussionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActions(BuildContext context) {
+  Widget _buildActions(BuildContext context, bool isLikedByMe, int likesCount, int commentsCount) {
     return Row(
       children: [
         _ActionButton(
-          icon: post.isLikedByMe ? Icons.favorite : Icons.favorite_border,
-          label: '${post.likesCount}',
-          color: post.isLikedByMe ? context.colors.destructive : context.colors.mutedForeground,
+          icon: isLikedByMe ? Icons.favorite : Icons.favorite_border,
+          label: '$likesCount',
+          color: isLikedByMe ? context.colors.destructive : context.colors.mutedForeground,
           onTap: onLike,
         ),
         const SizedBox(width: AppSpacing.lg),
         _ActionButton(
           icon: Icons.chat_bubble_outline,
-          label: '${post.commentsCount}',
+          label: '$commentsCount',
           color: context.colors.mutedForeground,
           onTap: onComment,
         ),
@@ -151,9 +159,16 @@ class DiscussionCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(String dateStr) {
+  String _formatDate(dynamic dateValue) {
+    if (dateValue == null) return '';
     try {
-      final date = DateTime.parse(dateStr);
+      DateTime date;
+      if (dateValue is String) {
+        date = DateTime.parse(dateValue);
+      } else {
+        // Firestore Timestamp
+        date = (dateValue as dynamic).toDate() as DateTime;
+      }
       final now = DateTime.now();
       final diff = now.difference(date);
 
@@ -163,7 +178,7 @@ class DiscussionCard extends StatelessWidget {
       if (diff.inDays < 7) return '${diff.inDays}d ago';
       return '${date.day}/${date.month}/${date.year}';
     } catch (_) {
-      return dateStr;
+      return '';
     }
   }
 }

@@ -3,10 +3,9 @@ import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
-import 'package:skill_exchange/data/models/learning_circle_model.dart';
 
 class LearningCircleCard extends StatelessWidget {
-  final LearningCircleModel circle;
+  final Map<String, dynamic> circle;
   final VoidCallback? onJoin;
   final VoidCallback? onTap;
 
@@ -19,7 +18,13 @@ class LearningCircleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFull = circle.membersCount >= circle.maxMembers;
+    final name = circle['name'] as String? ?? '';
+    final description = circle['description'] as String? ?? '';
+    final skillFocus = (circle['skillFocus'] as List?)?.cast<String>() ?? [];
+    final membersCount = (circle['membersCount'] as num?)?.toInt() ?? 0;
+    final maxMembers = (circle['maxMembers'] as num?)?.toInt() ?? 50;
+    final isJoinedByMe = circle['isJoinedByMe'] as bool? ?? false;
+    final isFull = membersCount >= maxMembers;
 
     return GestureDetector(
       onTap: onTap,
@@ -55,14 +60,14 @@ class LearningCircleCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        circle.name,
+                        name,
                         style: AppTextStyles.h4,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        circle.description,
+                        description,
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: context.colors.mutedForeground,
                         ),
@@ -74,23 +79,23 @@ class LearningCircleCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (circle.skillFocus.isNotEmpty) ...[
+            if (skillFocus.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.md),
-              _buildSkillFocusTags(context),
+              _buildSkillFocusTags(context, skillFocus),
             ],
             const SizedBox(height: AppSpacing.md),
-            _buildFooter(context, isFull),
+            _buildFooter(context, membersCount, maxMembers, isJoinedByMe, isFull),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSkillFocusTags(BuildContext context) {
+  Widget _buildSkillFocusTags(BuildContext context, List<String> skillFocus) {
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
-      children: circle.skillFocus.map((skill) {
+      children: skillFocus.map((skill) {
         return Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.sm,
@@ -111,7 +116,7 @@ class LearningCircleCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFooter(BuildContext context, bool isFull) {
+  Widget _buildFooter(BuildContext context, int membersCount, int maxMembers, bool isJoinedByMe, bool isFull) {
     return Row(
       children: [
         Icon(
@@ -121,13 +126,13 @@ class LearningCircleCard extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.xs),
         Text(
-          '${circle.membersCount}/${circle.maxMembers} members',
+          '$membersCount/$maxMembers members',
           style: AppTextStyles.caption.copyWith(
             color: context.colors.mutedForeground,
           ),
         ),
         const Spacer(),
-        if (circle.isJoinedByMe)
+        if (isJoinedByMe)
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,

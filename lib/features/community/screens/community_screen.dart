@@ -165,16 +165,17 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
           child: ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.screenPadding),
             itemCount: posts.length,
-            separatorBuilder: (_, _) =>
+            separatorBuilder: (_, __) =>
                 const SizedBox(height: AppSpacing.listItemGap),
             itemBuilder: (_, index) {
               final post = posts[index];
+              final postId = post['id'] as String? ?? '';
               return AnimatedListItem(
                 index: index,
                 child: DiscussionCard(
                   post: post,
-                  onLike: () => _onLikePost(post.id),
-                  onComment: () => _showCommentsSheet(context, post.id),
+                  onLike: () => _onLikePost(postId),
+                  onComment: () => _showCommentsSheet(context, postId),
                 ),
               );
             },
@@ -213,15 +214,16 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
           child: ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.screenPadding),
             itemCount: circles.length,
-            separatorBuilder: (_, _) =>
+            separatorBuilder: (_, __) =>
                 const SizedBox(height: AppSpacing.listItemGap),
             itemBuilder: (_, index) {
               final circle = circles[index];
+              final circleId = circle['id'] as String? ?? '';
               return AnimatedListItem(
                 index: index,
                 child: LearningCircleCard(
                   circle: circle,
-                  onJoin: () => _onJoinCircle(circle.id),
+                  onJoin: () => _onJoinCircle(circleId),
                 ),
               );
             },
@@ -260,7 +262,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
           child: ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.screenPadding),
             itemCount: entries.length,
-            separatorBuilder: (_, _) =>
+            separatorBuilder: (_, __) =>
                 const SizedBox(height: AppSpacing.sm),
             itemBuilder: (_, index) {
               final entry = entries[index];
@@ -292,9 +294,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       itemCount: 5,
-      separatorBuilder: (_, _) =>
+      separatorBuilder: (_, __) =>
           const SizedBox(height: AppSpacing.listItemGap),
-      itemBuilder: (_, _) => const SkeletonCard.profile(),
+      itemBuilder: (_, __) => const SkeletonCard.profile(),
     );
   }
 }

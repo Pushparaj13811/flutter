@@ -1,31 +1,63 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
-import 'package:skill_exchange/core/utils/firestore_helpers.dart';
-import 'package:skill_exchange/data/models/discussion_post_model.dart';
-import 'package:skill_exchange/data/models/leaderboard_entry_model.dart';
-import 'package:skill_exchange/data/models/learning_circle_model.dart';
 
 // ── Data Providers ────────────────────────────────────────────────────────
 
 final discussionPostsProvider =
-    FutureProvider<List<DiscussionPostModel>>((ref) async {
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final service = ref.watch(communityFirestoreServiceProvider);
   final data = await service.getPosts();
-  return data.map((d) => parseDiscussionPost(d)).toList();
+  final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+  // Enrich with computed fields
+  return data.map((d) {
+    final likedBy = (d['likedBy'] as List?)?.cast<String>() ?? [];
+    return {
+      ...d,
+      'isLikedByMe': likedBy.contains(currentUid),
+      'likesCount': (d['likesCount'] as num?)?.toInt() ?? 0,
+      'commentsCount': (d['repliesCount'] as num?)?.toInt() ??
+          (d['commentsCount'] as num?)?.toInt() ?? 0,
+    };
+  }).toList();
 });
 
 final learningCirclesProvider =
-    FutureProvider<List<LearningCircleModel>>((ref) async {
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final service = ref.watch(communityFirestoreServiceProvider);
   final data = await service.getCircles();
-  return data.map((d) => parseCircle(d)).toList();
+  final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+  return data.map((d) {
+    final members = (d['members'] as List?)?.cast<String>() ?? [];
+    return {
+      ...d,
+      'membersCount': members.length,
+      'maxMembers': (d['maxMembers'] as num?)?.toInt() ?? 50,
+      'isJoinedByMe': members.contains(currentUid),
+      'skillFocus': (d['skillFocus'] as List?)?.cast<String>() ??
+          (d['category'] != null ? [d['category'] as String] : <String>[]),
+    };
+  }).toList();
 });
 
 final leaderboardProvider =
-    FutureProvider<List<LeaderboardEntryModel>>((ref) async {
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final service = ref.watch(communityFirestoreServiceProvider);
   final data = await service.getLeaderboard();
-  return parseLeaderboard(data);
+  final entries = <Map<String, dynamic>>[];
+  for (int i = 0; i < data.length; i++) {
+    final d = data[i];
+    entries.add({
+      ...d,
+      'rank': i + 1,
+      'points': ((d['sessionsCompleted'] as num? ?? 0) * 10 +
+              (d['averageRating'] as num? ?? 0) * 20)
+          .toInt(),
+      'sessionsCompleted': (d['sessionsCompleted'] as num?)?.toInt() ?? 0,
+      'averageRating': (d['averageRating'] as num?)?.toDouble() ?? 0.0,
+    });
+  }
+  return entries;
 });
 
 // ── Community Notifier ────────────────────────────────────────────────────

@@ -3,10 +3,9 @@ import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
-import 'package:skill_exchange/data/models/leaderboard_entry_model.dart';
 
 class LeaderboardTile extends StatelessWidget {
-  final LeaderboardEntryModel entry;
+  final Map<String, dynamic> entry;
   final VoidCallback? onTap;
 
   const LeaderboardTile({
@@ -15,10 +14,11 @@ class LeaderboardTile extends StatelessWidget {
     this.onTap,
   });
 
-  bool get _isTopThree => entry.rank >= 1 && entry.rank <= 3;
+  int get _rank => (entry['rank'] as num?)?.toInt() ?? 0;
+  bool get _isTopThree => _rank >= 1 && _rank <= 3;
 
   Color _rankColor(BuildContext context) {
-    return switch (entry.rank) {
+    return switch (_rank) {
       1 => const Color(0xFFFFD700), // Gold
       2 => const Color(0xFFC0C0C0), // Silver
       3 => const Color(0xFFCD7F32), // Bronze
@@ -27,7 +27,7 @@ class LeaderboardTile extends StatelessWidget {
   }
 
   IconData? get _rankIcon {
-    return switch (entry.rank) {
+    return switch (_rank) {
       1 => Icons.emoji_events,
       2 => Icons.emoji_events,
       3 => Icons.emoji_events,
@@ -87,7 +87,7 @@ class LeaderboardTile extends StatelessWidget {
       width: 32,
       child: Center(
         child: Text(
-          '#${entry.rank}',
+          '#$_rank',
           style: AppTextStyles.labelLarge.copyWith(
             color: context.colors.mutedForeground,
           ),
@@ -97,8 +97,10 @@ class LeaderboardTile extends StatelessWidget {
   }
 
   Widget _buildAvatar(BuildContext context, Color rankColor) {
-    final userName = entry.user?.fullName ?? 'User';
-    final avatarUrl = entry.user?.avatar;
+    final userName = entry['fullName'] as String? ??
+        entry['username'] as String? ??
+        entry['name'] as String? ?? 'User';
+    final avatarUrl = entry['avatar'] as String?;
 
     return CircleAvatar(
       radius: _isTopThree ? 22 : 18,
@@ -106,8 +108,8 @@ class LeaderboardTile extends StatelessWidget {
           ? rankColor.withValues(alpha: 0.2)
           : context.colors.muted,
       backgroundImage:
-          avatarUrl != null ? NetworkImage(avatarUrl) : null,
-      child: avatarUrl == null
+          avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+      child: avatarUrl == null || avatarUrl.isEmpty
           ? Text(
               userName.isNotEmpty ? userName[0].toUpperCase() : '?',
               style: AppTextStyles.labelLarge.copyWith(
@@ -120,7 +122,11 @@ class LeaderboardTile extends StatelessWidget {
   }
 
   Widget _buildInfo(BuildContext context) {
-    final userName = entry.user?.fullName ?? 'User';
+    final userName = entry['fullName'] as String? ??
+        entry['username'] as String? ??
+        entry['name'] as String? ?? 'User';
+    final sessionsCompleted = (entry['sessionsCompleted'] as num?)?.toInt() ?? 0;
+    final averageRating = (entry['averageRating'] as num?)?.toDouble() ?? 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,13 +145,13 @@ class LeaderboardTile extends StatelessWidget {
             _buildStatChip(
               context,
               Icons.school_outlined,
-              '${entry.sessionsCompleted} sessions',
+              '$sessionsCompleted sessions',
             ),
             const SizedBox(width: AppSpacing.sm),
             _buildStatChip(
               context,
               Icons.star_outline,
-              entry.averageRating.toStringAsFixed(1),
+              averageRating.toStringAsFixed(1),
             ),
           ],
         ),
@@ -170,6 +176,8 @@ class LeaderboardTile extends StatelessWidget {
   }
 
   Widget _buildPoints(BuildContext context, Color rankColor) {
+    final points = (entry['points'] as num?)?.toInt() ?? 0;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
@@ -182,7 +190,7 @@ class LeaderboardTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.chip),
       ),
       child: Text(
-        '${entry.points} pts',
+        '$points pts',
         style: AppTextStyles.labelMedium.copyWith(
           color: _isTopThree ? rankColor : context.colors.primary,
           fontWeight: FontWeight.w600,

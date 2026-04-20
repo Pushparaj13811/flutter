@@ -2,14 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
-import 'package:skill_exchange/data/models/conversation_model.dart';
-import 'package:skill_exchange/data/models/message_model.dart';
 
 // ── Stream-based Providers ───────────────────────────────────────────────────
 
-/// Real-time stream of conversations from Firestore.
+/// Real-time stream of conversations from Firestore as raw maps.
 final conversationsStreamProvider =
-    StreamProvider<List<ConversationModel>>((ref) {
+    StreamProvider<List<Map<String, dynamic>>>((ref) {
   final service = ref.watch(messagingFirestoreServiceProvider);
   final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
@@ -17,43 +15,43 @@ final conversationsStreamProvider =
     return snap.docs.map((doc) {
       final data = doc.data();
       final participants = List<String>.from(data['participants'] ?? []);
-      return ConversationModel(
-        id: doc.id,
-        participants: participants,
-        lastMessage: data['lastMessage'] as String?,
-        lastMessageAt: (data['lastMessageAt'] as Timestamp?)
+      return <String, dynamic>{
+        'id': doc.id,
+        'participants': participants,
+        'lastMessage': data['lastMessage'] as String?,
+        'lastMessageAt': (data['lastMessageAt'] as Timestamp?)
             ?.toDate()
             .toIso8601String(),
-        unreadCount: (data['unreadCount_$uid'] as int?) ?? 0,
-        updatedAt: (data['lastMessageAt'] as Timestamp?)
+        'unreadCount': (data['unreadCount_$uid'] as int?) ?? 0,
+        'updatedAt': (data['lastMessageAt'] as Timestamp?)
                 ?.toDate()
                 .toIso8601String() ??
             '',
-      );
+      };
     }).toList();
   });
 });
 
-/// Real-time stream of messages for a specific thread.
+/// Real-time stream of messages for a specific thread as raw maps.
 final messagesStreamProvider =
-    StreamProvider.family<List<MessageModel>, String>((ref, threadId) {
+    StreamProvider.family<List<Map<String, dynamic>>, String>((ref, threadId) {
   final service = ref.watch(messagingFirestoreServiceProvider);
   final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   return service.messagesStream(threadId).map((snap) {
     return snap.docs.map((doc) {
       final data = doc.data();
-      return MessageModel(
-        id: doc.id,
-        conversationId: threadId,
-        senderId: data['sender'] ?? '',
-        receiverId: '',
-        content: data['content'] ?? '',
-        createdAt:
+      return <String, dynamic>{
+        'id': doc.id,
+        'conversationId': threadId,
+        'senderId': data['sender'] ?? '',
+        'receiverId': '',
+        'content': data['content'] ?? '',
+        'createdAt':
             (data['createdAt'] as Timestamp?)?.toDate().toIso8601String() ?? '',
-        isFromMe: data['sender'] == uid,
-        read: data['isRead'] ?? false,
-      );
+        'isFromMe': data['sender'] == uid,
+        'read': data['isRead'] ?? false,
+      };
     }).toList();
   });
 });
@@ -61,29 +59,28 @@ final messagesStreamProvider =
 // ── Legacy Data Providers (kept for backward compatibility) ──────────────────
 
 final conversationsProvider =
-    FutureProvider<List<ConversationModel>>((ref) async {
-  // Delegate to the stream provider for real-time data
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final streamValue = ref.watch(conversationsStreamProvider);
   return streamValue.when(
     data: (data) => data,
-    loading: () => <ConversationModel>[],
-    error: (_, __) => <ConversationModel>[],
+    loading: () => <Map<String, dynamic>>[],
+    error: (_, __) => <Map<String, dynamic>>[],
   );
 });
 
 final messagesProvider =
-    FutureProvider.family<List<MessageModel>, String>((ref, conversationId) async {
+    FutureProvider.family<List<Map<String, dynamic>>, String>((ref, conversationId) async {
   final streamValue = ref.watch(messagesStreamProvider(conversationId));
   return streamValue.when(
     data: (data) => data,
-    loading: () => <MessageModel>[],
-    error: (_, __) => <MessageModel>[],
+    loading: () => <Map<String, dynamic>>[],
+    error: (_, __) => <Map<String, dynamic>>[],
   );
 });
 
 // ── Messaging Notifier ───────────────────────────────────────────────────
 
-class MessagingNotifier extends StateNotifier<AsyncValue<List<MessageModel>>> {
+class MessagingNotifier extends StateNotifier<AsyncValue<List<Map<String, dynamic>>>> {
   final MessagingFirestoreService _service;
   final Ref _ref;
 
@@ -98,16 +95,16 @@ class MessagingNotifier extends StateNotifier<AsyncValue<List<MessageModel>>> {
 
   /// Sends a message with optimistic update. Returns true on success.
   Future<bool> sendMessage(String receiverId, String content) async {
-    // Optimistic update — add a temporary message immediately.
-    final optimistic = MessageModel(
-      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
-      conversationId: MessagingFirestoreService.getThreadId('', receiverId),
-      senderId: '',
-      receiverId: receiverId,
-      content: content,
-      createdAt: DateTime.now().toIso8601String(),
-      isFromMe: true,
-    );
+    final optimistic = <String, dynamic>{
+      'id': 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      'conversationId': MessagingFirestoreService.getThreadId('', receiverId),
+      'senderId': '',
+      'receiverId': receiverId,
+      'content': content,
+      'createdAt': DateTime.now().toIso8601String(),
+      'isFromMe': true,
+      'read': false,
+    };
 
     final previous = state.valueOrNull ?? [];
     state = AsyncValue.data([...previous, optimistic]);
@@ -136,7 +133,7 @@ class MessagingNotifier extends StateNotifier<AsyncValue<List<MessageModel>>> {
 }
 
 final messagingNotifierProvider =
-    StateNotifierProvider<MessagingNotifier, AsyncValue<List<MessageModel>>>(
+    StateNotifierProvider<MessagingNotifier, AsyncValue<List<Map<String, dynamic>>>>(
         (ref) {
   final service = ref.watch(messagingFirestoreServiceProvider);
   return MessagingNotifier(service, ref);

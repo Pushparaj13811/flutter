@@ -3,20 +3,24 @@ import 'package:skill_exchange/core/extensions/date_extensions.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
-import 'package:skill_exchange/data/models/message_model.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({super.key, required this.message});
 
-  final MessageModel message;
+  final Map<String, dynamic> message;
 
-  bool get _isMine => message.isFromMe;
+  bool get _isMine => message['isFromMe'] as bool? ?? false;
 
   String get _formattedTime {
-    final dt = message.createdAt.toDateTimeOrNull;
+    final raw = message['createdAt'] as String? ?? '';
+    final dt = raw.toDateTimeOrNull;
     if (dt == null) return '';
     return dt.time;
   }
+
+  bool get _read => message['read'] as bool? ?? false;
+
+  String get _content => message['content'] as String? ?? '';
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +49,7 @@ class MessageBubble extends StatelessWidget {
                 ),
               ),
               child: Text(
-                message.content,
+                _content,
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: _isMine
                       ? context.colors.primaryForeground
@@ -69,9 +73,9 @@ class MessageBubble extends StatelessWidget {
                   if (_isMine) ...[
                     const SizedBox(width: 4),
                     Icon(
-                      message.read ? Icons.done_all : Icons.done,
+                      _read ? Icons.done_all : Icons.done,
                       size: 14,
-                      color: message.read
+                      color: _read
                           ? context.colors.primary
                           : context.colors.mutedForeground,
                     ),

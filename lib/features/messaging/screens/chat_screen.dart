@@ -12,7 +12,6 @@ import 'package:skill_exchange/features/messaging/providers/messaging_provider.d
 import 'package:skill_exchange/features/messaging/widgets/message_bubble.dart';
 import 'package:skill_exchange/features/messaging/widgets/message_input.dart';
 import 'package:skill_exchange/config/di/providers.dart';
-import 'package:skill_exchange/data/models/message_model.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.conversationId});
@@ -53,21 +52,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     service.setTyping(widget.conversationId, isTyping);
   }
 
-  // ── Conversation metadata ──────────────────────────────────────────────
+  // ── Conversation metadata ───────────────────��──────────────────────────
 
   String? _otherUserName(WidgetRef ref) {
     final conversationsAsync = ref.watch(conversationsProvider);
     return conversationsAsync.whenOrNull(
       data: (conversations) {
         final match = conversations.where(
-          (c) => c.id == widget.conversationId,
+          (c) => c['id'] == widget.conversationId,
         );
         if (match.isEmpty) return null;
         final conversation = match.first;
-        if (conversation.participantProfiles.isNotEmpty) {
-          return conversation.participantProfiles.first.fullName;
-        }
-        return null;
+        return conversation['otherUserName'] as String?;
       },
     );
   }
@@ -77,14 +73,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return conversationsAsync.whenOrNull(
       data: (conversations) {
         final match = conversations.where(
-          (c) => c.id == widget.conversationId,
+          (c) => c['id'] == widget.conversationId,
         );
         if (match.isEmpty) return null;
         final conversation = match.first;
-        if (conversation.participantProfiles.isNotEmpty) {
-          return conversation.participantProfiles.first.avatar;
-        }
-        return null;
+        return conversation['otherUserAvatar'] as String?;
       },
     );
   }
@@ -151,19 +144,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
                 final messages = docs.map((doc) {
                   final data = doc.data();
-                  return MessageModel(
-                    id: doc.id,
-                    conversationId: widget.conversationId,
-                    senderId: data['sender'] ?? '',
-                    receiverId: '',
-                    content: data['content'] ?? '',
-                    createdAt: (data['createdAt'] as Timestamp?)
+                  return <String, dynamic>{
+                    'id': doc.id,
+                    'conversationId': widget.conversationId,
+                    'senderId': data['sender'] ?? '',
+                    'receiverId': '',
+                    'content': data['content'] ?? '',
+                    'createdAt': (data['createdAt'] as Timestamp?)
                             ?.toDate()
                             .toIso8601String() ??
                         '',
-                    isFromMe: data['sender'] == currentUid,
-                    read: data['isRead'] ?? false,
-                  );
+                    'isFromMe': data['sender'] == currentUid,
+                    'read': data['isRead'] ?? false,
+                  };
                 }).toList();
 
                 return ListView.separated(
@@ -209,7 +202,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-// ── Typing Indicator Widget ─────────────────────────────────────────────────
+// ── Typing Indicator Widget ──────────────────────────��──────────────────────
 
 class _TypingIndicator extends StatelessWidget {
   const _TypingIndicator({

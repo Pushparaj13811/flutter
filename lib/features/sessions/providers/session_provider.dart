@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/utils/firestore_helpers.dart';
 import 'package:skill_exchange/data/models/create_session_dto.dart';
 import 'package:skill_exchange/data/models/reschedule_session_dto.dart';
 import 'package:skill_exchange/data/models/session_model.dart';
@@ -10,8 +11,38 @@ final upcomingSessionsProvider =
     FutureProvider<List<SessionModel>>((ref) async {
   final service = ref.watch(sessionFirestoreServiceProvider);
   final data = await service.getMySessions();
-  return data.map((d) => SessionModel.fromJson(d)).toList();
+  return data.map((d) => _parseSession(d)).toList();
 });
+
+/// Safe parser that won't crash on missing/mismatched Firestore fields.
+SessionModel _parseSession(Map<String, dynamic> d) {
+  return SessionModel(
+    id: d['id'] as String? ?? '',
+    hostId: d['hostId'] as String? ?? d['host'] as String? ?? '',
+    participantId: d['participantId'] as String? ?? d['participant'] as String? ?? '',
+    title: d['title'] as String? ?? d['skill'] as String? ?? 'Session',
+    description: d['description'] as String? ?? '',
+    skillsToCover: (d['skillsToCover'] as List?)?.cast<String>() ?? [],
+    scheduledAt: toIsoString(d['scheduledAt']),
+    duration: (d['duration'] as num?)?.toInt() ?? 60,
+    status: _parseSessionStatus(d['status'] as String? ?? 'scheduled'),
+    sessionMode: d['sessionMode'] as String? ?? d['mode'] as String? ?? 'online',
+    meetingPlatform: d['meetingPlatform'] as String?,
+    meetingLink: d['meetingLink'] as String?,
+    location: d['location'] as String?,
+    notes: d['notes'] as String?,
+    createdAt: toIsoString(d['createdAt']),
+    updatedAt: toIsoString(d['updatedAt'] ?? d['createdAt']),
+  );
+}
+
+SessionStatus _parseSessionStatus(String status) {
+  return switch (status) {
+    'completed' => SessionStatus.completed,
+    'cancelled' => SessionStatus.cancelled,
+    _ => SessionStatus.scheduled,
+  };
+}
 
 // ── Sessions Notifier ─────────────────────────────────────────────────────
 

@@ -6,7 +6,6 @@ import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/app_card.dart';
 import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/user_avatar.dart';
-import 'package:skill_exchange/data/models/connection_model.dart';
 
 class SentRequests extends StatelessWidget {
   const SentRequests({
@@ -15,7 +14,7 @@ class SentRequests extends StatelessWidget {
     this.onProfileTap,
   });
 
-  final List<ConnectionModel> requests;
+  final List<Map<String, dynamic>> requests;
   final ValueChanged<String>? onProfileTap;
 
   @override
@@ -33,18 +32,19 @@ class SentRequests extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       itemCount: requests.length,
-      separatorBuilder: (_, _) =>
+      separatorBuilder: (_, __) =>
           const SizedBox(height: AppSpacing.listItemGap),
       itemBuilder: (_, index) => _buildSentCard(context, requests[index]),
     );
   }
 
-  Widget _buildSentCard(BuildContext context, ConnectionModel request) {
-    final profile = request.toUser;
-    final String fullName = profile?.fullName ?? 'Unknown';
-    final String? avatarUrl = profile?.avatar;
-    final String userId = profile?.id ?? request.toUserId;
-    final String sentDate = _formatDate(request.createdAt);
+  Widget _buildSentCard(BuildContext context, Map<String, dynamic> request) {
+    final String fullName = request['otherUserName'] as String? ?? 'Unknown';
+    final String? avatarUrl = request['otherUserAvatar'] as String?;
+    final String userId = request['otherUserId'] as String? ?? '';
+    final String? message = request['message'] as String?;
+    final String status = request['status'] as String? ?? 'pending';
+    final String sentDate = _formatDate(request['createdAt']);
 
     return AppCard(
       onTap: onProfileTap != null ? () => onProfileTap!(userId) : null,
@@ -81,10 +81,10 @@ class SentRequests extends StatelessWidget {
                   ],
                 ),
               ),
-              _buildStatusChip(context, request.status),
+              _buildStatusChip(context, status),
             ],
           ),
-          if (request.message != null && request.message!.isNotEmpty) ...[
+          if (message != null && message.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Container(
               width: double.infinity,
@@ -94,7 +94,7 @@ class SentRequests extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSpacing.sm),
               ),
               child: Text(
-                request.message!,
+                message,
                 style: AppTextStyles.bodySmall.copyWith(
                   color: context.colors.mutedForeground,
                 ),
@@ -108,22 +108,27 @@ class SentRequests extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(BuildContext context, ConnectionStatus status) {
+  Widget _buildStatusChip(BuildContext context, String status) {
     final (String label, Color bg, Color fg) = switch (status) {
-      ConnectionStatus.pending => (
+      'pending' => (
           'Pending',
           context.colors.warning.withValues(alpha: 0.2),
           context.colors.foreground,
         ),
-      ConnectionStatus.accepted => (
+      'accepted' => (
           'Accepted',
           context.colors.success.withValues(alpha: 0.2),
           context.colors.foreground,
         ),
-      ConnectionStatus.rejected => (
+      'rejected' => (
           'Declined',
           context.colors.destructive.withValues(alpha: 0.2),
           context.colors.destructive,
+        ),
+      _ => (
+          'Pending',
+          context.colors.warning.withValues(alpha: 0.2),
+          context.colors.foreground,
         ),
     };
 
@@ -143,12 +148,19 @@ class SentRequests extends StatelessWidget {
     );
   }
 
-  String _formatDate(String isoDate) {
+  String _formatDate(dynamic dateValue) {
+    if (dateValue == null) return '';
     try {
-      final date = DateTime.parse(isoDate);
+      DateTime date;
+      if (dateValue is String) {
+        date = DateTime.parse(dateValue);
+      } else {
+        // Firestore Timestamp
+        date = (dateValue as dynamic).toDate() as DateTime;
+      }
       return DateFormat.yMMMd().format(date);
     } catch (_) {
-      return isoDate;
+      return '';
     }
   }
 }

@@ -54,7 +54,7 @@ class ConversationsScreen extends ConsumerWidget {
             onRefresh: () => _refresh(ref),
             child: ListView.separated(
               itemCount: conversations.length,
-              separatorBuilder: (_, _) => const Divider(
+              separatorBuilder: (_, __) => const Divider(
                 height: 1,
                 indent: AppSpacing.screenPadding + 48 + AppSpacing.md,
               ),
@@ -65,7 +65,7 @@ class ConversationsScreen extends ConsumerWidget {
                   child: ConversationTile(
                     conversation: conversation,
                     onTap: () =>
-                        context.push('/messages/${conversation.id}'),
+                        context.push('/messages/${conversation['id']}'),
                   ),
                 );
               },

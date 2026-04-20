@@ -31,6 +31,26 @@ class ConnectionFirestoreService {
   }
 
   Future<void> sendRequest(String toUserId, {String? message}) async {
+    // Check if connection already exists (I sent to them)
+    final existing = await _db.collection('connections')
+        .where('requester', isEqualTo: _uid)
+        .where('recipient', isEqualTo: toUserId)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      throw Exception('Connection request already sent');
+    }
+
+    // Also check reverse direction (they sent to me)
+    final reverse = await _db.collection('connections')
+        .where('requester', isEqualTo: toUserId)
+        .where('recipient', isEqualTo: _uid)
+        .get();
+
+    if (reverse.docs.isNotEmpty) {
+      throw Exception('This user already sent you a request');
+    }
+
     await _db.collection('connections').add({
       'requester': _uid,
       'recipient': toUserId,

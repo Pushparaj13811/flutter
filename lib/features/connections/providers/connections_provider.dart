@@ -1,49 +1,77 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skill_exchange/config/di/providers.dart';
-import 'package:skill_exchange/core/utils/firestore_helpers.dart';
-import 'package:skill_exchange/data/models/connection_model.dart';
+import 'package:skill_exchange/data/sources/firebase/connection_firestore_service.dart';
+
+// ── Helper: enrich connection with the other user's profile ──────────────
+
+Future<Map<String, dynamic>> _enrichConnection(Map<String, dynamic> conn) async {
+  final myUid = FirebaseAuth.instance.currentUser!.uid;
+  final db = FirebaseFirestore.instance;
+
+  final otherUid = conn['requester'] == myUid
+      ? conn['recipient'] as String?
+      : conn['requester'] as String?;
+
+  if (otherUid == null || otherUid.isEmpty) {
+    return {
+      ...conn,
+      'otherUserId': '',
+      'otherUserName': 'Unknown',
+      'otherUserAvatar': null,
+      'otherUsername': '',
+    };
+  }
+
+  final profileDoc = await db.collection('profiles').doc(otherUid).get();
+  final userDoc = await db.collection('users').doc(otherUid).get();
+  final profileData = profileDoc.data() ?? {};
+  final userData = userDoc.data() ?? {};
+
+  return {
+    ...conn,
+    'otherUserId': otherUid,
+    'otherUserName': profileData['fullName'] ?? userData['name'] ?? userData['displayName'] ?? 'Unknown',
+    'otherUserAvatar': profileData['avatar'] ?? userData['avatar'] ?? userData['photoURL'],
+    'otherUsername': profileData['username'] ?? userData['username'] ?? '',
+  };
+}
+
+Future<List<Map<String, dynamic>>> _enrichAll(List<Map<String, dynamic>> list) async {
+  final enriched = <Map<String, dynamic>>[];
+  for (final conn in list) {
+    enriched.add(await _enrichConnection(conn));
+  }
+  return enriched;
+}
 
 // ── Data Providers ────────────────────────────────────────────────────────
 
 final connectionsProvider =
-    FutureProvider<List<ConnectionModel>>((ref) async {
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final service = ref.watch(connectionFirestoreServiceProvider);
   final data = await service.getMyConnections();
-  return data.map((d) => parseConnection(d)).toList();
+  return _enrichAll(data);
 });
 
 final pendingRequestsProvider =
-    FutureProvider<List<ConnectionModel>>((ref) async {
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final service = ref.watch(connectionFirestoreServiceProvider);
   final data = await service.getPendingRequests();
-  return data.map((d) => parseConnection(d)).toList();
+  return _enrichAll(data);
 });
 
 final sentRequestsProvider =
-    FutureProvider<List<ConnectionModel>>((ref) async {
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final service = ref.watch(connectionFirestoreServiceProvider);
   final data = await service.getSentRequests();
-  return data.map((d) => parseConnection(d)).toList();
+  return _enrichAll(data);
 });
 
 final connectionStatusProvider =
     FutureProvider.family<String, String>((ref, userId) async {
-  // Determine connection status by checking existing connections
   final service = ref.watch(connectionFirestoreServiceProvider);
-  final connections = await service.getMyConnections();
-  final pending = await service.getPendingRequests();
-  final sent = await service.getSentRequests();
-
-  if (connections.any((c) => c['id'] == userId || c['requester'] == userId || c['recipient'] == userId)) {
-    return 'connected';
-  }
-  if (pending.any((c) => c['requester'] == userId)) {
-    return 'pending_received';
-  }
-  if (sent.any((c) => c['recipient'] == userId)) {
-    return 'pending_sent';
-  }
-  return 'none';
+  return service.getConnectionStatus(userId);
 });
 
 // ── Connections Notifier ─────────────────────────────────────────────────

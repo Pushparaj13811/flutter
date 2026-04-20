@@ -73,6 +73,33 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             _SuggestedUsersSection(ref: ref),
 
+            const SizedBox(height: AppSpacing.sectionGap),
+
+            // Quick navigation buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0),
+              child: OutlinedButton.icon(
+                onPressed: () => context.go(RouteNames.community),
+                icon: const Icon(Icons.groups_outlined),
+                label: const Text('Go to Community'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0),
+              child: OutlinedButton.icon(
+                onPressed: () => context.go(RouteNames.bookings),
+                icon: const Icon(Icons.calendar_today_outlined),
+                label: const Text('My Sessions'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ),
+
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
