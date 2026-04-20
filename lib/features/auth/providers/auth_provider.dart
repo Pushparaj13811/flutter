@@ -2,6 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/data/sources/firebase/firebase_auth_service.dart';
 import 'package:skill_exchange/domain/entities/user.dart';
+import 'package:skill_exchange/features/profile/providers/profile_provider.dart';
+import 'package:skill_exchange/features/connections/providers/connections_provider.dart';
+import 'package:skill_exchange/features/sessions/providers/session_provider.dart';
+import 'package:skill_exchange/features/matching/providers/matching_provider.dart';
+import 'package:skill_exchange/features/community/providers/community_provider.dart';
+import 'package:skill_exchange/features/dashboard/screens/dashboard_screen.dart';
 
 // ── Auth State ────────────────────────────────────────────────────────────
 
@@ -35,8 +41,9 @@ class AuthError extends AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final FirebaseAuthService _authService;
+  final Ref _ref;
 
-  AuthNotifier(this._authService) : super(const AuthInitial()) {
+  AuthNotifier(this._authService, this._ref) : super(const AuthInitial()) {
     _init();
   }
 
@@ -108,7 +115,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _authService.signOut();
+    // Invalidate all cached data from the previous user
+    _invalidateAllProviders();
     state = const AuthUnauthenticated();
+  }
+
+  /// Clears all cached provider data so the next user gets fresh data.
+  void _invalidateAllProviders() {
+    // Profile
+    try { _ref.invalidate(currentProfileProvider); } catch (_) {}
+    // Connections
+    try { _ref.invalidate(connectionsProvider); } catch (_) {}
+    try { _ref.invalidate(pendingRequestsProvider); } catch (_) {}
+    try { _ref.invalidate(sentRequestsProvider); } catch (_) {}
+    // Sessions
+    try { _ref.invalidate(upcomingSessionsProvider); } catch (_) {}
+    // Matching
+    try { _ref.invalidate(topMatchesProvider(5)); } catch (_) {}
+    try { _ref.invalidate(paginatedMatchesProvider); } catch (_) {}
+    // Community
+    try { _ref.invalidate(discussionPostsProvider); } catch (_) {}
+    try { _ref.invalidate(learningCirclesProvider); } catch (_) {}
+    try { _ref.invalidate(leaderboardProvider); } catch (_) {}
+    // Dashboard feed
+    try { _ref.invalidate(feedPostsProvider); } catch (_) {}
   }
 
   Future<bool> forgotPassword(String email) async {
@@ -156,5 +186,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authService = ref.watch(firebaseAuthServiceProvider);
-  return AuthNotifier(authService);
+  return AuthNotifier(authService, ref);
 });
