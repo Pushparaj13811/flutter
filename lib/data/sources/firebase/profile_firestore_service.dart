@@ -14,6 +14,7 @@ class ProfileFirestoreService {
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   Future<Map<String, dynamic>?> getMyProfile() async {
+    if (_uid.isEmpty) return null;
     final doc = await _db.collection('profiles').doc(_uid).get();
     if (!doc.exists) return null;
     final data = doc.data()!;
