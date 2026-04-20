@@ -593,12 +593,12 @@ class SeedData {
       }
       for (final entry in sessionCompletionCount.entries) {
         try {
-          await _db.collection('profiles').doc(entry.key).set({
-            'stats': {'sessionsCompleted': entry.value},
-          }, SetOptions(merge: true));
-          await _db.collection('matchPool').doc(entry.key).set({
+          await _db.collection('profiles').doc(entry.key).update({
+            'stats.sessionsCompleted': entry.value,
+          });
+          await _db.collection('matchPool').doc(entry.key).update({
             'sessionsCompleted': entry.value,
-          }, SetOptions(merge: true));
+          });
         } catch (e) {
           debugPrint('Failed to update session stats for ${entry.key}: $e');
         }
@@ -649,15 +649,13 @@ class SeedData {
           final newCount = currentCount + 1;
           final newAvg = ((currentAvg * currentCount) + rating) / newCount;
 
-          await _db.collection('profiles').doc(toUser).set({
-            'stats': {
-              'reviewsReceived': newCount,
-              'averageRating': double.parse(newAvg.toStringAsFixed(1)),
-            },
-          }, SetOptions(merge: true));
-          await _db.collection('matchPool').doc(toUser).set({
+          await _db.collection('profiles').doc(toUser).update({
+            'stats.reviewsReceived': newCount,
+            'stats.averageRating': double.parse(newAvg.toStringAsFixed(1)),
+          });
+          await _db.collection('matchPool').doc(toUser).update({
             'averageRating': double.parse(newAvg.toStringAsFixed(1)),
-          }, SetOptions(merge: true));
+          });
         } catch (e) {
           debugPrint('Failed to update review stats: $e');
         }
@@ -811,13 +809,14 @@ class SeedData {
       }
       for (final entry in connectionCount.entries) {
         try {
-          await _db.collection('profiles').doc(entry.key).set({
-            'stats': {'connectionsCount': entry.value},
-          }, SetOptions(merge: true));
+          await _db.collection('profiles').doc(entry.key).update({
+            'stats.connectionsCount': entry.value,
+          });
         } catch (e) {
           debugPrint('Failed to update connection count for ${entry.key}: $e');
         }
       }
+      debugPrint('Updated connection counts for ${connectionCount.length} users');
 
       debugPrint('\nSeed complete! Created ${uids.where((u) => u.isNotEmpty).length} users, connections, posts, and circles.');
     }
