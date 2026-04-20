@@ -1,8 +1,11 @@
 // Profile view/edit screen
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
@@ -46,6 +49,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _toggleEdit() {
     setState(() => _isEditing = !_isEditing);
+  }
+
+  Future<void> _onAvatarTap() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512);
+    if (image == null) return;
+
+    final file = File(image.path);
+    final url = await ref.read(profileNotifierProvider.notifier).uploadAvatar(file);
+    if (url != null && mounted) {
+      ref.invalidate(currentProfileProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Avatar updated!')),
+      );
+    }
   }
 
   Future<void> _showLogoutDialog() async {
@@ -145,6 +163,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       onEditPressed: _toggleEdit,
       onSettingsPressed: () => context.go(RouteNames.settings),
       onLogoutPressed: _showLogoutDialog,
+      onAvatarTap: _onAvatarTap,
     );
   }
 }

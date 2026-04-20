@@ -26,6 +26,7 @@ class ProfileView extends StatelessWidget {
     this.onLogoutPressed,
     this.onBlockPressed,
     this.onReportPressed,
+    this.onAvatarTap,
   });
 
   final UserProfileModel profile;
@@ -35,6 +36,7 @@ class ProfileView extends StatelessWidget {
   final VoidCallback? onLogoutPressed;
   final VoidCallback? onBlockPressed;
   final VoidCallback? onReportPressed;
+  final VoidCallback? onAvatarTap;
 
   @override
   Widget build(BuildContext context) {
@@ -195,8 +197,8 @@ class ProfileView extends StatelessWidget {
                   onLogoutPressed?.call();
               }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
                 value: _OwnProfileAction.edit,
                 child: Row(
                   children: [
@@ -206,7 +208,7 @@ class ProfileView extends StatelessWidget {
                   ],
                 ),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: _OwnProfileAction.settings,
                 child: Row(
                   children: [
@@ -220,9 +222,9 @@ class ProfileView extends StatelessWidget {
                 value: _OwnProfileAction.logout,
                 child: Row(
                   children: [
-                    Icon(Icons.logout, size: 18, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Log Out', style: TextStyle(color: Colors.red)),
+                    Icon(Icons.logout, size: 18, color: ctx.colors.destructive),
+                    const SizedBox(width: 8),
+                    Text('Log Out', style: TextStyle(color: ctx.colors.destructive)),
                   ],
                 ),
               ),
@@ -296,7 +298,7 @@ class ProfileView extends StatelessWidget {
     const double avatarSize = 88;
     const double borderWidth = 4;
 
-    return Container(
+    Widget avatar = Container(
       padding: const EdgeInsets.all(borderWidth),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
@@ -309,6 +311,37 @@ class ProfileView extends StatelessWidget {
         heroTag: 'avatar_${profile.id}',
       ),
     );
+
+    if (isOwnProfile && onAvatarTap != null) {
+      avatar = GestureDetector(
+        onTap: onAvatarTap,
+        child: Stack(
+          children: [
+            avatar,
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: colors.card, width: 2),
+                ),
+                child: Icon(
+                  Icons.camera_alt,
+                  size: 16,
+                  color: colors.primaryForeground,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return avatar;
   }
 
   // -- Identity (name, username, location) ------------------------------------

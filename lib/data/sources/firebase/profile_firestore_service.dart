@@ -15,12 +15,40 @@ class ProfileFirestoreService {
 
   Future<Map<String, dynamic>?> getMyProfile() async {
     final doc = await _db.collection('profiles').doc(_uid).get();
-    return doc.data();
+    if (!doc.exists) return null;
+    final data = doc.data()!;
+
+    // Merge user doc data (name, email) if not in profile
+    if (data['fullName'] == null || (data['fullName'] as String).isEmpty) {
+      final userDoc = await _db.collection('users').doc(_uid).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        data['fullName'] = userData['name'] ?? '';
+        data['email'] = userData['email'] ?? data['email'] ?? '';
+        if (data['avatar'] == null) data['avatar'] = userData['avatar'];
+      }
+    }
+
+    return data;
   }
 
   Future<Map<String, dynamic>?> getProfile(String uid) async {
     final doc = await _db.collection('profiles').doc(uid).get();
-    return doc.data();
+    if (!doc.exists) return null;
+    final data = doc.data()!;
+
+    // Merge user doc data (name, email) if not in profile
+    if (data['fullName'] == null || (data['fullName'] as String).isEmpty) {
+      final userDoc = await _db.collection('users').doc(uid).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        data['fullName'] = userData['name'] ?? '';
+        data['email'] = userData['email'] ?? data['email'] ?? '';
+        if (data['avatar'] == null) data['avatar'] = userData['avatar'];
+      }
+    }
+
+    return data;
   }
 
   Future<Map<String, dynamic>?> getProfileByUsername(String username) async {

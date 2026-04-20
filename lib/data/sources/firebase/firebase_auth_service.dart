@@ -42,6 +42,7 @@ class FirebaseAuthService {
 
     // Create empty profile
     await _firestore.collection('profiles').doc(uid).set({
+      'fullName': name,
       'username': username.toLowerCase(),
       'avatar': null,
       'coverImage': null,
@@ -256,6 +257,7 @@ class FirebaseAuthService {
 
       // Create profile
       await _firestore.collection('profiles').doc(uid).set({
+        'fullName': name,
         'username': username,
         'avatar': avatar,
         'coverImage': null,

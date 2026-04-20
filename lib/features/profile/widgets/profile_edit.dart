@@ -266,7 +266,8 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     final notifierState = ref.watch(profileNotifierProvider);
     final isSaving = notifierState is AsyncLoading;
 
-    return DefaultTabController(
+    return SafeArea(
+      child: DefaultTabController(
       length: 4,
       child: Column(
         children: [
@@ -319,6 +320,7 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
           ),
         ],
       ),
+    ),
     );
   }
 

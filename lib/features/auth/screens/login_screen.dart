@@ -49,15 +49,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
   }
 
-  void _fillDemoCredentials() {
-    _emailController.text = 'demo@skillexchange.com';
-    _passwordController.text = 'Demo123!@#';
-  }
-
-  void _fillAdminCredentials() {
-    _emailController.text = 'admin@skillexchange.com';
-    _passwordController.text = 'Admin123!@#';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -278,45 +269,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
 
-            // ── Demo credential cards ─────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quick access',
-                    style: AppTextStyles.labelMedium.copyWith(
-                      color: context.colors.mutedForeground,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DemoCard(
-                          title: 'Demo User',
-                          subtitle: 'demo@skillexchange.com',
-                          icon: Icons.person_outline,
-                          color: AppColors.primary,
-                          onTap: _fillDemoCredentials,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: _DemoCard(
-                          title: 'Admin',
-                          subtitle: 'admin@skillexchange.com',
-                          icon: Icons.admin_panel_settings_outlined,
-                          color: AppColors.secondary,
-                          onTap: _fillAdminCredentials,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: AppSpacing.xl),
 
             // ── Sign up link ──────────────────────────────────────────────
@@ -455,65 +407,3 @@ class _GradientButton extends StatelessWidget {
   }
 }
 
-// ── Demo Credential Card ─────────────────────────────────────────────────────
-
-class _DemoCard extends StatelessWidget {
-  const _DemoCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              title,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Tap to fill',
-              style: AppTextStyles.caption.copyWith(
-                color: context.colors.mutedForeground,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
