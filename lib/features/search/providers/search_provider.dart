@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/utils/firestore_helpers.dart';
 import 'package:skill_exchange/data/models/search_result_model.dart';
 import 'package:skill_exchange/data/models/user_profile_model.dart';
 
@@ -39,7 +40,7 @@ class SearchNotifier
         skillCategory: filters?.skillCategory,
         location: filters?.location,
       );
-      final results = data.map((d) => UserProfileModel.fromJson(d)).toList();
+      final results = data.map((d) => parseSearchResult(d)).toList();
       _hasMore = false; // Firebase returns all at once
       state = AsyncValue.data(results);
     } catch (e, st) {

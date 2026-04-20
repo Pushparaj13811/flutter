@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/utils/firestore_helpers.dart';
 import 'package:skill_exchange/data/models/discussion_post_model.dart';
 import 'package:skill_exchange/data/models/leaderboard_entry_model.dart';
 import 'package:skill_exchange/data/models/learning_circle_model.dart';
@@ -10,21 +11,21 @@ final discussionPostsProvider =
     FutureProvider<List<DiscussionPostModel>>((ref) async {
   final service = ref.watch(communityFirestoreServiceProvider);
   final data = await service.getPosts();
-  return data.map((d) => DiscussionPostModel.fromJson(d)).toList();
+  return data.map((d) => parseDiscussionPost(d)).toList();
 });
 
 final learningCirclesProvider =
     FutureProvider<List<LearningCircleModel>>((ref) async {
   final service = ref.watch(communityFirestoreServiceProvider);
   final data = await service.getCircles();
-  return data.map((d) => LearningCircleModel.fromJson(d)).toList();
+  return data.map((d) => parseCircle(d)).toList();
 });
 
 final leaderboardProvider =
     FutureProvider<List<LeaderboardEntryModel>>((ref) async {
   final service = ref.watch(communityFirestoreServiceProvider);
   final data = await service.getLeaderboard();
-  return data.map((d) => LeaderboardEntryModel.fromJson(d)).toList();
+  return parseLeaderboard(data);
 });
 
 // ── Community Notifier ────────────────────────────────────────────────────

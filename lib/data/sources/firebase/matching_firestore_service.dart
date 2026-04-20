@@ -16,11 +16,23 @@ class MatchingFirestoreService {
     final teachingCategories =
         mySkillsToTeach.map((s) => (s as Map)['category'] as String).toSet();
 
+    // Get existing connections to filter them out of suggestions
+    final connectionsSnap = await _db.collection('connections')
+        .where('participants', arrayContains: _uid)
+        .get();
+    final connectedUserIds = <String>{};
+    for (final connDoc in connectionsSnap.docs) {
+      final participants = (connDoc.data()['participants'] as List?)?.cast<String>() ?? [];
+      connectedUserIds.addAll(participants);
+    }
+    connectedUserIds.remove(_uid);
+
     final snap = await _db.collection('matchPool').limit(50).get();
 
     final results = <Map<String, dynamic>>[];
     for (final doc in snap.docs) {
       if (doc.id == _uid) continue;
+      if (connectedUserIds.contains(doc.id)) continue; // Skip connected users
       final data = doc.data();
 
       final theirSkillsToTeach = (data['skillsToTeach'] as List?) ?? [];

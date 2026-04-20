@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/utils/firestore_helpers.dart';
 import 'package:skill_exchange/data/models/connection_model.dart';
 
 // ── Data Providers ────────────────────────────────────────────────────────
@@ -8,21 +9,21 @@ final connectionsProvider =
     FutureProvider<List<ConnectionModel>>((ref) async {
   final service = ref.watch(connectionFirestoreServiceProvider);
   final data = await service.getMyConnections();
-  return data.map((d) => ConnectionModel.fromJson(d)).toList();
+  return data.map((d) => parseConnection(d)).toList();
 });
 
 final pendingRequestsProvider =
     FutureProvider<List<ConnectionModel>>((ref) async {
   final service = ref.watch(connectionFirestoreServiceProvider);
   final data = await service.getPendingRequests();
-  return data.map((d) => ConnectionModel.fromJson(d)).toList();
+  return data.map((d) => parseConnection(d)).toList();
 });
 
 final sentRequestsProvider =
     FutureProvider<List<ConnectionModel>>((ref) async {
   final service = ref.watch(connectionFirestoreServiceProvider);
   final data = await service.getSentRequests();
-  return data.map((d) => ConnectionModel.fromJson(d)).toList();
+  return data.map((d) => parseConnection(d)).toList();
 });
 
 final connectionStatusProvider =
