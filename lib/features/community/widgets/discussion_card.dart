@@ -1,3 +1,4 @@
+import 'package:chewie/chewie.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
@@ -5,7 +6,7 @@ import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/theme/app_shadows.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 /// Social-media style post card with avatar header, image carousel,
 /// category badge, tags, and engagement actions.
@@ -49,10 +50,21 @@ class DiscussionCard extends StatelessWidget {
         (post['images'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final videoUrl = post['videoUrl'] as String?;
 
+    // Build combined media list
+    final allMedia = <Map<String, dynamic>>[];
+    for (final img in images) {
+      final url = img['url'] as String? ?? '';
+      if (url.isNotEmpty) {
+        allMedia.add({'type': 'image', 'url': url});
+      }
+    }
+    if (videoUrl != null && videoUrl.isNotEmpty) {
+      allMedia.add({'type': 'video', 'url': videoUrl});
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: context.colors.card,
           borderRadius: BorderRadius.circular(16),
@@ -61,51 +73,74 @@ class DiscussionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            _buildHeader(context),
-            const SizedBox(height: 12),
+            // Header with padding
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: _buildHeader(context),
+            ),
 
-            // Category badge
-            if (category.isNotEmpty) ...[
-              _buildCategoryBadge(context, category),
-              const SizedBox(height: 10),
-            ],
+            // Category + Title + Content with padding
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
 
-            // Title
-            if (title.isNotEmpty) ...[
-              Text(
-                title,
-                style: AppTextStyles.h4.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: isCompact ? 2 : null,
-                overflow: isCompact ? TextOverflow.ellipsis : null,
+                  // Category badge
+                  if (category.isNotEmpty) ...[
+                    _buildCategoryBadge(context, category),
+                    const SizedBox(height: 10),
+                  ],
+
+                  // Title
+                  if (title.isNotEmpty) ...[
+                    Text(
+                      title,
+                      style: AppTextStyles.h4.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: isCompact ? 2 : null,
+                      overflow: isCompact ? TextOverflow.ellipsis : null,
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+
+                  // Content
+                  if (content.isNotEmpty) _buildContent(context, content),
+                ],
               ),
-              const SizedBox(height: 6),
-            ],
+            ),
 
-            // Content
-            if (content.isNotEmpty) ...[
-              _buildContent(context, content),
-              const SizedBox(height: 12),
-            ],
+            // Media — FULL BLEED, no horizontal padding
+            if (allMedia.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _PostMediaSection(media: allMedia),
+              ),
 
-            // Media
-            ..._buildCombinedMedia(context, images, videoUrl),
+            // Tags + Actions with padding
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Tags
+                  if (tags.isNotEmpty) ...[
+                    _buildTags(context, tags),
+                    const SizedBox(height: 12),
+                  ],
 
-            // Tags
-            if (tags.isNotEmpty) ...[
-              _buildTags(context, tags),
-              const SizedBox(height: 12),
-            ],
+                  // Divider before actions
+                  Divider(color: context.colors.border, height: 1),
+                  const SizedBox(height: 8),
 
-            // Divider before actions
-            Divider(color: context.colors.border, height: 1),
-            const SizedBox(height: 8),
-
-            // Actions bar
-            _buildActions(context, isLikedByMe, isBookmarked, likesCount,
-                commentsCount),
+                  // Actions bar
+                  _buildActions(context, isLikedByMe, isBookmarked, likesCount,
+                      commentsCount),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -326,134 +361,6 @@ class DiscussionCard extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildCombinedMedia(
-      BuildContext context, List<Map<String, dynamic>> images, String? videoUrl) {
-    final allMedia = <Map<String, dynamic>>[];
-
-    for (final img in images) {
-      final url = img['url'] as String? ?? '';
-      if (url.isNotEmpty) {
-        allMedia.add({'type': 'image', 'url': url});
-      }
-    }
-
-    if (videoUrl != null && videoUrl.isNotEmpty) {
-      allMedia.add({'type': 'video', 'url': videoUrl});
-    }
-
-    if (allMedia.isEmpty) return [];
-
-    return [
-      const SizedBox(height: AppSpacing.sm),
-      _buildMediaCarouselCombined(context, allMedia),
-      const SizedBox(height: 12),
-    ];
-  }
-
-  Widget _buildMediaCarouselCombined(
-      BuildContext context, List<Map<String, dynamic>> media) {
-    if (media.length == 1) {
-      return _buildSingleMedia(context, media[0]);
-    }
-
-    return _CombinedMediaCarousel(media: media);
-  }
-
-  Widget _buildSingleMedia(BuildContext context, Map<String, dynamic> media) {
-    final type = media['type'] as String;
-    final url = media['url'] as String;
-
-    if (type == 'video') {
-      return _buildVideoPreview(context, url);
-    }
-
-    // Single image — no fixed height, use BoxFit.contain
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        color: context.colors.muted,
-        child: Image.network(
-          url,
-          width: double.infinity,
-          fit: BoxFit.contain,
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            return AspectRatio(
-              aspectRatio: 4 / 3,
-              child: Container(
-                color: context.colors.muted,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    value: progress.expectedTotalBytes != null
-                        ? progress.cumulativeBytesLoaded /
-                            progress.expectedTotalBytes!
-                        : null,
-                  ),
-                ),
-              ),
-            );
-          },
-          errorBuilder: (_, __, ___) => AspectRatio(
-            aspectRatio: 4 / 3,
-            child: Container(
-              color: context.colors.muted,
-              child: Icon(Icons.broken_image,
-                  color: context.colors.mutedForeground, size: 40),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVideoPreview(BuildContext context, String videoUrl) {
-    return GestureDetector(
-      onTap: () =>
-          launchUrl(Uri.parse(videoUrl), mode: LaunchMode.externalApplication),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          height: 200,
-          decoration: BoxDecoration(
-            color: context.colors.muted,
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: context.colors.primary.withValues(alpha: 0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.play_arrow,
-                    size: 32, color: Colors.white),
-              ),
-              Positioned(
-                bottom: AppSpacing.sm,
-                left: AppSpacing.sm,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'Tap to play video',
-                    style: AppTextStyles.caption.copyWith(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildTags(BuildContext context, List<String> tags) {
     return Wrap(
       spacing: AppSpacing.sm,
@@ -556,103 +463,143 @@ class DiscussionCard extends StatelessWidget {
   }
 }
 
-// ── Combined Media Carousel (images + video) ───────────────────────────────
+// ── Instagram-style Post Media Section ───────────────────────────────────────
 
-class _CombinedMediaCarousel extends StatefulWidget {
+class _PostMediaSection extends StatefulWidget {
   final List<Map<String, dynamic>> media;
 
-  const _CombinedMediaCarousel({required this.media});
+  const _PostMediaSection({required this.media});
 
   @override
-  State<_CombinedMediaCarousel> createState() => _CombinedMediaCarouselState();
+  State<_PostMediaSection> createState() => _PostMediaSectionState();
 }
 
-class _CombinedMediaCarouselState extends State<_CombinedMediaCarousel> {
-  late final PageController _controller;
+class _PostMediaSectionState extends State<_PostMediaSection> {
+  final PageController _pageController = PageController();
   int _currentPage = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = PageController();
-    _controller.addListener(_onPageChanged);
-  }
-
-  @override
   void dispose() {
-    _controller.removeListener(_onPageChanged);
-    _controller.dispose();
+    _pageController.dispose();
     super.dispose();
-  }
-
-  void _onPageChanged() {
-    final page = _controller.page?.round() ?? 0;
-    if (page != _currentPage) {
-      setState(() => _currentPage = page);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.media.isEmpty) return const SizedBox.shrink();
+
+    if (widget.media.length == 1) {
+      return _buildSingleMedia(widget.media[0]);
+    }
+
+    return _buildCarousel();
+  }
+
+  Widget _buildSingleMedia(Map<String, dynamic> item) {
+    if (item['type'] == 'video') {
+      return _InlineVideoPlayer(url: item['url'] as String);
+    }
+    return _buildImage(item['url'] as String);
+  }
+
+  Widget _buildImage(String url) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: 200,
+        maxHeight: 500,
+      ),
+      child: Image.network(
+        url,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            height: 300,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        },
+        errorBuilder: (_, __, ___) => Container(
+          height: 200,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: const Center(child: Icon(Icons.broken_image, size: 40)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCarousel() {
     return Column(
       children: [
-        AspectRatio(
-          aspectRatio: 4 / 3,
-          child: PageView.builder(
-            controller: _controller,
-            itemCount: widget.media.length,
-            itemBuilder: (_, index) {
-              final item = widget.media[index];
-              final type = item['type'] as String;
-              final url = item['url'] as String;
-
-              if (type == 'video') {
-                return _buildVideoItem(context, url);
-              }
-
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  color: context.colors.muted,
-                  child: Image.network(
-                    url,
-                    width: double.infinity,
-                    fit: BoxFit.contain,
-                    loadingBuilder: (_, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        color: context.colors.muted,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: progress.expectedTotalBytes != null
-                                ? progress.cumulativeBytesLoaded /
-                                    progress.expectedTotalBytes!
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => Container(
-                      color: context.colors.muted,
-                      child: Icon(Icons.broken_image,
-                          color: context.colors.mutedForeground, size: 40),
-                    ),
+        Stack(
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: 200,
+                maxHeight: 500,
+              ),
+              child: AspectRatio(
+                aspectRatio: 1, // Square like Instagram
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: widget.media.length,
+                  onPageChanged: (page) => setState(() => _currentPage = page),
+                  itemBuilder: (_, index) {
+                    final item = widget.media[index];
+                    if (item['type'] == 'video') {
+                      return _InlineVideoPlayer(url: item['url'] as String);
+                    }
+                    return Image.network(
+                      item['url'] as String,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        child: const Center(
+                            child: Icon(Icons.broken_image, size: 40)),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            // Counter badge "1/4" top right
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_currentPage + 1}/${widget.media.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            ),
+          ],
         ),
-        if (widget.media.length > 1) ...[
-          const SizedBox(height: 8),
-          Row(
+        // Dots indicator
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(widget.media.length, (i) {
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == _currentPage ? 8 : 6,
-                height: i == _currentPage ? 8 : 6,
+                width: i == _currentPage ? 7 : 5,
+                height: i == _currentPage ? 7 : 5,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: i == _currentPage
@@ -662,55 +609,94 @@ class _CombinedMediaCarouselState extends State<_CombinedMediaCarousel> {
               );
             }),
           ),
-        ],
+        ),
       ],
     );
   }
+}
 
-  Widget _buildVideoItem(BuildContext context, String videoUrl) {
-    return GestureDetector(
-      onTap: () =>
-          launchUrl(Uri.parse(videoUrl), mode: LaunchMode.externalApplication),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: context.colors.muted,
-          ),
-          child: Stack(
-            alignment: Alignment.center,
+// ── Inline Video Player ──────────────────────────────────────────────────────
+
+class _InlineVideoPlayer extends StatefulWidget {
+  final String url;
+  const _InlineVideoPlayer({required this.url});
+
+  @override
+  State<_InlineVideoPlayer> createState() => _InlineVideoPlayerState();
+}
+
+class _InlineVideoPlayerState extends State<_InlineVideoPlayer> {
+  late VideoPlayerController _controller;
+  ChewieController? _chewieController;
+  bool _isInitialized = false;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initVideo();
+  }
+
+  Future<void> _initVideo() async {
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    try {
+      await _controller.initialize();
+      _chewieController = ChewieController(
+        videoPlayerController: _controller,
+        autoPlay: false,
+        looping: false,
+        showControls: true,
+        aspectRatio: _controller.value.aspectRatio,
+      );
+      if (mounted) setState(() => _isInitialized = true);
+    } catch (e) {
+      if (mounted) setState(() => _hasError = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _chewieController?.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasError) {
+      return Container(
+        height: 250,
+        color: context.colors.muted,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: context.colors.primary.withValues(alpha: 0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.play_arrow,
-                    size: 32, color: Colors.white),
-              ),
-              Positioned(
-                bottom: AppSpacing.sm,
-                left: AppSpacing.sm,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'Tap to play video',
-                    style: AppTextStyles.caption.copyWith(color: Colors.white),
-                  ),
+              Icon(Icons.error_outline,
+                  size: 40, color: context.colors.mutedForeground),
+              const SizedBox(height: 8),
+              Text(
+                'Failed to load video',
+                style: AppTextStyles.caption.copyWith(
+                  color: context.colors.mutedForeground,
                 ),
               ),
             ],
           ),
         ),
-      ),
+      );
+    }
+
+    if (!_isInitialized) {
+      return Container(
+        height: 250,
+        color: context.colors.muted,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return AspectRatio(
+      aspectRatio: _controller.value.aspectRatio,
+      child: Chewie(controller: _chewieController!),
     );
   }
 }
