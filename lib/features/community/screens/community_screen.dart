@@ -10,6 +10,7 @@ import 'package:skill_exchange/features/community/providers/community_provider.d
 import 'package:skill_exchange/features/community/widgets/create_circle_sheet.dart';
 import 'package:skill_exchange/features/community/widgets/create_post_sheet.dart';
 import 'package:skill_exchange/features/community/widgets/discussion_card.dart';
+import 'package:skill_exchange/features/community/screens/post_detail_screen.dart';
 import 'package:skill_exchange/features/community/widgets/leaderboard_tile.dart';
 import 'package:skill_exchange/core/widgets/animated_list_item.dart';
 import 'package:skill_exchange/features/community/widgets/learning_circle_card.dart';
@@ -180,8 +181,16 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
                 index: index,
                 child: DiscussionCard(
                   post: post,
+                  isCompact: true,
                   onLike: () => _onLikePost(postId),
                   onComment: () => _showCommentsSheet(context, postId),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PostDetailScreen(post: post),
+                      ),
+                    );
+                  },
                 ),
               );
             },

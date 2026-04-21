@@ -4,17 +4,23 @@ import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 
+/// Social-media style post card with avatar header, image carousel,
+/// category badge, tags, and engagement actions.
 class DiscussionCard extends StatelessWidget {
   final Map<String, dynamic> post;
+  final bool isCompact;
   final VoidCallback? onLike;
   final VoidCallback? onComment;
+  final VoidCallback? onBookmark;
   final VoidCallback? onTap;
 
   const DiscussionCard({
     super.key,
     required this.post,
+    this.isCompact = true,
     this.onLike,
     this.onComment,
+    this.onBookmark,
     this.onTap,
   });
 
@@ -23,10 +29,17 @@ class DiscussionCard extends StatelessWidget {
     final title = post['title'] as String? ?? '';
     final content = post['content'] as String? ?? '';
     final tags = (post['tags'] as List?)?.cast<String>() ?? [];
+    final category = post['category'] as String? ?? '';
     final isLikedByMe = post['isLikedByMe'] as bool? ?? false;
+    final isBookmarked = post['isBookmarked'] as bool? ?? false;
     final likesCount = (post['likesCount'] as num?)?.toInt() ?? 0;
     final commentsCount = (post['commentsCount'] as num?)?.toInt() ??
-        (post['repliesCount'] as num?)?.toInt() ?? 0;
+        (post['repliesCount'] as num?)?.toInt() ??
+        0;
+    final images =
+        (post['images'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final videoUrl = post['videoUrl'] as String?;
+    final mediaType = post['mediaType'] as String? ?? 'text';
 
     return GestureDetector(
       onTap: onTap,
@@ -40,51 +53,56 @@ class DiscussionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header
             _buildHeader(context),
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              title,
-              style: AppTextStyles.h4,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              content,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: context.colors.mutedForeground,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            // Media display
-            Builder(builder: (context) {
-              final images =
-                  (post['images'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-              final videoUrl = post['videoUrl'] as String?;
-              final mediaType = post['mediaType'] as String? ?? 'text';
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (mediaType == 'image' && images.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildImageGallery(context, images),
-                  ],
-                  if (mediaType == 'video' &&
-                      videoUrl != null &&
-                      videoUrl.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildVideoPreview(context, videoUrl),
-                  ],
-                ],
-              );
-            }),
-            if (tags.isNotEmpty) ...[
+
+            // Category badge
+            if (category.isNotEmpty) ...[
+              _buildCategoryBadge(context, category),
               const SizedBox(height: AppSpacing.sm),
-              _buildTags(context, tags),
             ],
-            const SizedBox(height: AppSpacing.md),
-            _buildActions(context, isLikedByMe, likesCount, commentsCount),
+
+            // Title
+            if (title.isNotEmpty) ...[
+              Text(
+                title,
+                style: AppTextStyles.h4.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: isCompact ? 2 : null,
+                overflow: isCompact ? TextOverflow.ellipsis : null,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+            ],
+
+            // Content
+            if (content.isNotEmpty) ...[
+              _buildContent(context, content),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+
+            // Media
+            if (mediaType == 'image' && images.isNotEmpty) ...[
+              _buildMediaCarousel(context, images),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            if (mediaType == 'video' &&
+                videoUrl != null &&
+                videoUrl.isNotEmpty) ...[
+              _buildVideoPreview(context, videoUrl),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+
+            // Tags
+            if (tags.isNotEmpty) ...[
+              _buildTags(context, tags),
+              const SizedBox(height: AppSpacing.md),
+            ],
+
+            // Actions bar
+            _buildActions(context, isLikedByMe, isBookmarked, likesCount,
+                commentsCount),
           ],
         ),
       ),
@@ -93,38 +111,52 @@ class DiscussionCard extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final authorName = post['authorName'] as String? ?? 'Unknown';
+    final authorHandle = post['authorHandle'] as String?;
     final avatarUrl = post['authorAvatar'] as String?;
     final createdAt = post['createdAt'];
 
     return Row(
       children: [
         CircleAvatar(
-          radius: 16,
+          radius: 20,
           backgroundColor: context.colors.muted,
-          backgroundImage:
-              avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+          backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+              ? NetworkImage(avatarUrl)
+              : null,
           child: avatarUrl == null || avatarUrl.isEmpty
               ? Text(
                   authorName.isNotEmpty ? authorName[0].toUpperCase() : '?',
-                  style: AppTextStyles.labelMedium.copyWith(
+                  style: AppTextStyles.labelLarge.copyWith(
                     color: context.colors.mutedForeground,
+                    fontWeight: FontWeight.w600,
                   ),
                 )
               : null,
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Text(
-                authorName,
-                style: AppTextStyles.labelMedium,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Flexible(
+                child: Text(
+                  authorName,
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              if (authorHandle != null && authorHandle.isNotEmpty) ...[
+                Text(
+                  ' \u00B7 @$authorHandle',
+                  style: AppTextStyles.caption.copyWith(
+                    color: context.colors.mutedForeground,
+                  ),
+                ),
+              ],
               Text(
-                _formatDate(createdAt),
+                ' \u00B7 ${_formatDate(createdAt)}',
                 style: AppTextStyles.caption.copyWith(
                   color: context.colors.mutedForeground,
                 ),
@@ -132,11 +164,92 @@ class DiscussionCard extends StatelessWidget {
             ],
           ),
         ),
+        GestureDetector(
+          onTap: () {
+            // More menu placeholder
+          },
+          child: Icon(
+            Icons.more_horiz,
+            size: 20,
+            color: context.colors.mutedForeground,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildImageGallery(
+  Widget _buildCategoryBadge(BuildContext context, String category) {
+    final color = _categoryColor(category);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+      ),
+      child: Text(
+        category,
+        style: AppTextStyles.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, String content) {
+    if (!isCompact) {
+      return Text(
+        content,
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: context.colors.foreground,
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textSpan = TextSpan(
+          text: content,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: context.colors.foreground,
+          ),
+        );
+        final textPainter = TextPainter(
+          text: textSpan,
+          maxLines: 4,
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: constraints.maxWidth);
+
+        final isOverflowing = textPainter.didExceedMaxLines;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              content,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: context.colors.foreground,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (isOverflowing) ...[
+              const SizedBox(height: 2),
+              Text(
+                'Read more',
+                style: AppTextStyles.caption.copyWith(
+                  color: context.colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMediaCarousel(
       BuildContext context, List<Map<String, dynamic>> images) {
     if (images.length == 1) {
       return ClipRRect(
@@ -144,50 +257,47 @@ class DiscussionCard extends StatelessWidget {
         child: Image.network(
           images[0]['url'] as String? ?? '',
           width: double.infinity,
-          height: 200,
+          height: 250,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+          loadingBuilder: (_, child, progress) {
+            if (progress == null) return child;
+            return Container(
+              width: double.infinity,
+              height: 250,
+              color: context.colors.muted,
+              child: Center(
+                child: CircularProgressIndicator(
+                  value: progress.expectedTotalBytes != null
+                      ? progress.cumulativeBytesLoaded /
+                          progress.expectedTotalBytes!
+                      : null,
+                ),
+              ),
+            );
+          },
+          errorBuilder: (_, __, ___) => Container(
+            width: double.infinity,
+            height: 250,
+            color: context.colors.muted,
+            child: Icon(Icons.broken_image,
+                color: context.colors.mutedForeground, size: 40),
+          ),
         ),
       );
     }
 
-    // Multiple images — horizontal scroll
-    return SizedBox(
-      height: 160,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: images.length,
-        separatorBuilder: (context, i) => const SizedBox(width: AppSpacing.sm),
-        itemBuilder: (_, index) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: Image.network(
-              images[index]['url'] as String? ?? '',
-              width: 200,
-              height: 160,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 200,
-                height: 160,
-                color: context.colors.muted,
-                child: Icon(Icons.broken_image,
-                    color: context.colors.mutedForeground),
-              ),
-            ),
-          );
-        },
-      ),
-    );
+    // Multiple images — carousel with page dots
+    return _ImageCarousel(images: images);
   }
 
   Widget _buildVideoPreview(BuildContext context, String videoUrl) {
     return GestureDetector(
       onTap: () {
-        // Video URL can be opened externally if url_launcher is available
+        // Video playback placeholder
       },
       child: Container(
         width: double.infinity,
-        height: 180,
+        height: 200,
         decoration: BoxDecoration(
           color: context.colors.muted,
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -195,8 +305,16 @@ class DiscussionCard extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Icon(Icons.play_circle_outline,
-                size: 48, color: context.colors.primary),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: context.colors.primary.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.play_arrow,
+                  size: 32, color: Colors.white),
+            ),
             Positioned(
               bottom: AppSpacing.sm,
               left: AppSpacing.sm,
@@ -221,44 +339,48 @@ class DiscussionCard extends StatelessWidget {
 
   Widget _buildTags(BuildContext context, List<String> tags) {
     return Wrap(
-      spacing: AppSpacing.xs,
+      spacing: AppSpacing.sm,
       runSpacing: AppSpacing.xs,
       children: tags.map((tag) {
-        return Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: 2,
-          ),
-          decoration: BoxDecoration(
-            color: context.colors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(AppRadius.chip),
-          ),
-          child: Text(
-            tag,
-            style: AppTextStyles.caption.copyWith(
-              color: context.colors.primary,
-            ),
+        final displayTag = tag.startsWith('#') ? tag : '#$tag';
+        return Text(
+          displayTag,
+          style: AppTextStyles.caption.copyWith(
+            color: context.colors.primary,
+            fontWeight: FontWeight.w500,
           ),
         );
       }).toList(),
     );
   }
 
-  Widget _buildActions(BuildContext context, bool isLikedByMe, int likesCount, int commentsCount) {
+  Widget _buildActions(BuildContext context, bool isLikedByMe,
+      bool isBookmarked, int likesCount, int commentsCount) {
     return Row(
       children: [
         _ActionButton(
           icon: isLikedByMe ? Icons.favorite : Icons.favorite_border,
-          label: '$likesCount',
-          color: isLikedByMe ? context.colors.destructive : context.colors.mutedForeground,
+          label: likesCount > 0 ? '$likesCount' : '',
+          color: isLikedByMe
+              ? const Color(0xFFEF4444)
+              : context.colors.mutedForeground,
           onTap: onLike,
         ),
         const SizedBox(width: AppSpacing.lg),
         _ActionButton(
           icon: Icons.chat_bubble_outline,
-          label: '$commentsCount',
+          label: commentsCount > 0 ? '$commentsCount' : '',
           color: context.colors.mutedForeground,
           onTap: onComment,
+        ),
+        const Spacer(),
+        _ActionButton(
+          icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+          label: '',
+          color: isBookmarked
+              ? context.colors.primary
+              : context.colors.mutedForeground,
+          onTap: onBookmark,
         ),
       ],
     );
@@ -271,22 +393,138 @@ class DiscussionCard extends StatelessWidget {
       if (dateValue is String) {
         date = DateTime.parse(dateValue);
       } else {
-        // Firestore Timestamp
         date = (dateValue as dynamic).toDate() as DateTime;
       }
       final now = DateTime.now();
       final diff = now.difference(date);
 
-      if (diff.inMinutes < 1) return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      if (diff.inMinutes < 1) return 'now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+      if (diff.inHours < 24) return '${diff.inHours}h';
+      if (diff.inDays < 7) return '${diff.inDays}d';
+      if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w';
       return '${date.day}/${date.month}/${date.year}';
     } catch (_) {
       return '';
     }
   }
+
+  static Color _categoryColor(String category) {
+    return switch (category.toLowerCase()) {
+      'announcements' => const Color(0xFF059669),
+      'teaching tips' => const Color(0xFF2563EB),
+      'learning resources' => const Color(0xFF8B5CF6),
+      'exchange requests' => const Color(0xFFF59E0B),
+      'discussion' => const Color(0xFF6B7280),
+      'success stories' => const Color(0xFFEC4899),
+      _ => const Color(0xFF6B7280),
+    };
+  }
 }
+
+// ── Image Carousel with Page Dots ────────────────────────────────────────────
+
+class _ImageCarousel extends StatefulWidget {
+  final List<Map<String, dynamic>> images;
+
+  const _ImageCarousel({required this.images});
+
+  @override
+  State<_ImageCarousel> createState() => _ImageCarouselState();
+}
+
+class _ImageCarouselState extends State<_ImageCarousel> {
+  late final PageController _controller;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+    _controller.addListener(_onPageChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onPageChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged() {
+    final page = _controller.page?.round() ?? 0;
+    if (page != _currentPage) {
+      setState(() => _currentPage = page);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 250,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: widget.images.length,
+            itemBuilder: (_, index) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Image.network(
+                  widget.images[index]['url'] as String? ?? '',
+                  width: double.infinity,
+                  height: 250,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      color: context.colors.muted,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: progress.expectedTotalBytes != null
+                              ? progress.cumulativeBytesLoaded /
+                                  progress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (_, __, ___) => Container(
+                    color: context.colors.muted,
+                    child: Icon(Icons.broken_image,
+                        color: context.colors.mutedForeground, size: 40),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (widget.images.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.images.length, (i) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _currentPage ? 8 : 6,
+                height: i == _currentPage ? 8 : 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i == _currentPage
+                      ? context.colors.primary
+                      : context.colors.mutedForeground.withValues(alpha: 0.3),
+                ),
+              );
+            }),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Action Button ────────────────────────────────────────────────────────────
 
 class _ActionButton extends StatelessWidget {
   final IconData icon;
@@ -314,12 +552,14 @@ class _ActionButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              label,
-              style: AppTextStyles.caption.copyWith(color: color),
-            ),
+            Icon(icon, size: 20, color: color),
+            if (label.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: AppTextStyles.caption.copyWith(color: color),
+              ),
+            ],
           ],
         ),
       ),

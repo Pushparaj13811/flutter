@@ -18,6 +18,8 @@ import 'package:skill_exchange/features/sessions/providers/session_provider.dart
 import 'package:skill_exchange/data/models/match_score_model.dart';
 import 'package:skill_exchange/data/models/session_model.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/features/community/widgets/discussion_card.dart';
+import 'package:skill_exchange/features/community/screens/post_detail_screen.dart';
 
 // ── Feed Posts Provider ──────────────────────────────────────────────────────
 
@@ -380,159 +382,49 @@ class _FeedSection extends StatelessWidget {
           );
         }
         return Column(
-          children: posts.map((post) => _PostCard(post: post, ref: ref)).toList(),
+          children: posts.map((post) {
+            final likedBy = (post['likedBy'] as List?)?.cast<String>() ?? [];
+            final currentUid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+            final hasLiked = likedBy.contains(currentUid);
+            final enrichedPost = {
+              ...post,
+              'isLikedByMe': hasLiked,
+            };
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: DiscussionCard(
+                post: enrichedPost,
+                isCompact: true,
+                onLike: () async {
+                  final postId = post['id'] as String?;
+                  if (postId == null) return;
+                  final service = ref.read(communityFirestoreServiceProvider);
+                  await service.likePost(postId);
+                  ref.invalidate(feedPostsProvider);
+                },
+                onComment: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PostDetailScreen(post: enrichedPost),
+                    ),
+                  );
+                },
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PostDetailScreen(post: enrichedPost),
+                    ),
+                  );
+                },
+              ),
+            );
+          }).toList(),
         );
       },
     );
   }
 }
 
-// ── Post Card ────────────────────────────────────────────────────────────────
-
-class _PostCard extends StatelessWidget {
-  const _PostCard({required this.post, required this.ref});
-
-  final Map<String, dynamic> post;
-  final WidgetRef ref;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final authorName = post['authorName'] as String? ?? 'Unknown';
-    final authorAvatar = post['authorAvatar'] as String?;
-    final title = post['title'] as String? ?? '';
-    final content = post['content'] as String? ?? '';
-    final likesCount = post['likesCount'] as int? ?? 0;
-    final repliesCount = post['repliesCount'] as int? ?? 0;
-    final likedBy = (post['likedBy'] as List?)?.cast<String>() ?? [];
-    final currentUid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
-    final hasLiked = likedBy.contains(currentUid);
-    final createdAt = post['createdAt'];
-    final timeAgoStr = _formatTimeAgo(createdAt);
-
-    return GestureDetector(
-      onTap: () => context.go(RouteNames.community),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: colors.card,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: colors.border.withValues(alpha: 0.5)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Author row
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundImage: authorAvatar != null && authorAvatar.isNotEmpty
-                      ? NetworkImage(authorAvatar)
-                      : null,
-                  backgroundColor: colors.muted,
-                  child: authorAvatar == null || authorAvatar.isEmpty
-                      ? Text(
-                          authorName.isNotEmpty
-                              ? authorName[0].toUpperCase()
-                              : '?',
-                          style: AppTextStyles.labelMedium.copyWith(
-                            color: colors.foreground,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        authorName,
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: colors.foreground,
-                        ),
-                      ),
-                      if (timeAgoStr.isNotEmpty)
-                        Text(
-                          timeAgoStr,
-                          style: AppTextStyles.caption.copyWith(
-                            color: colors.mutedForeground,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (title.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: AppTextStyles.labelLarge.copyWith(
-                  color: colors.foreground,
-                ),
-              ),
-            ],
-            if (content.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                content,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: colors.foreground,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            // Actions row
-            Row(
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () async {
-                    final postId = post['id'] as String?;
-                    if (postId == null) return;
-                    final service = ref.read(communityFirestoreServiceProvider);
-                    await service.likePost(postId);
-                    ref.invalidate(feedPostsProvider);
-                  },
-                  child: Row(
-                    children: [
-                      Icon(
-                        hasLiked ? Icons.favorite : Icons.favorite_border,
-                        size: 18,
-                        color: hasLiked ? Colors.red : colors.mutedForeground,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$likesCount',
-                        style: AppTextStyles.caption.copyWith(
-                          color: colors.mutedForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Icon(Icons.chat_bubble_outline, size: 18, color: colors.mutedForeground),
-                const SizedBox(width: 4),
-                Text(
-                  '$repliesCount',
-                  style: AppTextStyles.caption.copyWith(
-                    color: colors.mutedForeground,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ── Suggested Users Section ──────────────────────────────────────────────────
 
@@ -821,20 +713,3 @@ class _EmailVerificationBanner extends StatelessWidget {
   }
 }
 
-// ── Time Ago Helper ──────────────────────────────────────────────────────────
-
-String _formatTimeAgo(dynamic timestamp) {
-  if (timestamp == null) return '';
-  DateTime date;
-  if (timestamp is String) {
-    date = DateTime.tryParse(timestamp) ?? DateTime.now();
-  } else {
-    // Firestore Timestamp
-    try {
-      date = (timestamp as dynamic).toDate();
-    } catch (_) {
-      date = DateTime.now();
-    }
-  }
-  return timeago.format(date);
-}
