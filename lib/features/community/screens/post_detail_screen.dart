@@ -218,11 +218,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
 
   Widget _buildCommentInput(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(
-        left: AppSpacing.screenPadding,
-        right: AppSpacing.screenPadding,
-        top: AppSpacing.sm,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.sm,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenPadding,
+        vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: context.colors.card,
