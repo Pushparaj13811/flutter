@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
@@ -13,6 +14,8 @@ class DiscussionCard extends StatelessWidget {
   final VoidCallback? onComment;
   final VoidCallback? onBookmark;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
+  final VoidCallback? onReport;
 
   const DiscussionCard({
     super.key,
@@ -22,6 +25,8 @@ class DiscussionCard extends StatelessWidget {
     this.onComment,
     this.onBookmark,
     this.onTap,
+    this.onDelete,
+    this.onReport,
   });
 
   @override
@@ -156,15 +161,48 @@ class DiscussionCard extends StatelessWidget {
             ],
           ),
         ),
-        GestureDetector(
-          onTap: () {
-            // More menu placeholder
+        PopupMenuButton<String>(
+          icon: Icon(Icons.more_horiz, color: context.colors.mutedForeground, size: 20),
+          onSelected: (value) {
+            if (value == 'delete') {
+              showDialog<bool>(
+                context: context,
+                builder: (dialogCtx) => AlertDialog(
+                  title: const Text('Delete Post'),
+                  content: const Text('Are you sure you want to delete this post?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogCtx).pop(true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              ).then((confirmed) {
+                if (confirmed == true) onDelete?.call();
+              });
+            } else if (value == 'report') {
+              onReport?.call();
+            }
           },
-          child: Icon(
-            Icons.more_horiz,
-            size: 20,
-            color: context.colors.mutedForeground,
-          ),
+          itemBuilder: (_) {
+            final isOwner = post['author'] == FirebaseAuth.instance.currentUser?.uid;
+            return [
+              if (isOwner)
+                const PopupMenuItem(value: 'delete', child: Row(children: [
+                  Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Delete', style: TextStyle(color: Colors.red)),
+                ])),
+              if (!isOwner)
+                const PopupMenuItem(value: 'report', child: Row(children: [
+                  Icon(Icons.flag_outlined, size: 18),
+                  SizedBox(width: 8),
+                  Text('Report'),
+                ])),
+            ];
+          },
         ),
       ],
     );

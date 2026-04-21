@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -63,6 +64,45 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
 
   void _onLeaveCircle(String id) {
     ref.read(communityNotifierProvider.notifier).leaveCircle(id);
+  }
+
+  void _reportPost(BuildContext context, String postId) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        String reason = '';
+        return AlertDialog(
+          title: const Text('Report Post'),
+          content: TextField(
+            onChanged: (v) => reason = v,
+            decoration: const InputDecoration(hintText: 'Why are you reporting this post?'),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance.collection('reports').add({
+                  'reporter': FirebaseAuth.instance.currentUser!.uid,
+                  'reportedPost': postId,
+                  'reason': 'inappropriate_content',
+                  'description': reason,
+                  'status': 'pending',
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Post reported. Thank you.')),
+                  );
+                }
+              },
+              child: const Text('Report'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _onTapCircle(Map<String, dynamic> circle) {
@@ -184,6 +224,12 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
                   isCompact: true,
                   onLike: () => _onLikePost(postId),
                   onComment: () => _showCommentsSheet(context, postId),
+                  onDelete: () async {
+                    final service = ref.read(communityFirestoreServiceProvider);
+                    await service.deletePost(postId);
+                    ref.invalidate(discussionsProvider);
+                  },
+                  onReport: () => _reportPost(context, postId),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(

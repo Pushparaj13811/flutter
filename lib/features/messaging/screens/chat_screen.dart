@@ -43,6 +43,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return parts.firstWhere((p) => p != myUid, orElse: () => widget.conversationId);
   }
 
+  String? _cachedOtherUserName;
+  String? _cachedOtherUserAvatar;
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +55,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           .read(messagingNotifierProvider.notifier)
           .markAsRead(_threadId);
     });
+    _loadOtherUserProfile();
+  }
+
+  Future<void> _loadOtherUserProfile() async {
+    final db = FirebaseFirestore.instance;
+    final profileDoc = await db.collection('profiles').doc(_otherUserId).get();
+    final userDoc = await db.collection('users').doc(_otherUserId).get();
+    final profile = profileDoc.data() ?? {};
+    final userData = userDoc.data() ?? {};
+
+    if (mounted) {
+      setState(() {
+        _cachedOtherUserName = profile['fullName'] ?? userData['name'] ?? 'User';
+        _cachedOtherUserAvatar = profile['avatar'] ?? userData['avatar'];
+      });
+    }
   }
 
   void _onSend(String content) {
@@ -65,42 +84,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     service.setTyping(_threadId, isTyping);
   }
 
-  // ── Conversation metadata ───────────────────��──────────────────────────
-
-  String? _otherUserName(WidgetRef ref) {
-    final conversationsAsync = ref.watch(conversationsProvider);
-    return conversationsAsync.whenOrNull(
-      data: (conversations) {
-        final match = conversations.where(
-          (c) => c['id'] == _threadId,
-        );
-        if (match.isEmpty) return null;
-        final conversation = match.first;
-        return conversation['otherUserName'] as String?;
-      },
-    );
-  }
-
-  String? _otherUserAvatar(WidgetRef ref) {
-    final conversationsAsync = ref.watch(conversationsProvider);
-    return conversationsAsync.whenOrNull(
-      data: (conversations) {
-        final match = conversations.where(
-          (c) => c['id'] == _threadId,
-        );
-        if (match.isEmpty) return null;
-        final conversation = match.first;
-        return conversation['otherUserAvatar'] as String?;
-      },
-    );
-  }
+  // ── Conversation metadata (cached in local state to avoid flicker) ────────
 
   // ── Build ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final name = _otherUserName(ref);
-    final avatar = _otherUserAvatar(ref);
+    final name = _cachedOtherUserName;
+    final avatar = _cachedOtherUserAvatar;
     final service = ref.watch(messagingFirestoreServiceProvider);
 
     return Scaffold(
