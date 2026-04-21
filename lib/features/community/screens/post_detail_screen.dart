@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,15 +65,37 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
 
     setState(() => _submitting = true);
 
-    final user = FirebaseAuth.instance.currentUser;
-    final authorName = user?.displayName ?? 'Anonymous';
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    String authorName = 'Anonymous';
+    String? authorAvatar;
+
+    // Fetch user profile for name and avatar
+    if (uid.isNotEmpty) {
+      try {
+        final profileDoc = await FirebaseFirestore.instance
+            .collection('profiles')
+            .doc(uid)
+            .get();
+        final profile = profileDoc.data() ?? {};
+        authorName =
+            profile['fullName'] as String? ??
+            profile['username'] as String? ??
+            'Anonymous';
+        authorAvatar = profile['avatar'] as String?;
+      } catch (_) {
+        // Fall back to FirebaseAuth display name
+        final user = FirebaseAuth.instance.currentUser;
+        authorName = user?.displayName ?? 'Anonymous';
+        authorAvatar = user?.photoURL;
+      }
+    }
 
     try {
       final service = ref.read(communityFirestoreServiceProvider);
       await service.createReply(postId, {
         'content': text,
         'authorName': authorName,
-        'authorAvatar': user?.photoURL,
+        'authorAvatar': authorAvatar,
       });
       _commentController.clear();
       await _loadReplies();

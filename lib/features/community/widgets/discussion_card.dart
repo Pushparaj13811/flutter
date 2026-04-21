@@ -39,7 +39,8 @@ class DiscussionCard extends StatelessWidget {
     final images =
         (post['images'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final videoUrl = post['videoUrl'] as String?;
-    final mediaType = post['mediaType'] as String? ?? 'text';
+    // mediaType field is available but we show all media regardless
+    // final mediaType = post['mediaType'] as String? ?? 'text';
 
     return GestureDetector(
       onTap: onTap,
@@ -82,17 +83,8 @@ class DiscussionCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
             ],
 
-            // Media
-            if (mediaType == 'image' && images.isNotEmpty) ...[
-              _buildMediaCarousel(context, images),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-            if (mediaType == 'video' &&
-                videoUrl != null &&
-                videoUrl.isNotEmpty) ...[
-              _buildVideoPreview(context, videoUrl),
-              const SizedBox(height: AppSpacing.sm),
-            ],
+            // Media — show all media regardless of mediaType
+            ..._buildCombinedMedia(context, images, videoUrl),
 
             // Tags
             if (tags.isNotEmpty) ...[
@@ -249,45 +241,81 @@ class DiscussionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMediaCarousel(
-      BuildContext context, List<Map<String, dynamic>> images) {
-    if (images.length == 1) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Image.network(
-          images[0]['url'] as String? ?? '',
-          width: double.infinity,
-          height: 250,
-          fit: BoxFit.cover,
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            return Container(
-              width: double.infinity,
-              height: 250,
-              color: context.colors.muted,
-              child: Center(
-                child: CircularProgressIndicator(
-                  value: progress.expectedTotalBytes != null
-                      ? progress.cumulativeBytesLoaded /
-                          progress.expectedTotalBytes!
-                      : null,
-                ),
-              ),
-            );
-          },
-          errorBuilder: (_, __, ___) => Container(
+  List<Widget> _buildCombinedMedia(
+      BuildContext context, List<Map<String, dynamic>> images, String? videoUrl) {
+    final allMedia = <Map<String, dynamic>>[];
+
+    // Add images
+    for (final img in images) {
+      final url = img['url'] as String? ?? '';
+      if (url.isNotEmpty) {
+        allMedia.add({'type': 'image', 'url': url});
+      }
+    }
+
+    // Add video
+    if (videoUrl != null && videoUrl.isNotEmpty) {
+      allMedia.add({'type': 'video', 'url': videoUrl});
+    }
+
+    if (allMedia.isEmpty) return [];
+
+    return [
+      const SizedBox(height: AppSpacing.sm),
+      _buildMediaCarouselCombined(context, allMedia),
+      const SizedBox(height: AppSpacing.sm),
+    ];
+  }
+
+  Widget _buildMediaCarouselCombined(
+      BuildContext context, List<Map<String, dynamic>> media) {
+    if (media.length == 1) {
+      return _buildSingleMedia(context, media[0]);
+    }
+
+    return _CombinedMediaCarousel(media: media);
+  }
+
+  Widget _buildSingleMedia(BuildContext context, Map<String, dynamic> media) {
+    final type = media['type'] as String;
+    final url = media['url'] as String;
+
+    if (type == 'video') {
+      return _buildVideoPreview(context, url);
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Image.network(
+        url,
+        width: double.infinity,
+        height: 250,
+        fit: BoxFit.cover,
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
+          return Container(
             width: double.infinity,
             height: 250,
             color: context.colors.muted,
-            child: Icon(Icons.broken_image,
-                color: context.colors.mutedForeground, size: 40),
-          ),
+            child: Center(
+              child: CircularProgressIndicator(
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded /
+                        progress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => Container(
+          width: double.infinity,
+          height: 250,
+          color: context.colors.muted,
+          child: Icon(Icons.broken_image,
+              color: context.colors.mutedForeground, size: 40),
         ),
-      );
-    }
-
-    // Multiple images — carousel with page dots
-    return _ImageCarousel(images: images);
+      ),
+    );
   }
 
   Widget _buildVideoPreview(BuildContext context, String videoUrl) {
@@ -520,6 +548,163 @@ class _ImageCarouselState extends State<_ImageCarousel> {
           ),
         ],
       ],
+    );
+  }
+}
+
+// ── Combined Media Carousel (images + video) ───────────────────────────────
+
+class _CombinedMediaCarousel extends StatefulWidget {
+  final List<Map<String, dynamic>> media;
+
+  const _CombinedMediaCarousel({required this.media});
+
+  @override
+  State<_CombinedMediaCarousel> createState() => _CombinedMediaCarouselState();
+}
+
+class _CombinedMediaCarouselState extends State<_CombinedMediaCarousel> {
+  late final PageController _controller;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+    _controller.addListener(_onPageChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onPageChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged() {
+    final page = _controller.page?.round() ?? 0;
+    if (page != _currentPage) {
+      setState(() => _currentPage = page);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 250,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: widget.media.length,
+            itemBuilder: (_, index) {
+              final item = widget.media[index];
+              final type = item['type'] as String;
+              final url = item['url'] as String;
+
+              if (type == 'video') {
+                return _buildVideoItem(context, url);
+              }
+
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Image.network(
+                  url,
+                  width: double.infinity,
+                  height: 250,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      color: context.colors.muted,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: progress.expectedTotalBytes != null
+                              ? progress.cumulativeBytesLoaded /
+                                  progress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (_, __, ___) => Container(
+                    color: context.colors.muted,
+                    child: Icon(Icons.broken_image,
+                        color: context.colors.mutedForeground, size: 40),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (widget.media.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.media.length, (i) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _currentPage ? 8 : 6,
+                height: i == _currentPage ? 8 : 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i == _currentPage
+                      ? context.colors.primary
+                      : context.colors.mutedForeground.withValues(alpha: 0.3),
+                ),
+              );
+            }),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildVideoItem(BuildContext context, String videoUrl) {
+    return GestureDetector(
+      onTap: () {
+        // Video playback placeholder
+      },
+      child: Container(
+        width: double.infinity,
+        height: 250,
+        decoration: BoxDecoration(
+          color: context.colors.muted,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: context.colors.primary.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+              ),
+              child:
+                  const Icon(Icons.play_arrow, size: 32, color: Colors.white),
+            ),
+            Positioned(
+              bottom: AppSpacing.sm,
+              left: AppSpacing.sm,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Video',
+                  style: AppTextStyles.caption.copyWith(color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

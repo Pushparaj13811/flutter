@@ -458,12 +458,54 @@ class SeedData {
 
       // Community posts
       final posts = [
-        {'author': uids[0], 'authorName': 'Kruti Manani', 'title': 'Welcome to Skill Exchange!', 'content': 'Excited to launch this platform! Share your skills, learn new ones, and grow together.', 'category': 'Announcements', 'tags': ['welcome', 'launch']},
-        {'author': uids[1], 'authorName': 'Aarav Sharma', 'title': 'Python Tips for Beginners', 'content': 'Here are my top 5 tips for getting started with Python. Start with the basics and build projects early!', 'category': 'Teaching Tips', 'tags': ['python', 'beginners', 'tips']},
-        {'author': uids[2], 'authorName': 'Diya Patel', 'title': 'Design System Resources', 'content': 'A curated list of the best design system resources for 2026. Figma, Sketch, and more.', 'category': 'Learning Resources', 'tags': ['design', 'resources', 'figma']},
-        {'author': uids[4], 'authorName': 'Priya Nair', 'title': 'ML Project Ideas for Practice', 'content': 'Looking for ML project ideas? Here are 10 beginner-friendly projects to build your portfolio.', 'category': 'Learning Resources', 'tags': ['ml', 'projects', 'beginner']},
-        {'author': uids[3], 'authorName': 'Rohan Verma', 'title': 'Looking for React Exchange Partner', 'content': 'I can teach JavaScript/TypeScript and want to learn classical music. Anyone interested in a weekly exchange?', 'category': 'Exchange Requests', 'tags': ['react', 'music', 'exchange']},
-        {'author': uids[8], 'authorName': 'Ananya Krishnan', 'title': 'Flutter vs React Native in 2026', 'content': 'My honest comparison after building apps in both frameworks this year.', 'category': 'Discussion', 'tags': ['flutter', 'react-native', 'comparison']},
+        {
+          'author': uids[0],
+          'authorName': 'Kruti Manani',
+          'title': 'Welcome to Skill Exchange!',
+          'content': 'Excited to launch this platform! Skill Exchange is a place where you can connect with people who have the skills you want to learn, and share the skills you already have.\n\nHere\'s how to get started:\n1. Complete your profile with skills you can teach and want to learn\n2. Browse the Discover tab to find compatible skill partners\n3. Send connection requests to people you\'d like to learn from\n4. Book sessions and start exchanging knowledge!\n\nOur matching algorithm pairs you with people whose teaching skills align with what you want to learn, and vice versa. The more detailed your profile, the better your matches will be.\n\nLet\'s build a community of lifelong learners together. Share your skills, learn new ones, and grow together. Feel free to post questions, share resources, or just introduce yourself in the community!',
+          'category': 'Announcements',
+          'tags': ['welcome', 'launch', 'getting-started'],
+        },
+        {
+          'author': uids[1],
+          'authorName': 'Aarav Sharma',
+          'title': 'Python Tips for Beginners',
+          'content': 'Here are my top 5 tips for getting started with Python:\n\n1. Start with the basics — Learn variables, loops, and functions before jumping into frameworks. A strong foundation makes everything else easier.\n2. Build projects early — Don\'t just watch tutorials. Code along and build something tangible, even if it\'s a simple calculator or to-do app.\n3. Use virtual environments — Always use venv or conda to manage dependencies. This prevents package conflicts and keeps your system clean.\n4. Read error messages carefully — Python errors are usually very descriptive. Read the full traceback from bottom to top to find the actual issue.\n5. Practice with LeetCode or HackerRank — Solve at least one problem daily to build problem-solving skills and get comfortable with Python syntax.\n\nBonus tip: Join our Python & Data Science learning circle for weekly challenges, code reviews, and discussions!\n\nI\'m offering free 30-minute Python intro sessions for complete beginners this month. Drop a comment if you\'re interested and we can schedule something.\n\nWhat are your favorite Python tips? Share in the comments!',
+          'category': 'Teaching Tips',
+          'tags': ['python', 'beginners', 'tips', 'programming'],
+        },
+        {
+          'author': uids[2],
+          'authorName': 'Diya Patel',
+          'title': 'Design System Resources for 2026',
+          'content': 'A curated list of the best design system resources I\'ve found this year. Whether you\'re a beginner or experienced designer, these will level up your work:\n\nFigma Resources:\n- Figma Community has thousands of free UI kits and templates\n- "Design System Checklist" plugin helps you audit your component library\n- Figma\'s official "Playground" files are great for learning auto-layout\n\nBooks & Articles:\n- "Refactoring UI" by Adam Wathan & Steve Schoger — practical tips for developers who design\n- "Design Systems" by Alla Kholmatova — the definitive guide to building scalable systems\n- Brad Frost\'s "Atomic Design" — still the gold standard for component thinking\n\nTools:\n- Storybook for building and documenting components in isolation\n- Zeroheight for design system documentation\n- Tokens Studio for managing design tokens between Figma and code\n\nI\'m happy to do a walkthrough session for anyone interested in setting up their first design system. Just send me a connection request and we can schedule a time!',
+          'category': 'Learning Resources',
+          'tags': ['design', 'resources', 'figma', 'design-systems'],
+        },
+        {
+          'author': uids[4],
+          'authorName': 'Priya Nair',
+          'title': 'ML Project Ideas for Practice',
+          'content': 'Looking for machine learning project ideas to build your portfolio? Here are 10 beginner-friendly projects, ranging from easy to intermediate:\n\n1. Sentiment Analysis — Classify movie reviews or tweets as positive/negative using NLP\n2. House Price Prediction — Classic regression problem using the Boston/Ames dataset\n3. Spam Email Detector — Binary classification with text features\n4. Handwritten Digit Recognition — Use MNIST dataset with a simple neural network\n5. Customer Churn Prediction — Predict which customers will leave a service\n6. Image Classification — Build a CNN to classify cats vs dogs or flower species\n7. Recommendation System — Build a simple collaborative filtering recommender\n8. Stock Price Forecasting — Time series prediction (with caveats about real trading!)\n9. Chatbot — Rule-based first, then upgrade to NLP-powered\n10. Object Detection — Use YOLO or SSD to detect objects in images\n\nFor each project, I recommend:\n- Start with a Jupyter notebook for exploration\n- Clean and visualize your data before modeling\n- Try multiple algorithms and compare results\n- Document your process and findings\n\nI\'m available for 1-on-1 mentoring sessions if you get stuck on any of these. Let\'s learn together!',
+          'category': 'Learning Resources',
+          'tags': ['ml', 'projects', 'beginner', 'data-science'],
+        },
+        {
+          'author': uids[3],
+          'authorName': 'Rohan Verma',
+          'title': 'Looking for React Exchange Partner',
+          'content': 'I can teach JavaScript/TypeScript (expert level) and want to learn classical music — specifically Hindustani vocals or Tabla. Anyone interested in a weekly skill exchange?\n\nWhat I offer:\n- 5+ years of professional JavaScript/TypeScript experience\n- Deep knowledge of React, Next.js, and state management patterns\n- Experience with building production apps at scale\n- Patient teaching style with lots of hands-on exercises\n\nWhat I\'m looking for:\n- Someone who can teach Hindustani classical music basics\n- Willing to start from absolute beginner level\n- Flexible on timing — I\'m available evenings and weekends\n- Preferably someone who can do weekly 45-60 minute sessions\n\nI believe the best learning happens through consistent practice with feedback. I\'d love to find a partner where we both commit to weekly sessions and hold each other accountable.\n\nIf music isn\'t your thing but you want to learn React/JS, feel free to reach out anyway — I\'m open to other exchange arrangements too!',
+          'category': 'Exchange Requests',
+          'tags': ['react', 'music', 'exchange', 'javascript'],
+        },
+        {
+          'author': uids[8],
+          'authorName': 'Ananya Krishnan',
+          'title': 'Flutter vs React Native in 2026',
+          'content': 'After building production apps in both Flutter and React Native this year, here\'s my honest comparison. This isn\'t a "which is better" post — both are excellent tools with different strengths.\n\nFlutter Strengths:\n- Consistent UI across platforms — pixel-perfect rendering everywhere\n- Dart is a joy to work with — null safety, strong typing, great tooling\n- Hot reload is blazing fast and reliable\n- Rich widget library out of the box\n- Growing ecosystem with packages like Riverpod, go_router, Freezed\n\nReact Native Strengths:\n- JavaScript/TypeScript ecosystem — massive library availability\n- Easier to hire developers (larger talent pool)\n- Better integration with existing native code\n- New Architecture (Fabric + TurboModules) has closed the performance gap significantly\n- Expo makes the developer experience smooth\n\nMy Recommendation:\n- Choose Flutter if you want a consistent, polished UI and your team is comfortable with Dart\n- Choose React Native if your team already knows JS/TS or you need heavy native module integration\n\nI\'ve been teaching Flutter for 2 years now and would love to discuss this further. If you\'re trying to decide between the two for your next project, feel free to book a session with me!',
+          'category': 'Discussion',
+          'tags': ['flutter', 'react-native', 'comparison', 'mobile-dev'],
+        },
       ];
 
       for (final post in posts) {
