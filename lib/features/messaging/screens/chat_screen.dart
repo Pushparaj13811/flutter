@@ -23,6 +23,26 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
+  /// Compute the correct Firestore thread ID.
+  /// If conversationId already contains '_', it's a threadId (uid1_uid2).
+  /// Otherwise it's the other user's UID and we need to compute the sorted pair.
+  String get _threadId {
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final otherId = widget.conversationId;
+    // If conversationId already contains '_', it's a proper threadId
+    if (otherId.contains('_')) return otherId;
+    // Otherwise compute it from the two UIDs
+    final sorted = [myUid, otherId]..sort();
+    return '${sorted[0]}_${sorted[1]}';
+  }
+
+  /// Get the other user's UID from the threadId.
+  String get _otherUserId {
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final parts = _threadId.split('_');
+    return parts.firstWhere((p) => p != myUid, orElse: () => widget.conversationId);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -30,26 +50,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(messagingNotifierProvider.notifier)
-          .markAsRead(widget.conversationId);
+          .markAsRead(_threadId);
     });
   }
 
-  String _getOtherUserId(String threadId) {
-    final parts = threadId.split('_');
-    final myUid = FirebaseAuth.instance.currentUser!.uid;
-    return parts.firstWhere((p) => p != myUid, orElse: () => parts.last);
-  }
-
   void _onSend(String content) {
-    final receiverId = _getOtherUserId(widget.conversationId);
     ref
         .read(messagingNotifierProvider.notifier)
-        .sendMessage(receiverId, content);
+        .sendMessage(_otherUserId, content);
   }
 
   void _onTypingChanged(bool isTyping) {
     final service = ref.read(messagingFirestoreServiceProvider);
-    service.setTyping(widget.conversationId, isTyping);
+    service.setTyping(_threadId, isTyping);
   }
 
   // ── Conversation metadata ───────────────────��──────────────────────────
@@ -59,7 +72,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return conversationsAsync.whenOrNull(
       data: (conversations) {
         final match = conversations.where(
-          (c) => c['id'] == widget.conversationId,
+          (c) => c['id'] == _threadId,
         );
         if (match.isEmpty) return null;
         final conversation = match.first;
@@ -73,7 +86,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return conversationsAsync.whenOrNull(
       data: (conversations) {
         final match = conversations.where(
-          (c) => c['id'] == widget.conversationId,
+          (c) => c['id'] == _threadId,
         );
         if (match.isEmpty) return null;
         final conversation = match.first;
@@ -116,7 +129,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: service.messagesStream(widget.conversationId),
+              stream: service.messagesStream(_threadId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(
@@ -146,7 +159,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   final data = doc.data();
                   return <String, dynamic>{
                     'id': doc.id,
-                    'conversationId': widget.conversationId,
+                    'conversationId': _threadId,
                     'senderId': data['sender'] ?? '',
                     'receiverId': '',
                     'content': data['content'] ?? '',
@@ -179,7 +192,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
           // Typing indicator
           _TypingIndicator(
-            threadId: widget.conversationId,
+            threadId: _threadId,
             service: service,
           ),
           MessageInput(

@@ -5,17 +5,39 @@ import 'package:skill_exchange/config/di/providers.dart';
 
 // ── Stream-based Providers ───────────────────────────────────────────────────
 
-/// Real-time stream of conversations from Firestore as raw maps.
+/// Real-time stream of conversations from Firestore, enriched with user profiles.
 final conversationsStreamProvider =
     StreamProvider<List<Map<String, dynamic>>>((ref) {
   final service = ref.watch(messagingFirestoreServiceProvider);
   final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final db = FirebaseFirestore.instance;
 
-  return service.threadsStream().map((snap) {
-    return snap.docs.map((doc) {
+  return service.threadsStream().asyncMap((snap) async {
+    final conversations = <Map<String, dynamic>>[];
+
+    for (final doc in snap.docs) {
       final data = doc.data();
       final participants = List<String>.from(data['participants'] ?? []);
-      return <String, dynamic>{
+      final otherUid = participants.firstWhere(
+        (p) => p != uid,
+        orElse: () => '',
+      );
+
+      // Fetch other user's profile to get name and avatar
+      String otherName = 'User';
+      String? otherAvatar;
+      if (otherUid.isNotEmpty) {
+        try {
+          final profileDoc = await db.collection('profiles').doc(otherUid).get();
+          final userDoc = await db.collection('users').doc(otherUid).get();
+          final profile = profileDoc.data() ?? {};
+          final userData = userDoc.data() ?? {};
+          otherName = profile['fullName'] ?? userData['name'] ?? 'User';
+          otherAvatar = profile['avatar'] as String? ?? userData['avatar'] as String?;
+        } catch (_) {}
+      }
+
+      conversations.add(<String, dynamic>{
         'id': doc.id,
         'participants': participants,
         'lastMessage': data['lastMessage'] as String?,
@@ -27,8 +49,13 @@ final conversationsStreamProvider =
                 ?.toDate()
                 .toIso8601String() ??
             '',
-      };
-    }).toList();
+        'otherUserId': otherUid,
+        'otherUserName': otherName,
+        'otherUserAvatar': otherAvatar,
+      });
+    }
+
+    return conversations;
   });
 });
 
