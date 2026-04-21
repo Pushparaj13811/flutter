@@ -160,6 +160,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // ── Messages (outside shell — no bottom nav) ─────────────────────
+      GoRoute(
+        path: RouteNames.messages,
+        pageBuilder: (context, state) => fadeTransitionPage(
+          key: state.pageKey,
+          child: const ConversationsScreen(),
+        ),
+        routes: [
+          GoRoute(
+            path: ':conversationId',
+            pageBuilder: (context, state) => slideUpTransitionPage(
+              key: state.pageKey,
+              child: ChatScreen(
+                conversationId: state.pathParameters['conversationId']!,
+              ),
+            ),
+          ),
+        ],
+      ),
+
       // ── Authenticated shell (bottom navigation) ─────────────────────
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
@@ -185,25 +205,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               key: state.pageKey,
               child: const ConnectionsScreen(),
             ),
-          ),
-          GoRoute(
-            path: RouteNames.messages,
-            pageBuilder: (context, state) => fadeTransitionPage(
-              key: state.pageKey,
-              child: const ConversationsScreen(),
-            ),
-            routes: [
-              // Detail route → slideUp
-              GoRoute(
-                path: ':conversationId',
-                pageBuilder: (context, state) => slideUpTransitionPage(
-                  key: state.pageKey,
-                  child: ChatScreen(
-                    conversationId: state.pathParameters['conversationId']!,
-                  ),
-                ),
-              ),
-            ],
           ),
           GoRoute(
             path: RouteNames.profile,
