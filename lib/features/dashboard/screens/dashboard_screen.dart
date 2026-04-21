@@ -415,14 +415,14 @@ class _FeedSection extends StatelessWidget {
                   _reportPost(context, postId);
                 },
                 onComment: () {
-                  Navigator.of(context).push(
+                  Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(
                       builder: (_) => PostDetailScreen(post: enrichedPost),
                     ),
                   );
                 },
                 onTap: () {
-                  Navigator.of(context).push(
+                  Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(
                       builder: (_) => PostDetailScreen(post: enrichedPost),
                     ),

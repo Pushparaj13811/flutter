@@ -111,7 +111,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
   }
 
   void _showCreatePostSheet() {
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(builder: (_) => const CreatePostScreen()),
     );
   }
@@ -231,7 +231,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
                   },
                   onReport: () => _reportPost(context, postId),
                   onTap: () {
-                    Navigator.of(context).push(
+                    Navigator.of(context, rootNavigator: true).push(
                       MaterialPageRoute(
                         builder: (_) => PostDetailScreen(post: post),
                       ),
