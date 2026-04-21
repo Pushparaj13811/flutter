@@ -57,6 +57,28 @@ class DiscussionCard extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
+            // Media display
+            Builder(builder: (context) {
+              final images =
+                  (post['images'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+              final videoUrl = post['videoUrl'] as String?;
+              final mediaType = post['mediaType'] as String? ?? 'text';
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (mediaType == 'image' && images.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    _buildImageGallery(context, images),
+                  ],
+                  if (mediaType == 'video' &&
+                      videoUrl != null &&
+                      videoUrl.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    _buildVideoPreview(context, videoUrl),
+                  ],
+                ],
+              );
+            }),
             if (tags.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
               _buildTags(context, tags),
@@ -111,6 +133,89 @@ class DiscussionCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildImageGallery(
+      BuildContext context, List<Map<String, dynamic>> images) {
+    if (images.length == 1) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Image.network(
+          images[0]['url'] as String? ?? '',
+          width: double.infinity,
+          height: 200,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+        ),
+      );
+    }
+
+    // Multiple images — horizontal scroll
+    return SizedBox(
+      height: 160,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: images.length,
+        separatorBuilder: (context, i) => const SizedBox(width: AppSpacing.sm),
+        itemBuilder: (_, index) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: Image.network(
+              images[index]['url'] as String? ?? '',
+              width: 200,
+              height: 160,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 200,
+                height: 160,
+                color: context.colors.muted,
+                child: Icon(Icons.broken_image,
+                    color: context.colors.mutedForeground),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildVideoPreview(BuildContext context, String videoUrl) {
+    return GestureDetector(
+      onTap: () {
+        // Video URL can be opened externally if url_launcher is available
+      },
+      child: Container(
+        width: double.infinity,
+        height: 180,
+        decoration: BoxDecoration(
+          color: context.colors.muted,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(Icons.play_circle_outline,
+                size: 48, color: context.colors.primary),
+            Positioned(
+              bottom: AppSpacing.sm,
+              left: AppSpacing.sm,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Video',
+                  style: AppTextStyles.caption.copyWith(color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

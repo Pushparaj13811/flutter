@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
@@ -108,8 +109,33 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     try {
       final service = ref.read(communityFirestoreServiceProvider);
       final user = FirebaseAuth.instance.currentUser;
-      final authorName = user?.displayName ?? 'Anonymous';
-      final authorAvatar = user?.photoURL ?? '';
+      final uid = user?.uid ?? '';
+      String authorName = 'Anonymous';
+      String authorAvatar = '';
+      if (uid.isNotEmpty) {
+        final profileDoc = await FirebaseFirestore.instance
+            .collection('profiles')
+            .doc(uid)
+            .get();
+        if (profileDoc.exists) {
+          final data = profileDoc.data()!;
+          authorName = data['fullName'] as String? ??
+              data['username'] as String? ??
+              'Anonymous';
+          authorAvatar = data['avatar'] as String? ?? '';
+        }
+        // Fallback to users collection
+        if (authorName == 'Anonymous') {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .get();
+          if (userDoc.exists) {
+            authorName =
+                userDoc.data()?['name'] as String? ?? 'Anonymous';
+          }
+        }
+      }
 
       // Upload media
       List<String> uploadedImageUrls = [];
@@ -316,7 +342,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _selectedImages.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (context, i) =>
                       const SizedBox(width: AppSpacing.sm),
                   itemBuilder: (_, index) {
                     return Stack(
