@@ -227,7 +227,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen>
                   onDelete: () async {
                     final service = ref.read(communityFirestoreServiceProvider);
                     await service.deletePost(postId);
-                    ref.invalidate(discussionsProvider);
+                    ref.invalidate(discussionPostsProvider);
                   },
                   onReport: () => _reportPost(context, postId),
                   onTap: () {
