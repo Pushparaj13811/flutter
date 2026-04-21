@@ -13,6 +13,7 @@ import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
 import 'package:skill_exchange/features/messaging/providers/messaging_provider.dart';
 import 'package:skill_exchange/core/widgets/animated_list_item.dart';
+import 'package:skill_exchange/features/messaging/screens/chat_screen.dart';
 import 'package:skill_exchange/features/messaging/widgets/conversation_tile.dart';
 
 class ConversationsScreen extends ConsumerWidget {
@@ -76,7 +77,9 @@ class ConversationsScreen extends ConsumerWidget {
                   child: ConversationTile(
                     conversation: conversation,
                     onTap: () =>
-                        context.push('/messages/${conversation['id']}'),
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => ChatScreen(conversationId: conversation['id'] as String),
+                        )),
                   ),
                 );
               },
@@ -241,7 +244,9 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
                               trailing: Icon(Icons.chat_bubble_outline, color: colors.primary, size: 20),
                               onTap: () {
                                 Navigator.of(context).pop();
-                                context.push('${RouteNames.messages}/$otherUid');
+                                Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (_) => ChatScreen(conversationId: otherUid),
+                                  ));
                               },
                             );
                           },
