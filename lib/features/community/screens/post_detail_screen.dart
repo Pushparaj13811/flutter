@@ -20,9 +20,11 @@ class PostDetailScreen extends ConsumerStatefulWidget {
 
 class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
   final _commentController = TextEditingController();
+  final _commentFocusNode = FocusNode();
   List<Map<String, dynamic>> _replies = [];
   bool _loading = true;
   bool _submitting = false;
+  String? _replyingToName;
 
   @override
   void initState() {
@@ -33,6 +35,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
   @override
   void dispose() {
     _commentController.dispose();
+    _commentFocusNode.dispose();
     super.dispose();
   }
 
@@ -54,6 +57,21 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _startReply(String authorName) {
+    setState(() => _replyingToName = authorName);
+    _commentController.text = '@$authorName ';
+    _commentFocusNode.requestFocus();
+    // Move cursor to end
+    _commentController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _commentController.text.length),
+    );
+  }
+
+  void _cancelReply() {
+    setState(() => _replyingToName = null);
+    _commentController.clear();
   }
 
   Future<void> _submitComment() async {
@@ -98,6 +116,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
         'authorAvatar': authorAvatar,
       });
       _commentController.clear();
+      setState(() => _replyingToName = null);
       await _loadReplies();
     } catch (e) {
       if (mounted) {
@@ -142,13 +161,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                       service.likePost(postId);
                     },
                     onComment: () {
-                      // Focus the comment input
-                      FocusScope.of(context).requestFocus(FocusNode());
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        if (mounted) {
-                          FocusScope.of(context).requestFocus(FocusNode());
-                        }
-                      });
+                      _commentFocusNode.requestFocus();
                     },
                   ),
 
@@ -186,7 +199,10 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                     )
                   else
                     ...List.generate(_replies.length, (index) {
-                      return _CommentTile(reply: _replies[index]);
+                      return _CommentTile(
+                        reply: _replies[index],
+                        onReply: _startReply,
+                      );
                     }),
                 ],
               ),
@@ -216,40 +232,70 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: TextField(
-                controller: _commentController,
-                decoration: InputDecoration(
-                  hintText: 'Write a comment...',
-                  hintStyle: AppTextStyles.bodyMedium.copyWith(
-                    color: context.colors.mutedForeground,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    borderSide: BorderSide(color: context.colors.border),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
+            // Replying-to indicator
+            if (_replyingToName != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.reply, size: 14,
+                        color: context.colors.mutedForeground),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Replying to @$_replyingToName',
+                      style: AppTextStyles.caption.copyWith(
+                        color: context.colors.mutedForeground,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: _cancelReply,
+                      child: Icon(Icons.close, size: 16,
+                          color: context.colors.mutedForeground),
+                    ),
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _commentController,
+                    focusNode: _commentFocusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Write a comment...',
+                      hintStyle: AppTextStyles.bodyMedium.copyWith(
+                        color: context.colors.mutedForeground,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        borderSide: BorderSide(color: context.colors.border),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                    ),
+                    maxLines: null,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _submitComment(),
                   ),
                 ),
-                maxLines: null,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _submitComment(),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(Icons.send, color: context.colors.primary),
-              onPressed: _submitting ? null : _submitComment,
+                const SizedBox(width: AppSpacing.sm),
+                IconButton(
+                  icon: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(Icons.send, color: context.colors.primary),
+                  onPressed: _submitting ? null : _submitComment,
+                ),
+              ],
             ),
           ],
         ),
@@ -262,8 +308,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
 
 class _CommentTile extends StatelessWidget {
   final Map<String, dynamic> reply;
+  final void Function(String authorName) onReply;
 
-  const _CommentTile({required this.reply});
+  const _CommentTile({required this.reply, required this.onReply});
 
   @override
   Widget build(BuildContext context) {
@@ -295,41 +342,61 @@ class _CommentTile extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: context.colors.muted.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: context.colors.muted.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        authorName,
-                        style: AppTextStyles.labelSmall.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (createdAt != null) ...[
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          _formatTimeAgo(createdAt),
-                          style: AppTextStyles.caption.copyWith(
-                            color: context.colors.mutedForeground,
+                      Row(
+                        children: [
+                          Text(
+                            authorName,
+                            style: AppTextStyles.labelSmall.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                          if (createdAt != null) ...[
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              _formatTimeAgo(createdAt),
+                              style: AppTextStyles.caption.copyWith(
+                                color: context.colors.mutedForeground,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        content,
+                        style: AppTextStyles.bodyMedium,
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    content,
-                    style: AppTextStyles.bodyMedium,
+                ),
+                // Reply button
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 4),
+                  child: GestureDetector(
+                    onTap: () => onReply(authorName),
+                    child: Text(
+                      'Reply',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.colors.mutedForeground,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

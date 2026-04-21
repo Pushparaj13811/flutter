@@ -2,8 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
+import 'package:skill_exchange/core/theme/app_shadows.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Social-media style post card with avatar header, image carousel,
 /// category badge, tags, and engagement actions.
@@ -13,6 +15,7 @@ class DiscussionCard extends StatelessWidget {
   final VoidCallback? onLike;
   final VoidCallback? onComment;
   final VoidCallback? onBookmark;
+  final VoidCallback? onShare;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
   final VoidCallback? onReport;
@@ -24,6 +27,7 @@ class DiscussionCard extends StatelessWidget {
     this.onLike,
     this.onComment,
     this.onBookmark,
+    this.onShare,
     this.onTap,
     this.onDelete,
     this.onReport,
@@ -44,29 +48,27 @@ class DiscussionCard extends StatelessWidget {
     final images =
         (post['images'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final videoUrl = post['videoUrl'] as String?;
-    // mediaType field is available but we show all media regardless
-    // final mediaType = post['mediaType'] as String? ?? 'text';
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: context.colors.card,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: context.colors.border),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppShadows.card,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
             _buildHeader(context),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 12),
 
             // Category badge
             if (category.isNotEmpty) ...[
               _buildCategoryBadge(context, category),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: 10),
             ],
 
             // Title
@@ -79,23 +81,27 @@ class DiscussionCard extends StatelessWidget {
                 maxLines: isCompact ? 2 : null,
                 overflow: isCompact ? TextOverflow.ellipsis : null,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: 6),
             ],
 
             // Content
             if (content.isNotEmpty) ...[
               _buildContent(context, content),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: 12),
             ],
 
-            // Media — show all media regardless of mediaType
+            // Media
             ..._buildCombinedMedia(context, images, videoUrl),
 
             // Tags
             if (tags.isNotEmpty) ...[
               _buildTags(context, tags),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: 12),
             ],
+
+            // Divider before actions
+            Divider(color: context.colors.border, height: 1),
+            const SizedBox(height: 8),
 
             // Actions bar
             _buildActions(context, isLikedByMe, isBookmarked, likesCount,
@@ -114,67 +120,96 @@ class DiscussionCard extends StatelessWidget {
 
     return Row(
       children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: context.colors.muted,
-          backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-              ? NetworkImage(avatarUrl)
-              : null,
-          child: avatarUrl == null || avatarUrl.isEmpty
-              ? Text(
-                  authorName.isNotEmpty ? authorName[0].toUpperCase() : '?',
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: context.colors.mutedForeground,
-                    fontWeight: FontWeight.w600,
-                  ),
-                )
-              : null,
+        // Avatar with border ring
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: context.colors.primary.withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: CircleAvatar(
+            radius: 22,
+            backgroundColor: context.colors.muted,
+            backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                ? NetworkImage(avatarUrl)
+                : null,
+            child: avatarUrl == null || avatarUrl.isEmpty
+                ? Text(
+                    authorName.isNotEmpty ? authorName[0].toUpperCase() : '?',
+                    style: AppTextStyles.labelLarge.copyWith(
+                      color: context.colors.mutedForeground,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : null,
+          ),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: 12),
         Expanded(
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Flexible(
-                child: Text(
-                  authorName,
-                  style: AppTextStyles.labelMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (authorHandle != null && authorHandle.isNotEmpty) ...[
-                Text(
-                  ' \u00B7 @$authorHandle',
-                  style: AppTextStyles.caption.copyWith(
-                    color: context.colors.mutedForeground,
-                  ),
-                ),
-              ],
               Text(
-                ' \u00B7 ${_formatDate(createdAt)}',
-                style: AppTextStyles.caption.copyWith(
-                  color: context.colors.mutedForeground,
+                authorName,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  if (authorHandle != null && authorHandle.isNotEmpty) ...[
+                    Text(
+                      '@$authorHandle',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.colors.mutedForeground,
+                      ),
+                    ),
+                    Text(
+                      ' \u00B7 ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.colors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                  Text(
+                    _formatDate(createdAt),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.colors.mutedForeground,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
         PopupMenuButton<String>(
-          icon: Icon(Icons.more_horiz, color: context.colors.mutedForeground, size: 20),
+          icon: Icon(Icons.more_horiz,
+              color: context.colors.mutedForeground, size: 20),
           onSelected: (value) {
             if (value == 'delete') {
               showDialog<bool>(
                 context: context,
                 builder: (dialogCtx) => AlertDialog(
                   title: const Text('Delete Post'),
-                  content: const Text('Are you sure you want to delete this post?'),
+                  content: const Text(
+                      'Are you sure you want to delete this post?'),
                   actions: [
-                    TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: const Text('Cancel')),
+                    TextButton(
+                        onPressed: () => Navigator.of(dialogCtx).pop(false),
+                        child: const Text('Cancel')),
                     TextButton(
                       onPressed: () => Navigator.of(dialogCtx).pop(true),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      style:
+                          TextButton.styleFrom(foregroundColor: Colors.red),
                       child: const Text('Delete'),
                     ),
                   ],
@@ -187,20 +222,25 @@ class DiscussionCard extends StatelessWidget {
             }
           },
           itemBuilder: (_) {
-            final isOwner = post['author'] == FirebaseAuth.instance.currentUser?.uid;
+            final isOwner =
+                post['author'] == FirebaseAuth.instance.currentUser?.uid;
             return [
               if (isOwner)
-                const PopupMenuItem(value: 'delete', child: Row(children: [
-                  Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Delete', style: TextStyle(color: Colors.red)),
-                ])),
+                const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ])),
               if (!isOwner)
-                const PopupMenuItem(value: 'report', child: Row(children: [
-                  Icon(Icons.flag_outlined, size: 18),
-                  SizedBox(width: 8),
-                  Text('Report'),
-                ])),
+                const PopupMenuItem(
+                    value: 'report',
+                    child: Row(children: [
+                      Icon(Icons.flag_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('Report'),
+                    ])),
             ];
           },
         ),
@@ -230,7 +270,9 @@ class DiscussionCard extends StatelessWidget {
     if (!isCompact) {
       return Text(
         content,
-        style: AppTextStyles.bodyMedium.copyWith(
+        style: TextStyle(
+          fontSize: 14,
+          height: 1.6,
           color: context.colors.foreground,
         ),
       );
@@ -240,7 +282,9 @@ class DiscussionCard extends StatelessWidget {
       builder: (context, constraints) {
         final textSpan = TextSpan(
           text: content,
-          style: AppTextStyles.bodyMedium.copyWith(
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.6,
             color: context.colors.foreground,
           ),
         );
@@ -257,17 +301,20 @@ class DiscussionCard extends StatelessWidget {
           children: [
             Text(
               content,
-              style: AppTextStyles.bodyMedium.copyWith(
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.6,
                 color: context.colors.foreground,
               ),
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
             if (isOverflowing) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 'Read more',
-                style: AppTextStyles.caption.copyWith(
+                style: TextStyle(
+                  fontSize: 13,
                   color: context.colors.primary,
                   fontWeight: FontWeight.w600,
                 ),
@@ -283,7 +330,6 @@ class DiscussionCard extends StatelessWidget {
       BuildContext context, List<Map<String, dynamic>> images, String? videoUrl) {
     final allMedia = <Map<String, dynamic>>[];
 
-    // Add images
     for (final img in images) {
       final url = img['url'] as String? ?? '';
       if (url.isNotEmpty) {
@@ -291,7 +337,6 @@ class DiscussionCard extends StatelessWidget {
       }
     }
 
-    // Add video
     if (videoUrl != null && videoUrl.isNotEmpty) {
       allMedia.add({'type': 'video', 'url': videoUrl});
     }
@@ -301,7 +346,7 @@ class DiscussionCard extends StatelessWidget {
     return [
       const SizedBox(height: AppSpacing.sm),
       _buildMediaCarouselCombined(context, allMedia),
-      const SizedBox(height: AppSpacing.sm),
+      const SizedBox(height: 12),
     ];
   }
 
@@ -322,35 +367,40 @@ class DiscussionCard extends StatelessWidget {
       return _buildVideoPreview(context, url);
     }
 
+    // Single image — no fixed height, use BoxFit.contain
     return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: Image.network(
-        url,
-        width: double.infinity,
-        height: 250,
-        fit: BoxFit.cover,
-        loadingBuilder: (_, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            width: double.infinity,
-            height: 250,
-            color: context.colors.muted,
-            child: Center(
-              child: CircularProgressIndicator(
-                value: progress.expectedTotalBytes != null
-                    ? progress.cumulativeBytesLoaded /
-                        progress.expectedTotalBytes!
-                    : null,
-              ),
-            ),
-          );
-        },
-        errorBuilder: (_, __, ___) => Container(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        color: context.colors.muted,
+        child: Image.network(
+          url,
           width: double.infinity,
-          height: 250,
-          color: context.colors.muted,
-          child: Icon(Icons.broken_image,
-              color: context.colors.mutedForeground, size: 40),
+          fit: BoxFit.contain,
+          loadingBuilder: (_, child, progress) {
+            if (progress == null) return child;
+            return AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Container(
+                color: context.colors.muted,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: progress.expectedTotalBytes != null
+                        ? progress.cumulativeBytesLoaded /
+                            progress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              ),
+            );
+          },
+          errorBuilder: (_, __, ___) => AspectRatio(
+            aspectRatio: 4 / 3,
+            child: Container(
+              color: context.colors.muted,
+              child: Icon(Icons.broken_image,
+                  color: context.colors.mutedForeground, size: 40),
+            ),
+          ),
         ),
       ),
     );
@@ -358,46 +408,47 @@ class DiscussionCard extends StatelessWidget {
 
   Widget _buildVideoPreview(BuildContext context, String videoUrl) {
     return GestureDetector(
-      onTap: () {
-        // Video playback placeholder
-      },
-      child: Container(
-        width: double.infinity,
-        height: 200,
-        decoration: BoxDecoration(
-          color: context.colors.muted,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: context.colors.primary.withValues(alpha: 0.9),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_arrow,
-                  size: 32, color: Colors.white),
-            ),
-            Positioned(
-              bottom: AppSpacing.sm,
-              left: AppSpacing.sm,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      onTap: () =>
+          launchUrl(Uri.parse(videoUrl), mode: LaunchMode.externalApplication),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          height: 200,
+          decoration: BoxDecoration(
+            color: context.colors.muted,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(4),
+                  color: context.colors.primary.withValues(alpha: 0.9),
+                  shape: BoxShape.circle,
                 ),
-                child: Text(
-                  'Video',
-                  style: AppTextStyles.caption.copyWith(color: Colors.white),
+                child: const Icon(Icons.play_arrow,
+                    size: 32, color: Colors.white),
+              ),
+              Positioned(
+                bottom: AppSpacing.sm,
+                left: AppSpacing.sm,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Tap to play video',
+                    style: AppTextStyles.caption.copyWith(color: Colors.white),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -409,11 +460,19 @@ class DiscussionCard extends StatelessWidget {
       runSpacing: AppSpacing.xs,
       children: tags.map((tag) {
         final displayTag = tag.startsWith('#') ? tag : '#$tag';
-        return Text(
-          displayTag,
-          style: AppTextStyles.caption.copyWith(
-            color: context.colors.primary,
-            fontWeight: FontWeight.w500,
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: context.colors.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppRadius.chip),
+          ),
+          child: Text(
+            displayTag,
+            style: TextStyle(
+              fontSize: 10,
+              color: context.colors.primary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         );
       }).toList(),
@@ -423,7 +482,9 @@ class DiscussionCard extends StatelessWidget {
   Widget _buildActions(BuildContext context, bool isLikedByMe,
       bool isBookmarked, int likesCount, int commentsCount) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // Like
         _ActionButton(
           icon: isLikedByMe ? Icons.favorite : Icons.favorite_border,
           label: likesCount > 0 ? '$likesCount' : '',
@@ -432,14 +493,21 @@ class DiscussionCard extends StatelessWidget {
               : context.colors.mutedForeground,
           onTap: onLike,
         ),
-        const SizedBox(width: AppSpacing.lg),
+        // Comment
         _ActionButton(
           icon: Icons.chat_bubble_outline,
           label: commentsCount > 0 ? '$commentsCount' : '',
           color: context.colors.mutedForeground,
           onTap: onComment,
         ),
-        const Spacer(),
+        // Share
+        _ActionButton(
+          icon: Icons.share_outlined,
+          label: '',
+          color: context.colors.mutedForeground,
+          onTap: onShare,
+        ),
+        // Bookmark
         _ActionButton(
           icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
           label: '',
@@ -488,108 +556,6 @@ class DiscussionCard extends StatelessWidget {
   }
 }
 
-// ── Image Carousel with Page Dots ────────────────────────────────────────────
-
-class _ImageCarousel extends StatefulWidget {
-  final List<Map<String, dynamic>> images;
-
-  const _ImageCarousel({required this.images});
-
-  @override
-  State<_ImageCarousel> createState() => _ImageCarouselState();
-}
-
-class _ImageCarouselState extends State<_ImageCarousel> {
-  late final PageController _controller;
-  int _currentPage = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = PageController();
-    _controller.addListener(_onPageChanged);
-  }
-
-  @override
-  void dispose() {
-    _controller.removeListener(_onPageChanged);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onPageChanged() {
-    final page = _controller.page?.round() ?? 0;
-    if (page != _currentPage) {
-      setState(() => _currentPage = page);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 250,
-          child: PageView.builder(
-            controller: _controller,
-            itemCount: widget.images.length,
-            itemBuilder: (_, index) {
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                child: Image.network(
-                  widget.images[index]['url'] as String? ?? '',
-                  width: double.infinity,
-                  height: 250,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (_, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
-                      color: context.colors.muted,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value: progress.expectedTotalBytes != null
-                              ? progress.cumulativeBytesLoaded /
-                                  progress.expectedTotalBytes!
-                              : null,
-                        ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => Container(
-                    color: context.colors.muted,
-                    child: Icon(Icons.broken_image,
-                        color: context.colors.mutedForeground, size: 40),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        if (widget.images.length > 1) ...[
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(widget.images.length, (i) {
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == _currentPage ? 8 : 6,
-                height: i == _currentPage ? 8 : 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i == _currentPage
-                      ? context.colors.primary
-                      : context.colors.mutedForeground.withValues(alpha: 0.3),
-                ),
-              );
-            }),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 // ── Combined Media Carousel (images + video) ───────────────────────────────
 
 class _CombinedMediaCarousel extends StatefulWidget {
@@ -630,8 +596,8 @@ class _CombinedMediaCarouselState extends State<_CombinedMediaCarousel> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SizedBox(
-          height: 250,
+        AspectRatio(
+          aspectRatio: 4 / 3,
           child: PageView.builder(
             controller: _controller,
             itemCount: widget.media.length,
@@ -645,30 +611,32 @@ class _CombinedMediaCarouselState extends State<_CombinedMediaCarousel> {
               }
 
               return ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                child: Image.network(
-                  url,
-                  width: double.infinity,
-                  height: 250,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (_, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
-                      color: context.colors.muted,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value: progress.expectedTotalBytes != null
-                              ? progress.cumulativeBytesLoaded /
-                                  progress.expectedTotalBytes!
-                              : null,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  color: context.colors.muted,
+                  child: Image.network(
+                    url,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        color: context.colors.muted,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: progress.expectedTotalBytes != null
+                                ? progress.cumulativeBytesLoaded /
+                                    progress.expectedTotalBytes!
+                                : null,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => Container(
-                    color: context.colors.muted,
-                    child: Icon(Icons.broken_image,
-                        color: context.colors.mutedForeground, size: 40),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => Container(
+                      color: context.colors.muted,
+                      child: Icon(Icons.broken_image,
+                          color: context.colors.mutedForeground, size: 40),
+                    ),
                   ),
                 ),
               );
@@ -701,46 +669,46 @@ class _CombinedMediaCarouselState extends State<_CombinedMediaCarousel> {
 
   Widget _buildVideoItem(BuildContext context, String videoUrl) {
     return GestureDetector(
-      onTap: () {
-        // Video playback placeholder
-      },
-      child: Container(
-        width: double.infinity,
-        height: 250,
-        decoration: BoxDecoration(
-          color: context.colors.muted,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: context.colors.primary.withValues(alpha: 0.9),
-                shape: BoxShape.circle,
-              ),
-              child:
-                  const Icon(Icons.play_arrow, size: 32, color: Colors.white),
-            ),
-            Positioned(
-              bottom: AppSpacing.sm,
-              left: AppSpacing.sm,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      onTap: () =>
+          launchUrl(Uri.parse(videoUrl), mode: LaunchMode.externalApplication),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: context.colors.muted,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(4),
+                  color: context.colors.primary.withValues(alpha: 0.9),
+                  shape: BoxShape.circle,
                 ),
-                child: Text(
-                  'Video',
-                  style: AppTextStyles.caption.copyWith(color: Colors.white),
+                child: const Icon(Icons.play_arrow,
+                    size: 32, color: Colors.white),
+              ),
+              Positioned(
+                bottom: AppSpacing.sm,
+                left: AppSpacing.sm,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Tap to play video',
+                    style: AppTextStyles.caption.copyWith(color: Colors.white),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -769,18 +737,18 @@ class _ActionButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xs,
-          vertical: AppSpacing.xs,
+          horizontal: 8,
+          vertical: 6,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 20, color: color),
+            Icon(icon, size: 22, color: color),
             if (label.isNotEmpty) ...[
-              const SizedBox(width: 4),
+              const SizedBox(width: 5),
               Text(
                 label,
-                style: AppTextStyles.caption.copyWith(color: color),
+                style: TextStyle(fontSize: 12, color: color),
               ),
             ],
           ],
