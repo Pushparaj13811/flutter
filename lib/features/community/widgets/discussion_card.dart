@@ -503,15 +503,10 @@ class _PostMediaSectionState extends State<_PostMediaSection> {
   }
 
   Widget _buildImage(String url) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: 200,
-        maxHeight: 500,
-      ),
-      child: Image.network(
+    return Image.network(
         url,
         width: double.infinity,
-        fit: BoxFit.cover,
+        fit: BoxFit.fitWidth,
         loadingBuilder: (_, child, progress) {
           if (progress == null) return child;
           return Container(
@@ -525,7 +520,6 @@ class _PostMediaSectionState extends State<_PostMediaSection> {
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           child: const Center(child: Icon(Icons.broken_image, size: 40)),
         ),
-      ),
     );
   }
 
@@ -534,14 +528,9 @@ class _PostMediaSectionState extends State<_PostMediaSection> {
       children: [
         Stack(
           children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(
-                minHeight: 200,
-                maxHeight: 500,
-              ),
-              child: AspectRatio(
-                aspectRatio: 1, // Square like Instagram
-                child: PageView.builder(
+            AspectRatio(
+              aspectRatio: 4 / 5, // Portrait like Instagram (taller than wide)
+              child: PageView.builder(
                   controller: _pageController,
                   itemCount: widget.media.length,
                   onPageChanged: (page) => setState(() => _currentPage = page),
@@ -565,7 +554,6 @@ class _PostMediaSectionState extends State<_PostMediaSection> {
                   },
                 ),
               ),
-            ),
             // Counter badge "1/4" top right
             Positioned(
               top: 12,
