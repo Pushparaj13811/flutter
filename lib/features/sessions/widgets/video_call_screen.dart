@@ -28,12 +28,21 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   Timer? _hideControlsTimer;
   bool _hasPopped = false;
 
+  // PIP state: which video is in the small PIP window
+  // false = local video in PIP (default), true = remote video in PIP
+  bool _remoteInPip = false;
+
+  // Draggable PIP position
+  double _pipLeft = -1; // -1 means not initialized yet
+  double _pipTop = -1;
+  static const double _pipW = 110;
+  static const double _pipH = 150;
+
   @override
   void initState() {
     super.initState();
     _setupAgoraCallbacks();
     _resetControlsTimer();
-    // Ensure dial tone is playing for caller
     if (widget.isCaller) {
       final sound = ref.read(callSoundServiceProvider);
       if (!sound.isPlaying) {
@@ -68,9 +77,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
 
   void _resetControlsTimer() {
     _hideControlsTimer?.cancel();
-    if (!_controlsVisible) {
-      setState(() => _controlsVisible = true);
-    }
+    if (!_controlsVisible) setState(() => _controlsVisible = true);
     _hideControlsTimer = Timer(const Duration(seconds: 6), () {
       if (mounted) setState(() => _controlsVisible = false);
     });
@@ -87,23 +94,35 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     _safePop();
   }
 
+  void _swapVideos() {
+    setState(() => _remoteInPip = !_remoteInPip);
+  }
+
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
-    // Do NOT end call on dispose — user might have pressed back to minimize
     super.dispose();
   }
 
   String _formatDuration(Duration d) {
-    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   @override
   Widget build(BuildContext context) {
     final callState = ref.watch(callNotifierProvider);
     final agora = ref.read(agoraServiceProvider);
+    final hasRemote = callState.remoteUid != null && agora.engine != null;
+    final hasCamera = callState.isCameraOn && agora.engine != null;
+
+    // Initialize PIP position on first build
+    if (_pipLeft < 0) {
+      final size = MediaQuery.of(context).size;
+      _pipLeft = size.width - _pipW - 12;
+      _pipTop = MediaQuery.of(context).padding.top + 12;
+    }
 
     // Auto-pop when call ends from remote side
     if ((callState.status == CallStatus.ended ||
@@ -113,7 +132,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     }
 
     return PopScope(
-      canPop: true, // Allow back to minimize (like WhatsApp)
+      canPop: true,
       child: Scaffold(
         backgroundColor: Colors.black,
         body: GestureDetector(
@@ -121,52 +140,10 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
           onTap: _toggleControls,
           child: Stack(
             children: [
-              // Remote video (full screen)
-              if (callState.remoteUid != null && agora.engine != null)
-                Positioned.fill(
-                  child: AgoraVideoView(
-                    controller: VideoViewController.remote(
-                      rtcEngine: agora.engine!,
-                      canvas: VideoCanvas(uid: callState.remoteUid!),
-                      connection: RtcConnection(channelId: widget.channelId),
-                    ),
-                  ),
-                )
-              else
-                Positioned.fill(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircleAvatar(
-                          radius: 48,
-                          backgroundColor: Colors.white24,
-                          child: Text(
-                            widget.remoteUserName.isNotEmpty
-                                ? widget.remoteUserName[0].toUpperCase()
-                                : '?',
-                            style:
-                                AppTextStyles.h1.copyWith(color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          widget.remoteUserName,
-                          style:
-                              AppTextStyles.h3.copyWith(color: Colors.white),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _statusText(callState.status),
-                          style: AppTextStyles.bodyMedium
-                              .copyWith(color: Colors.white70),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              // ── Full-screen video ──────────────────────────────────────
+              _buildFullScreenView(callState, agora, hasRemote, hasCamera),
 
-              // Tap overlay — ensures taps register even over Agora video
+              // ── Tap overlay for controls toggle ────────────────────────
               Positioned.fill(
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
@@ -175,154 +152,284 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                 ),
               ),
 
-              // Local video (PIP - top right)
-              if (callState.isCameraOn && agora.engine != null)
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 12,
-                  right: 12,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: 100,
-                      height: 140,
-                      child: AgoraVideoView(
-                        controller: VideoViewController(
-                          rtcEngine: agora.engine!,
-                          canvas: const VideoCanvas(uid: 0),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              // ── Draggable PIP (swappable) ──────────────────────────────
+              if (hasCamera || hasRemote)
+                _buildDraggablePip(callState, agora, hasRemote, hasCamera),
 
-              // Top bar — always visible with back button
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AnimatedOpacity(
-                  opacity: _controlsVisible ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: IgnorePointer(
-                    ignoring: !_controlsVisible,
-                    child: Container(
-                      padding: EdgeInsets.only(
-                        top: MediaQuery.of(context).padding.top + 8,
-                        left: 8,
-                        right: 16,
-                        bottom: 12,
-                      ),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.black54, Colors.transparent],
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.white),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          Expanded(
-                            child: Text(
-                              widget.remoteUserName,
-                              style: AppTextStyles.labelLarge
-                                  .copyWith(color: Colors.white),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (callState.status == CallStatus.active)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white24,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                _formatDuration(callState.duration),
-                                style: AppTextStyles.labelMedium
-                                    .copyWith(color: Colors.white),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              // ── Top bar ────────────────────────────────────────────────
+              _buildTopBar(context, callState),
+
+              // ── Bottom controls ────────────────────────────────────────
+              _buildBottomControls(context, callState),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Full-screen view (shows remote by default, local if swapped) ─────────
+
+  Widget _buildFullScreenView(
+      CallState callState, AgoraService agora, bool hasRemote, bool hasCamera) {
+    if (_remoteInPip) {
+      // Local video full-screen
+      if (hasCamera) {
+        return Positioned.fill(
+          child: AgoraVideoView(
+            controller: VideoViewController(
+              rtcEngine: agora.engine!,
+              canvas: const VideoCanvas(uid: 0),
+            ),
+          ),
+        );
+      }
+    } else {
+      // Remote video full-screen (default)
+      if (hasRemote) {
+        return Positioned.fill(
+          child: AgoraVideoView(
+            controller: VideoViewController.remote(
+              rtcEngine: agora.engine!,
+              canvas: VideoCanvas(uid: callState.remoteUid!),
+              connection: RtcConnection(channelId: widget.channelId),
+            ),
+          ),
+        );
+      }
+    }
+
+    // Placeholder when no video
+    return Positioned.fill(
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 48,
+              backgroundColor: Colors.white24,
+              child: Text(
+                widget.remoteUserName.isNotEmpty
+                    ? widget.remoteUserName[0].toUpperCase()
+                    : '?',
+                style: AppTextStyles.h1.copyWith(color: Colors.white),
               ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.remoteUserName,
+              style: AppTextStyles.h3.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _statusText(callState.status),
+              style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-              // Bottom controls
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: AnimatedOpacity(
-                  opacity: _controlsVisible ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: IgnorePointer(
-                    ignoring: !_controlsVisible,
-                    child: Container(
-                      padding: EdgeInsets.only(
-                        bottom:
-                            MediaQuery.of(context).padding.bottom + 20,
-                        top: 20,
-                      ),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Colors.black54, Colors.transparent],
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _ControlButton(
-                            icon: callState.isMuted
-                                ? Icons.mic_off
-                                : Icons.mic,
-                            label: callState.isMuted ? 'Unmute' : 'Mute',
-                            isActive: callState.isMuted,
-                            onTap: () => ref
-                                .read(callNotifierProvider.notifier)
-                                .toggleMute(),
-                          ),
-                          _ControlButton(
-                            icon: callState.isCameraOn
-                                ? Icons.videocam
-                                : Icons.videocam_off,
-                            label: callState.isCameraOn
-                                ? 'Camera Off'
-                                : 'Camera On',
-                            isActive: !callState.isCameraOn,
-                            onTap: () => ref
-                                .read(callNotifierProvider.notifier)
-                                .toggleCamera(),
-                          ),
-                          _ControlButton(
-                            icon: Icons.cameraswitch,
-                            label: 'Flip',
-                            onTap: () => ref
-                                .read(callNotifierProvider.notifier)
-                                .switchCamera(),
-                          ),
-                          _ControlButton(
-                            icon: Icons.call_end,
-                            label: 'End',
-                            isDestructive: true,
-                            onTap: _endCallAndPop,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+  // ── Draggable PIP (shows local by default, remote if swapped) ────────────
+
+  Widget _buildDraggablePip(
+      CallState callState, AgoraService agora, bool hasRemote, bool hasCamera) {
+    final bool showPip = _remoteInPip ? hasRemote : hasCamera;
+    if (!showPip) return const SizedBox.shrink();
+
+    return Positioned(
+      left: _pipLeft,
+      top: _pipTop,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            final size = MediaQuery.of(context).size;
+            _pipLeft = (_pipLeft + details.delta.dx).clamp(0, size.width - _pipW);
+            _pipTop = (_pipTop + details.delta.dy).clamp(
+              MediaQuery.of(context).padding.top,
+              size.height - _pipH - 100,
+            );
+          });
+        },
+        onTap: _swapVideos, // Tap PIP to swap full-screen and PIP
+        child: Container(
+          width: _pipW,
+          height: _pipH,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white30, width: 1.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black38,
+                blurRadius: 10,
+                offset: Offset(0, 4),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                // Video content
+                if (_remoteInPip && hasRemote)
+                  AgoraVideoView(
+                    controller: VideoViewController.remote(
+                      rtcEngine: agora.engine!,
+                      canvas: VideoCanvas(uid: callState.remoteUid!),
+                      connection: RtcConnection(channelId: widget.channelId),
+                    ),
+                  )
+                else if (!_remoteInPip && hasCamera)
+                  AgoraVideoView(
+                    controller: VideoViewController(
+                      rtcEngine: agora.engine!,
+                      canvas: const VideoCanvas(uid: 0),
+                    ),
+                  ),
+
+                // Swap icon hint
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.black45,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.swap_horiz_rounded,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Top bar ────────────────────────────────────────────────────────────────
+
+  Widget _buildTopBar(BuildContext context, CallState callState) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: AnimatedOpacity(
+        opacity: _controlsVisible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: IgnorePointer(
+          ignoring: !_controlsVisible,
+          child: Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 8,
+              right: 16,
+              bottom: 12,
+            ),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.black54, Colors.transparent],
+              ),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                Expanded(
+                  child: Text(
+                    widget.remoteUserName,
+                    style: AppTextStyles.labelLarge.copyWith(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (callState.status == CallStatus.active)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _formatDuration(callState.duration),
+                      style: AppTextStyles.labelMedium.copyWith(color: Colors.white),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Bottom controls ────────────────────────────────────────────────────────
+
+  Widget _buildBottomControls(BuildContext context, CallState callState) {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: AnimatedOpacity(
+        opacity: _controlsVisible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: IgnorePointer(
+          ignoring: !_controlsVisible,
+          child: Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).padding.bottom + 20,
+              top: 20,
+            ),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [Colors.black54, Colors.transparent],
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _ControlButton(
+                  icon: callState.isMuted ? Icons.mic_off : Icons.mic,
+                  label: callState.isMuted ? 'Unmute' : 'Mute',
+                  isActive: callState.isMuted,
+                  onTap: () =>
+                      ref.read(callNotifierProvider.notifier).toggleMute(),
+                ),
+                _ControlButton(
+                  icon: callState.isCameraOn
+                      ? Icons.videocam
+                      : Icons.videocam_off,
+                  label: callState.isCameraOn ? 'Camera Off' : 'Camera On',
+                  isActive: !callState.isCameraOn,
+                  onTap: () =>
+                      ref.read(callNotifierProvider.notifier).toggleCamera(),
+                ),
+                _ControlButton(
+                  icon: Icons.cameraswitch,
+                  label: 'Flip',
+                  onTap: () =>
+                      ref.read(callNotifierProvider.notifier).switchCamera(),
+                ),
+                _ControlButton(
+                  icon: Icons.call_end,
+                  label: 'End',
+                  isDestructive: true,
+                  onTap: _endCallAndPop,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -341,6 +448,8 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     };
   }
 }
+
+// ── Control Button ────────────────────────────────────────────────────────────
 
 class _ControlButton extends StatelessWidget {
   const _ControlButton({
