@@ -61,6 +61,7 @@ class CallNotifier extends StateNotifier<CallState> {
   final CallSoundService _sound;
   StreamSubscription? _callStreamSub;
   Timer? _durationTimer;
+  Timer? _callTimeoutTimer;
 
   CallNotifier(this._agora, this._callService, this._sound)
       : super(const CallState());
@@ -92,6 +93,14 @@ class CallNotifier extends StateNotifier<CallState> {
 
       _listenToCall(callId);
       await _sound.playDialTone(); // Start dial tone immediately
+
+      // Auto-timeout after 30 seconds if not answered
+      _callTimeoutTimer = Timer(const Duration(seconds: 30), () {
+        if (state.status == CallStatus.ringing) {
+          endCall();
+        }
+      });
+
       await _agora.joinChannel(callId, 0);
 
       return true;
@@ -124,6 +133,7 @@ class CallNotifier extends StateNotifier<CallState> {
   }
 
   Future<void> declineCall(String callId) async {
+    _callTimeoutTimer?.cancel();
     _sound.stop();
     final remoteUserId = state.remoteUserId;
     await _callService.declineCall(callId);
@@ -134,6 +144,7 @@ class CallNotifier extends StateNotifier<CallState> {
   }
 
   Future<void> endCall() async {
+    _callTimeoutTimer?.cancel();
     _sound.stop();
     final callId = state.callId;
     final wasActive = state.status == CallStatus.active;
@@ -211,6 +222,7 @@ class CallNotifier extends StateNotifier<CallState> {
   }
 
   void onRemoteUserJoined(int uid) {
+    _callTimeoutTimer?.cancel();
     _sound.stop(); // Stop dial/ring tone when connected
     state = state.copyWith(
       status: CallStatus.active,
@@ -252,6 +264,7 @@ class CallNotifier extends StateNotifier<CallState> {
   Future<void> _cleanup() async {
     _callStreamSub?.cancel();
     _durationTimer?.cancel();
+    _callTimeoutTimer?.cancel();
     await _agora.leaveChannel();
   }
 

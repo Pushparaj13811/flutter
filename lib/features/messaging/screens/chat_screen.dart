@@ -125,6 +125,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   // Typing / online status row
                   _OnlineStatusSubtitle(
                     threadId: _threadId,
+                    otherUserId: _otherUserId,
                     service: service,
                   ),
                 ],
@@ -326,43 +327,83 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 class _OnlineStatusSubtitle extends StatelessWidget {
   const _OnlineStatusSubtitle({
     required this.threadId,
+    required this.otherUserId,
     required this.service,
   });
 
   final String threadId;
+  final String otherUserId;
   final MessagingFirestoreService service;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final db = FirebaseFirestore.instance;
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: service.typingStream(threadId),
-      builder: (context, snapshot) {
-        bool otherIsTyping = false;
-        if (snapshot.hasData && snapshot.data?.data() != null) {
-          final data = snapshot.data!.data()!;
-          for (final entry in data.entries) {
-            if (entry.key == currentUid) continue;
-            if (entry.value is Timestamp) {
-              final ts = (entry.value as Timestamp).toDate();
-              if (DateTime.now().difference(ts).inSeconds < 5) {
-                otherIsTyping = true;
-                break;
+      stream: db.collection('presence').doc(otherUserId).snapshots(),
+      builder: (context, presenceSnap) {
+        final isOnline = presenceSnap.data?.data()?['isOnline'] == true;
+        final lastSeen = presenceSnap.data?.data()?['lastSeen'];
+
+        // Also check typing
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: service.typingStream(threadId),
+          builder: (context, typingSnap) {
+            bool otherIsTyping = false;
+            if (typingSnap.hasData && typingSnap.data?.data() != null) {
+              final data = typingSnap.data!.data()!;
+              for (final entry in data.entries) {
+                if (entry.key == currentUid) continue;
+                if (entry.value is Timestamp) {
+                  final ts = (entry.value as Timestamp).toDate();
+                  if (DateTime.now().difference(ts).inSeconds < 5) {
+                    otherIsTyping = true;
+                    break;
+                  }
+                }
               }
             }
-          }
-        }
 
-        return Text(
-          otherIsTyping ? 'typing...' : 'online',
-          style: AppTextStyles.caption.copyWith(
-            color: otherIsTyping ? colors.primary : colors.mutedForeground,
-            fontStyle:
-                otherIsTyping ? FontStyle.italic : FontStyle.normal,
-            fontSize: 11,
-          ),
+            String text;
+            Color textColor;
+            FontStyle fontStyle = FontStyle.normal;
+
+            if (otherIsTyping) {
+              text = 'typing...';
+              textColor = colors.primary;
+              fontStyle = FontStyle.italic;
+            } else if (isOnline) {
+              text = 'online';
+              textColor = colors.success;
+            } else if (lastSeen is Timestamp) {
+              final dt = lastSeen.toDate();
+              final diff = DateTime.now().difference(dt);
+              if (diff.inMinutes < 1) {
+                text = 'last seen just now';
+              } else if (diff.inMinutes < 60) {
+                text = 'last seen ${diff.inMinutes}m ago';
+              } else if (diff.inHours < 24) {
+                text = 'last seen ${diff.inHours}h ago';
+              } else {
+                text = 'last seen ${diff.inDays}d ago';
+              }
+              textColor = colors.mutedForeground;
+            } else {
+              text = 'offline';
+              textColor = colors.mutedForeground;
+            }
+
+            return Text(
+              text,
+              style: AppTextStyles.caption.copyWith(
+                color: textColor,
+                fontStyle: fontStyle,
+                fontSize: 11,
+              ),
+            );
+          },
         );
       },
     );

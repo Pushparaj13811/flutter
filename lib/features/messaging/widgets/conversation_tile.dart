@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/extensions/date_extensions.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
@@ -26,6 +27,10 @@ class ConversationTile extends StatelessWidget {
 
   String? get _otherAvatar {
     return conversation['otherUserAvatar'] as String?;
+  }
+
+  String get _otherUserId {
+    return conversation['otherUserId'] as String? ?? '';
   }
 
   String get _relativeTime {
@@ -75,12 +80,25 @@ class ConversationTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 48px avatar
-            UserAvatar(
-              name: _otherName,
-              imageUrl: _otherAvatar,
-              size: 48,
-              heroTag: 'avatar_$id',
+            // 48px avatar with live online indicator
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: _otherUserId.isNotEmpty
+                  ? FirebaseFirestore.instance
+                      .collection('presence')
+                      .doc(_otherUserId)
+                      .snapshots()
+                  : const Stream.empty(),
+              builder: (context, presenceSnap) {
+                final isOnline =
+                    presenceSnap.data?.data()?['isOnline'] == true;
+                return UserAvatar(
+                  name: _otherName,
+                  imageUrl: _otherAvatar,
+                  size: 48,
+                  heroTag: 'avatar_$id',
+                  showOnlineIndicator: isOnline,
+                );
+              },
             ),
             const SizedBox(width: AppSpacing.md),
             // Content column

@@ -9,6 +9,8 @@ import 'package:skill_exchange/core/services/fcm_service.dart';
 import 'package:skill_exchange/core/theme/app_theme.dart';
 import 'package:skill_exchange/core/widgets/connectivity_banner.dart';
 import 'package:skill_exchange/core/services/call_sound_service.dart';
+import 'package:skill_exchange/core/services/presence_service.dart';
+import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
 import 'package:skill_exchange/features/sessions/widgets/incoming_call_overlay.dart';
 import 'package:skill_exchange/features/sessions/widgets/video_call_screen.dart';
@@ -49,6 +51,16 @@ class SkillExchangeApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+
+    // Start presence tracking when authenticated
+    ref.listen(authProvider, (prev, next) {
+      final presenceService = ref.read(presenceServiceProvider);
+      if (next is AuthAuthenticated) {
+        presenceService.startTracking();
+      } else {
+        presenceService.stopTracking();
+      }
+    });
 
     return MaterialApp.router(
       title: 'Skill Exchange',
