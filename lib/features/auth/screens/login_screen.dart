@@ -1,4 +1,4 @@
-// Email/password login with Google OAuth — modern gradient design
+// Email/password login with Google OAuth — full gradient background design
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -76,7 +76,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
   }
 
-
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authProvider, (previous, next) {
@@ -95,247 +94,250 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     });
 
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // ── Hero gradient section ─────────────────────────────────────
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + AppSpacing.xxl,
-                bottom: AppSpacing.xxxl,
-              ),
-              decoration: BoxDecoration(
-                gradient: AppGradients.heroFor(Theme.of(context).brightness),
-              ),
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const [0.0, 0.3, 0.6, 1.0],
+            colors: [
+              const Color(0xFF064E3B),
+              const Color(0xFF065F46),
+              const Color(0xFF059669).withValues(alpha: 0.3),
+              scaffoldBg,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Form(
+              key: _formKey,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App icon
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.primary,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: const Icon(
-                      Icons.swap_horiz_rounded,
-                      color: Colors.white,
-                      size: 32,
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // ── Logo + title ──────────────────────────────────────────
+                  Center(
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: AppGradients.primary,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: const Icon(
+                        Icons.swap_horiz_rounded,
+                        color: Colors.white,
+                        size: 32,
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  // Gradient text title
-                  ShaderMask(
-                    shaderCallback: (bounds) => AppGradients.text.createShader(bounds),
-                    blendMode: BlendMode.srcIn,
+                  Center(
                     child: Text(
                       'Skill Exchange',
                       style: AppTextStyles.h1.copyWith(
                         fontSize: 32,
                         color: Colors.white,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Welcome back',
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      color: Colors.white70,
+                  Center(
+                    child: Text(
+                      'Welcome back',
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        color: Colors.white70,
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
+                  const SizedBox(height: AppSpacing.xxxl),
 
-            // ── Card-style form section ───────────────────────────────────
-            Transform.translate(
-              offset: const Offset(0, -24),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                decoration: BoxDecoration(
-                  color: context.colors.card,
-                  borderRadius: BorderRadius.circular(AppRadius.xl),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
+                  // ── Email ─────────────────────────────────────────────────
+                  _buildLabel('Email'),
+                  const SizedBox(height: AppSpacing.xs),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white,
                     ),
-                  ],
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    decoration: _inputDecoration(
+                      hint: 'Enter your email',
+                      prefixIcon: Icons.email_outlined,
+                    ),
+                    validator: Validators.email,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // ── Password ──────────────────────────────────────────────
+                  _buildLabel('Password'),
+                  const SizedBox(height: AppSpacing.xs),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white,
+                    ),
+                    decoration: _inputDecoration(
+                      hint: 'Enter your password',
+                      prefixIcon: Icons.lock_outline,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                          color: Colors.white60,
+                        ),
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
+                      ),
+                    ),
+                    validator: Validators.password,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // ── Remember me + Forgot password ─────────────────────────
+                  Row(
                     children: [
-                      // Email field
-                      _buildLabel('Email'),
-                      const SizedBox(height: AppSpacing.xs),
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: context.colors.foreground,
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Checkbox(
+                          value: _rememberMe,
+                          activeColor: AppColors.primary,
+                          checkColor: Colors.white,
+                          side: const BorderSide(color: Colors.white54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          onChanged: (value) {
+                            setState(() => _rememberMe = value ?? false);
+                          },
                         ),
-                        decoration: _inputDecoration(
-                          context: context,
-                          hint: 'Enter your email',
-                          prefixIcon: Icons.email_outlined,
-                        ),
-                        validator: Validators.email,
                       ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Password field
-                      _buildLabel('Password'),
-                      const SizedBox(height: AppSpacing.xs),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: context.colors.foreground,
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'Remember me',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.white70,
                         ),
-                        decoration: _inputDecoration(
-                          context: context,
-                          hint: 'Enter your password',
-                          prefixIcon: Icons.lock_outline,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              size: 20,
-                              color: context.colors.mutedForeground,
-                            ),
-                            onPressed: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
-                            },
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => context.go('/forgot-password'),
+                        child: Text(
+                          'Forgot password?',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        validator: Validators.password,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Remember Me + Forgot Password
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: Checkbox(
-                              value: _rememberMe,
-                              activeColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              onChanged: (value) {
-                                setState(() => _rememberMe = value ?? false);
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text(
-                            'Remember me',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: context.colors.foreground,
-                            ),
-                          ),
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: () => context.go('/forgot-password'),
-                            child: Text(
-                              'Forgot password?',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Login button with gradient
-                      _GradientButton(
-                        label: 'Log In',
-                        isLoading: _isLoginLoading,
-                        onPressed: _currentAction != _AuthAction.none ? null : _onLogin,
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: context.colors.border)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                            child: Text(
-                              'Or continue with',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: context.colors.mutedForeground,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: context.colors.border)),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-
-                      // Google button
-                      GoogleOAuthButton(
-                        onPressed: _currentAction != _AuthAction.none
-                            ? null
-                            : () {
-                                setState(() => _currentAction = _AuthAction.google);
-                                ref.read(authProvider.notifier).signInWithGoogle();
-                              },
                       ),
                     ],
                   ),
-                ),
-              ),
-            ),
+                  const SizedBox(height: AppSpacing.xl),
 
-            const SizedBox(height: AppSpacing.xl),
-
-            // ── Sign up link ──────────────────────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "Don't have an account? ",
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: context.colors.mutedForeground,
+                  // ── Login button ──────────────────────────────────────────
+                  _GradientButton(
+                    label: 'Log In',
+                    isLoading: _isLoginLoading,
+                    onPressed: _currentAction != _AuthAction.none ? null : _onLogin,
                   ),
-                ),
-                GestureDetector(
-                  onTap: () => context.go('/signup'),
-                  child: Text(
-                    'Sign up',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // ── Divider ───────────────────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                        child: Text(
+                          'Or continue with',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Colors.white60,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // ── Google button ─────────────────────────────────────────
+                  GoogleOAuthButton(
+                    onPressed: _currentAction != _AuthAction.none
+                        ? null
+                        : () {
+                            setState(() => _currentAction = _AuthAction.google);
+                            ref.read(authProvider.notifier).signInWithGoogle();
+                          },
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // ── Sign up link ──────────────────────────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: Colors.white60,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.go('/signup'),
+                        child: Text(
+                          'Sign up',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // ── Seed button (debug only) ───────────────────────────────
+                  if (kDebugMode) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    TextButton.icon(
+                      onPressed: _isSeeding ? null : _runSeed,
+                      icon: _isSeeding
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.dataset_outlined, size: 18, color: Colors.white54),
+                      label: Text(
+                        _isSeeding ? 'Seeding...' : 'Seed Test Data',
+                        style: const TextStyle(color: Colors.white54),
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Seed data button (dev only)
-            if (kDebugMode)
-              TextButton.icon(
-                onPressed: _isSeeding ? null : _runSeed,
-                icon: _isSeeding
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.dataset_outlined, size: 18),
-                label: Text(_isSeeding ? 'Seeding...' : 'Seed Test Data'),
+                  ],
+                  const SizedBox(height: AppSpacing.xxl),
+                ],
               ),
-            const SizedBox(height: AppSpacing.xxl),
-          ],
+            ),
+          ),
         ),
       ),
     );
@@ -345,43 +347,47 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Text(
       text,
       style: AppTextStyles.labelMedium.copyWith(
-        color: context.colors.foreground,
-        fontWeight: FontWeight.w600,
+        color: Colors.white,
+        fontWeight: FontWeight.w700,
       ),
     );
   }
 
   InputDecoration _inputDecoration({
-    required BuildContext context,
     required String hint,
     required IconData prefixIcon,
     Widget? suffixIcon,
   }) {
-    const borderRadius = BorderRadius.all(Radius.circular(AppRadius.input));
     return InputDecoration(
       hintText: hint,
       hintStyle: AppTextStyles.bodyMedium.copyWith(
-        color: context.colors.mutedForeground,
+        color: Colors.white60,
       ),
-      prefixIcon: Icon(prefixIcon, size: 20, color: context.colors.mutedForeground),
+      prefixIcon: Icon(prefixIcon, size: 20, color: Colors.white60),
       suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.08),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+      ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(color: context.colors.input),
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(color: context.colors.ring, width: 2),
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(color: context.colors.destructive),
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(color: context.colors.destructive, width: 2),
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
-      errorStyle: AppTextStyles.caption.copyWith(color: context.colors.destructive),
+      errorStyle: AppTextStyles.caption.copyWith(color: Colors.redAccent),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.md,
@@ -414,7 +420,7 @@ class _GradientButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: enabled ? AppGradients.primary : null,
           color: enabled ? null : AppColors.primary.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(AppRadius.button),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: enabled
               ? [
                   BoxShadow(
@@ -447,4 +453,3 @@ class _GradientButton extends StatelessWidget {
     );
   }
 }
-
