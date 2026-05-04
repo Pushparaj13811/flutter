@@ -12,7 +12,6 @@ import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_gradients.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
-import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/app_button.dart';
 import 'package:skill_exchange/core/widgets/user_avatar.dart';
@@ -493,16 +492,18 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
 
   Widget _fieldLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Text(
         label,
-        style: AppTextStyles.labelMedium.copyWith(
-          color: Theme.of(context).colorScheme.onSurface,
-          fontWeight: FontWeight.w600,
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: colors.foreground,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
+
+  AppColorsExtension get colors => context.colors;
 
   Widget _filledField(
     AppColorsExtension colors,
@@ -510,46 +511,58 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     String? hint,
     int maxLines = 1,
   }) {
+    // Use a concrete light gray that works in both light and dark mode
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : const Color(0xFFF2F2F7);
+
     return TextField(
       controller: controller,
       maxLines: maxLines,
       style: AppTextStyles.bodyMedium.copyWith(color: colors.foreground),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
+        hintStyle: AppTextStyles.bodyMedium.copyWith(
+          color: colors.mutedForeground.withValues(alpha: 0.6),
+        ),
         filled: true,
-        fillColor: colors.muted.withValues(alpha: 0.5),
+        fillColor: fillColor,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderRadius: BorderRadius.circular(28),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderRadius: BorderRadius.circular(28),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderRadius: BorderRadius.circular(28),
           borderSide: BorderSide(color: colors.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+          horizontal: 20,
+          vertical: 14,
         ),
       ),
     );
   }
 
   Widget _readOnlyField(AppColorsExtension colors, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : const Color(0xFFF2F2F7);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
+        horizontal: 20,
+        vertical: 14,
       ),
       decoration: BoxDecoration(
-        color: colors.muted.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(AppRadius.input),
+        color: fillColor,
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Text(
         value,

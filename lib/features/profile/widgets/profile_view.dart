@@ -95,25 +95,25 @@ class _OwnProfileLayout extends StatelessWidget {
     final colors = context.colors;
     final topPad = MediaQuery.of(context).padding.top;
 
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Gradient header ──────────────────────────────────────────────
+          // ── Gradient header that fades into scaffold background ─────────
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
+                stops: const [0.0, 0.6, 1.0],
                 colors: [
                   colors.primary,
-                  colors.primary.withValues(alpha: 0.85),
+                  colors.primary.withValues(alpha: 0.7),
+                  scaffoldBg,
                 ],
-              ),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
               ),
             ),
             child: Padding(
@@ -144,7 +144,7 @@ class _OwnProfileLayout extends StatelessWidget {
                   Text(
                     '@${profile.username}',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white.withValues(alpha: 0.85),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -177,8 +177,6 @@ class _OwnProfileLayout extends StatelessWidget {
               ),
             ),
           ),
-
-          const SizedBox(height: AppSpacing.xl),
 
           // ── Activity stats card ──────────────────────────────────────────
           _buildActivityCard(context, colors),
