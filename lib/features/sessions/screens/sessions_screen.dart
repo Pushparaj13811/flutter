@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
@@ -8,6 +9,7 @@ import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
 import 'package:skill_exchange/data/models/session_model.dart';
 import 'package:skill_exchange/features/connections/providers/connections_provider.dart';
+import 'package:skill_exchange/features/reviews/widgets/review_sheet.dart';
 import 'package:skill_exchange/features/sessions/providers/session_provider.dart';
 import 'package:skill_exchange/features/sessions/widgets/reschedule_session_sheet.dart';
 import 'package:skill_exchange/features/sessions/widgets/session_booking_sheet.dart';
@@ -80,6 +82,29 @@ class SessionsScreen extends ConsumerWidget {
               const SnackBar(
                 content: Text('Session marked as completed'),
                 behavior: SnackBarBehavior.floating,
+              ),
+            );
+
+            // Auto-prompt review
+            final currentUid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+            final otherUserId = session.hostId == currentUid
+                ? session.participantId
+                : session.hostId;
+            final otherUserName = session.hostId == currentUid
+                ? (session.participant?.fullName ?? session.participantId)
+                : (session.host?.fullName ?? session.hostId);
+
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              builder: (_) => ReviewSheet(
+                toUserId: otherUserId,
+                toUserName: otherUserName,
+                sessionId: session.id,
+                prePopulatedSkills: session.skillsToCover,
               ),
             );
           }
@@ -231,6 +256,31 @@ class SessionsScreen extends ConsumerWidget {
                   onComplete: () => _onComplete(context, ref, session),
                   onReschedule: () => _onReschedule(context, session),
                   onCancel: () => _onCancel(context, ref, session),
+                  onLeaveReview: session.status == SessionStatus.completed && !session.isReviewed
+                      ? () {
+                          final currentUid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+                          final otherUserId = session.hostId == currentUid
+                              ? session.participantId
+                              : session.hostId;
+                          final otherUserName = session.hostId == currentUid
+                              ? (session.participant?.fullName ?? session.participantId)
+                              : (session.host?.fullName ?? session.hostId);
+
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                            ),
+                            builder: (_) => ReviewSheet(
+                              toUserId: otherUserId,
+                              toUserName: otherUserName,
+                              sessionId: session.id,
+                              prePopulatedSkills: session.skillsToCover,
+                            ),
+                          );
+                        }
+                      : null,
                 );
               },
             ),

@@ -17,6 +17,7 @@ class SessionCard extends StatelessWidget {
     this.onComplete,
     this.onReschedule,
     this.onCancel,
+    this.onLeaveReview,
   });
 
   final SessionModel session;
@@ -24,6 +25,7 @@ class SessionCard extends StatelessWidget {
   final VoidCallback? onComplete;
   final VoidCallback? onReschedule;
   final VoidCallback? onCancel;
+  final VoidCallback? onLeaveReview;
 
   // ── Status helpers ──────────────────────────────────────────────────────
 
@@ -100,6 +102,16 @@ class SessionCard extends StatelessWidget {
           if (session.status == SessionStatus.scheduled) ...[
             const SizedBox(height: AppSpacing.md),
             _buildActions(),
+          ],
+          if (session.status == SessionStatus.completed && !session.isReviewed) ...[
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton.outline(
+                label: 'Leave Review',
+                onPressed: onLeaveReview,
+              ),
+            ),
           ],
         ],
       ),
