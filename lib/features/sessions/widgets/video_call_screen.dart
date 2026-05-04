@@ -25,6 +25,7 @@ class VideoCallScreen extends ConsumerStatefulWidget {
 class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   bool _controlsVisible = true;
   Timer? _hideControlsTimer;
+  bool _hasPopped = false;
 
   @override
   void initState() {
@@ -48,17 +49,46 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     ));
   }
 
+  void _toggleControls() {
+    setState(() => _controlsVisible = !_controlsVisible);
+    if (_controlsVisible) {
+      _resetControlsTimer();
+    } else {
+      _hideControlsTimer?.cancel();
+    }
+  }
+
   void _resetControlsTimer() {
     _hideControlsTimer?.cancel();
-    setState(() => _controlsVisible = true);
-    _hideControlsTimer = Timer(const Duration(seconds: 5), () {
+    if (!_controlsVisible) {
+      setState(() => _controlsVisible = true);
+    }
+    _hideControlsTimer = Timer(const Duration(seconds: 6), () {
       if (mounted) setState(() => _controlsVisible = false);
     });
+  }
+
+  void _safePop() {
+    if (_hasPopped || !mounted) return;
+    _hasPopped = true;
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _endCallAndPop() async {
+    await ref.read(callNotifierProvider.notifier).endCall();
+    _safePop();
   }
 
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
+    // If screen is being disposed without ending the call, end it
+    final callState = ref.read(callNotifierProvider);
+    if (callState.status != CallStatus.idle &&
+        callState.status != CallStatus.ended &&
+        callState.status != CallStatus.declined) {
+      ref.read(callNotifierProvider.notifier).endCall();
+    }
     super.dispose();
   }
 
@@ -73,175 +103,288 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     final callState = ref.watch(callNotifierProvider);
     final agora = ref.read(agoraServiceProvider);
 
-    // Auto-pop when call ends
-    if (callState.status == CallStatus.ended ||
-        callState.status == CallStatus.declined) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).pop();
-      });
+    // Auto-pop when call ends from remote side
+    if ((callState.status == CallStatus.ended ||
+            callState.status == CallStatus.declined) &&
+        !_hasPopped) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _safePop());
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTap: _resetControlsTimer,
-        child: Stack(
-          children: [
-            // Remote video (full screen)
-            if (callState.remoteUid != null && agora.engine != null)
-              AgoraVideoView(
-                controller: VideoViewController.remote(
-                  rtcEngine: agora.engine!,
-                  canvas: VideoCanvas(uid: callState.remoteUid!),
-                  connection: RtcConnection(channelId: widget.channelId),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        // Show confirmation dialog instead of just popping
+        showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('End Call?'),
+            content: const Text('Are you sure you want to end this call?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('End Call'),
+              ),
+            ],
+          ),
+        ).then((confirmed) {
+          if (confirmed == true) _endCallAndPop();
+        });
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _toggleControls,
+          child: Stack(
+            children: [
+              // Remote video (full screen)
+              if (callState.remoteUid != null && agora.engine != null)
+                Positioned.fill(
+                  child: AgoraVideoView(
+                    controller: VideoViewController.remote(
+                      rtcEngine: agora.engine!,
+                      canvas: VideoCanvas(uid: callState.remoteUid!),
+                      connection: RtcConnection(channelId: widget.channelId),
+                    ),
+                  ),
+                )
+              else
+                Positioned.fill(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 48,
+                          backgroundColor: Colors.white24,
+                          child: Text(
+                            widget.remoteUserName.isNotEmpty
+                                ? widget.remoteUserName[0].toUpperCase()
+                                : '?',
+                            style:
+                                AppTextStyles.h1.copyWith(color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          widget.remoteUserName,
+                          style:
+                              AppTextStyles.h3.copyWith(color: Colors.white),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _statusText(callState.status),
+                          style: AppTextStyles.bodyMedium
+                              .copyWith(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              )
-            else
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: Colors.white24,
-                      child: Text(
-                        widget.remoteUserName.isNotEmpty
-                            ? widget.remoteUserName[0].toUpperCase()
-                            : '?',
-                        style: AppTextStyles.h1.copyWith(color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.remoteUserName,
-                      style: AppTextStyles.h3.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      callState.status == CallStatus.ringing
-                          ? 'Ringing...'
-                          : callState.status == CallStatus.connecting
-                              ? 'Connecting...'
-                              : 'Waiting...',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
+
+              // Tap overlay — ensures taps register even over Agora video
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _toggleControls,
+                  child: const SizedBox.expand(),
                 ),
               ),
 
-            // Local video (PIP - top right)
-            if (callState.isCameraOn && agora.engine != null)
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 12,
-                right: 12,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 100,
-                    height: 140,
-                    child: AgoraVideoView(
-                      controller: VideoViewController(
-                        rtcEngine: agora.engine!,
-                        canvas: const VideoCanvas(uid: 0),
+              // Local video (PIP - top right)
+              if (callState.isCameraOn && agora.engine != null)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 12,
+                  right: 12,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 100,
+                      height: 140,
+                      child: AgoraVideoView(
+                        controller: VideoViewController(
+                          rtcEngine: agora.engine!,
+                          canvas: const VideoCanvas(uid: 0),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
 
-            // Top bar
-            if (_controlsVisible)
+              // Top bar — always visible with back button
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Container(
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 8,
-                    left: 16,
-                    right: 16,
-                    bottom: 8,
-                  ),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.black54, Colors.transparent],
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.remoteUserName,
-                          style: AppTextStyles.labelLarge.copyWith(color: Colors.white),
-                          overflow: TextOverflow.ellipsis,
+                child: AnimatedOpacity(
+                  opacity: _controlsVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: IgnorePointer(
+                    ignoring: !_controlsVisible,
+                    child: Container(
+                      padding: EdgeInsets.only(
+                        top: MediaQuery.of(context).padding.top + 8,
+                        left: 8,
+                        right: 16,
+                        bottom: 12,
+                      ),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.black54, Colors.transparent],
                         ),
                       ),
-                      if (callState.status == CallStatus.active)
-                        Text(
-                          _formatDuration(callState.duration),
-                          style: AppTextStyles.labelMedium.copyWith(color: Colors.white70),
-                        ),
-                    ],
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.white),
+                            onPressed: () {
+                              showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('End Call?'),
+                                  content: const Text(
+                                      'Are you sure you want to end this call?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: Colors.red),
+                                      child: const Text('End Call'),
+                                    ),
+                                  ],
+                                ),
+                              ).then((confirmed) {
+                                if (confirmed == true) _endCallAndPop();
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: Text(
+                              widget.remoteUserName,
+                              style: AppTextStyles.labelLarge
+                                  .copyWith(color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (callState.status == CallStatus.active)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white24,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _formatDuration(callState.duration),
+                                style: AppTextStyles.labelMedium
+                                    .copyWith(color: Colors.white),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
 
-            // Bottom controls
-            if (_controlsVisible)
+              // Bottom controls
               Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
-                child: Container(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).padding.bottom + 16,
-                    top: 16,
-                  ),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [Colors.black54, Colors.transparent],
+                child: AnimatedOpacity(
+                  opacity: _controlsVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: IgnorePointer(
+                    ignoring: !_controlsVisible,
+                    child: Container(
+                      padding: EdgeInsets.only(
+                        bottom:
+                            MediaQuery.of(context).padding.bottom + 20,
+                        top: 20,
+                      ),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Colors.black54, Colors.transparent],
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _ControlButton(
+                            icon: callState.isMuted
+                                ? Icons.mic_off
+                                : Icons.mic,
+                            label: callState.isMuted ? 'Unmute' : 'Mute',
+                            isActive: callState.isMuted,
+                            onTap: () => ref
+                                .read(callNotifierProvider.notifier)
+                                .toggleMute(),
+                          ),
+                          _ControlButton(
+                            icon: callState.isCameraOn
+                                ? Icons.videocam
+                                : Icons.videocam_off,
+                            label: callState.isCameraOn
+                                ? 'Camera Off'
+                                : 'Camera On',
+                            isActive: !callState.isCameraOn,
+                            onTap: () => ref
+                                .read(callNotifierProvider.notifier)
+                                .toggleCamera(),
+                          ),
+                          _ControlButton(
+                            icon: Icons.cameraswitch,
+                            label: 'Flip',
+                            onTap: () => ref
+                                .read(callNotifierProvider.notifier)
+                                .switchCamera(),
+                          ),
+                          _ControlButton(
+                            icon: Icons.call_end,
+                            label: 'End',
+                            isDestructive: true,
+                            onTap: _endCallAndPop,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _ControlButton(
-                        icon: callState.isMuted ? Icons.mic_off : Icons.mic,
-                        label: callState.isMuted ? 'Unmute' : 'Mute',
-                        isActive: callState.isMuted,
-                        onTap: () => ref.read(callNotifierProvider.notifier).toggleMute(),
-                      ),
-                      _ControlButton(
-                        icon: callState.isCameraOn ? Icons.videocam : Icons.videocam_off,
-                        label: callState.isCameraOn ? 'Camera Off' : 'Camera On',
-                        isActive: !callState.isCameraOn,
-                        onTap: () => ref.read(callNotifierProvider.notifier).toggleCamera(),
-                      ),
-                      _ControlButton(
-                        icon: Icons.cameraswitch,
-                        label: 'Flip',
-                        onTap: () => ref.read(callNotifierProvider.notifier).switchCamera(),
-                      ),
-                      _ControlButton(
-                        icon: Icons.call_end,
-                        label: 'End',
-                        isDestructive: true,
-                        onTap: () => ref.read(callNotifierProvider.notifier).endCall(),
-                      ),
-                    ],
                   ),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  String _statusText(CallStatus status) {
+    return switch (status) {
+      CallStatus.ringing => 'Ringing...',
+      CallStatus.connecting => 'Connecting...',
+      CallStatus.active => 'Connected',
+      CallStatus.ended => 'Call Ended',
+      CallStatus.declined => 'Call Declined',
+      CallStatus.idle => '',
+    };
   }
 }
 
@@ -268,8 +411,8 @@ class _ControlButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: isDestructive
                   ? Colors.red
@@ -285,13 +428,13 @@ class _ControlButton extends StatelessWidget {
                   : isActive
                       ? Colors.black
                       : Colors.white,
-              size: 24,
+              size: 26,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 10),
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
         ],
       ),
