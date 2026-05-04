@@ -167,7 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
+                      color: context.colors.foreground,
                     ),
                     decoration: _inputDecoration(
                       hint: 'Enter your email',
@@ -184,7 +184,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
+                      color: context.colors.foreground,
                     ),
                     decoration: _inputDecoration(
                       hint: 'Enter your password',
@@ -195,7 +195,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           size: 20,
-                          color: Colors.white60,
+                          color: context.colors.mutedForeground,
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
@@ -214,9 +214,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         height: 20,
                         child: Checkbox(
                           value: _rememberMe,
-                          activeColor: AppColors.primary,
+                          activeColor: context.colors.primary,
                           checkColor: Colors.white,
-                          side: const BorderSide(color: Colors.white54),
+                          side: BorderSide(color: context.colors.mutedForeground),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -229,7 +229,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Remember me',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: Colors.white70,
+                          color: context.colors.foreground,
                         ),
                       ),
                       const Spacer(),
@@ -238,7 +238,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Text(
                           'Forgot password?',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.primary,
+                            color: context.colors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -258,25 +258,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // ── Divider ───────────────────────────────────────────────
                   Row(
                     children: [
-                      Expanded(
-                        child: Divider(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
+                      Expanded(child: Divider(color: context.colors.border)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                         child: Text(
                           'Or continue with',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: Colors.white60,
+                            color: context.colors.mutedForeground,
                           ),
                         ),
                       ),
-                      Expanded(
-                        child: Divider(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
+                      Expanded(child: Divider(color: context.colors.border)),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -299,7 +291,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         "Don't have an account? ",
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: Colors.white60,
+                          color: context.colors.mutedForeground,
                         ),
                       ),
                       GestureDetector(
@@ -307,7 +299,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Text(
                           'Sign up',
                           style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.primary,
+                            color: context.colors.primary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -326,10 +318,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.dataset_outlined, size: 18, color: Colors.white54),
+                          : Icon(Icons.dataset_outlined, size: 18, color: context.colors.mutedForeground),
                       label: Text(
                         _isSeeding ? 'Seeding...' : 'Seed Test Data',
-                        style: const TextStyle(color: Colors.white54),
+                        style: TextStyle(color: context.colors.mutedForeground),
                       ),
                     ),
                   ],
@@ -347,7 +339,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Text(
       text,
       style: AppTextStyles.labelMedium.copyWith(
-        color: Colors.white,
+        color: context.colors.foreground,
         fontWeight: FontWeight.w700,
       ),
     );
@@ -358,36 +350,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     required IconData prefixIcon,
     Widget? suffixIcon,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : const Color(0xFFF2F2F7);
+
     return InputDecoration(
       hintText: hint,
       hintStyle: AppTextStyles.bodyMedium.copyWith(
-        color: Colors.white60,
+        color: context.colors.mutedForeground,
       ),
-      prefixIcon: Icon(prefixIcon, size: 20, color: Colors.white60),
+      prefixIcon: Icon(prefixIcon, size: 20, color: context.colors.mutedForeground),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.08),
+      fillColor: fillColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: BorderSide(color: context.colors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent),
+        borderSide: BorderSide(color: context.colors.destructive),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        borderSide: BorderSide(color: context.colors.destructive, width: 1.5),
       ),
-      errorStyle: AppTextStyles.caption.copyWith(color: Colors.redAccent),
+      errorStyle: AppTextStyles.caption.copyWith(color: context.colors.destructive),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.md,

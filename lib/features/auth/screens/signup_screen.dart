@@ -174,7 +174,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     controller: _nameController,
                     textCapitalization: TextCapitalization.words,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
+                      color: context.colors.foreground,
                     ),
                     decoration: _inputDecoration(
                       hint: 'Enter your full name',
@@ -190,7 +190,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   TextFormField(
                     controller: _usernameController,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
+                      color: context.colors.foreground,
                     ),
                     decoration: _inputDecoration(
                       hint: 'Choose a username',
@@ -207,7 +207,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
+                      color: context.colors.foreground,
                     ),
                     decoration: _inputDecoration(
                       hint: 'Enter your email',
@@ -224,7 +224,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
+                      color: context.colors.foreground,
                     ),
                     decoration: _inputDecoration(
                       hint: 'Create a password',
@@ -235,7 +235,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           size: 20,
-                          color: Colors.white60,
+                          color: context.colors.mutedForeground,
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
@@ -257,7 +257,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
+                      color: context.colors.foreground,
                     ),
                     decoration: _inputDecoration(
                       hint: 'Re-enter your password',
@@ -268,7 +268,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           size: 20,
-                          color: Colors.white60,
+                          color: context.colors.mutedForeground,
                         ),
                         onPressed: () {
                           setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
@@ -289,9 +289,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         height: 20,
                         child: Checkbox(
                           value: _agreedToTerms,
-                          activeColor: AppColors.primary,
+                          activeColor: context.colors.primary,
                           checkColor: Colors.white,
-                          side: const BorderSide(color: Colors.white54),
+                          side: BorderSide(color: context.colors.mutedForeground),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -313,22 +313,22 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           child: RichText(
                             text: TextSpan(
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: Colors.white70,
+                                color: context.colors.foreground,
                               ),
-                              children: const [
-                                TextSpan(text: 'I agree to the '),
+                              children: [
+                                const TextSpan(text: 'I agree to the '),
                                 TextSpan(
                                   text: 'Terms of Service',
                                   style: TextStyle(
-                                    color: AppColors.primary,
+                                    color: context.colors.primary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                TextSpan(text: ' and '),
+                                const TextSpan(text: ' and '),
                                 TextSpan(
                                   text: 'Privacy Policy',
                                   style: TextStyle(
-                                    color: AppColors.primary,
+                                    color: context.colors.primary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -354,7 +354,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     children: [
                       Expanded(
                         child: Divider(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: context.colors.border,
                         ),
                       ),
                       Padding(
@@ -362,13 +362,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         child: Text(
                           'Or continue with',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: Colors.white60,
+                            color: context.colors.mutedForeground,
                           ),
                         ),
                       ),
                       Expanded(
                         child: Divider(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: context.colors.border,
                         ),
                       ),
                     ],
@@ -392,7 +392,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       Text(
                         'Already have an account? ',
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: Colors.white60,
+                          color: context.colors.mutedForeground,
                         ),
                       ),
                       GestureDetector(
@@ -400,7 +400,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         child: Text(
                           'Log in',
                           style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.primary,
+                            color: context.colors.primary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -421,7 +421,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     return Text(
       text,
       style: AppTextStyles.labelMedium.copyWith(
-        color: Colors.white,
+        color: context.colors.foreground,
         fontWeight: FontWeight.w700,
       ),
     );
@@ -432,36 +432,37 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     required IconData prefixIcon,
     Widget? suffixIcon,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InputDecoration(
       hintText: hint,
       hintStyle: AppTextStyles.bodyMedium.copyWith(
-        color: Colors.white60,
+        color: context.colors.mutedForeground,
       ),
-      prefixIcon: Icon(prefixIcon, size: 20, color: Colors.white60),
+      prefixIcon: Icon(prefixIcon, size: 20, color: context.colors.mutedForeground),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.08),
+      fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF2F2F7),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: BorderSide(color: context.colors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent),
+        borderSide: BorderSide(color: context.colors.destructive),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        borderSide: BorderSide(color: context.colors.destructive, width: 1.5),
       ),
-      errorStyle: AppTextStyles.caption.copyWith(color: Colors.redAccent),
+      errorStyle: AppTextStyles.caption.copyWith(color: context.colors.destructive),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.md,
