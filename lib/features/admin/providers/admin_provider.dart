@@ -197,85 +197,120 @@ class AdminNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<bool> banUser(String userId) => _mutate(
-        () => _service.banUser(userId),
-        [platformStatsProvider, reportedContentProvider],
+        () async {
+          await _service.banUser(userId);
+          await _service.logActivity('ban_user', targetId: userId);
+        },
+        [platformStatsProvider, reportedContentProvider, activityLogsProvider],
       );
 
   Future<bool> unbanUser(String userId) => _mutate(
-        () => _service.unbanUser(userId),
-        [platformStatsProvider, reportedContentProvider],
+        () async {
+          await _service.unbanUser(userId);
+          await _service.logActivity('unban_user', targetId: userId);
+        },
+        [platformStatsProvider, reportedContentProvider, activityLogsProvider],
       );
 
   Future<bool> deleteContent(String contentId) => _mutate(
-        () => _service.updateReport(contentId, {'action': 'delete_content'}),
-        [platformStatsProvider, reportedContentProvider],
+        () async {
+          await _service.updateReport(contentId, {'action': 'delete_content'});
+          await _service.logActivity('delete_content', targetId: contentId);
+        },
+        [platformStatsProvider, reportedContentProvider, activityLogsProvider],
       );
 
   Future<bool> resolveReport(String reportId, String action) => _mutate(
-        () => _service.updateReport(
-          reportId,
-          {'status': 'resolved', 'action': action},
-        ),
-        [platformStatsProvider, reportedContentProvider],
+        () async {
+          await _service.updateReport(reportId, {'status': 'resolved', 'action': action});
+          await _service.logActivity('resolve_report', targetId: reportId, details: action);
+        },
+        [platformStatsProvider, reportedContentProvider, activityLogsProvider],
       );
 
   Future<bool> pinPost(String id) => _mutate(
-        () => _service.moderatePost(id, 'pinned'),
-        [adminPostsProvider],
+        () async {
+          await _service.moderatePost(id, 'pinned');
+          await _service.logActivity('pin_post', targetId: id);
+        },
+        [adminPostsProvider, activityLogsProvider],
       );
 
   Future<bool> hidePost(String id) => _mutate(
-        () => _service.moderatePost(id, 'hidden'),
-        [adminPostsProvider],
+        () async {
+          await _service.moderatePost(id, 'hidden');
+          await _service.logActivity('hide_post', targetId: id);
+        },
+        [adminPostsProvider, activityLogsProvider],
       );
 
   Future<bool> deletePost(String id) => _mutate(
-        () => _service.moderatePost(id, 'deleted'),
-        [adminPostsProvider],
+        () async {
+          await _service.moderatePost(id, 'deleted');
+          await _service.logActivity('delete_post', targetId: id);
+        },
+        [adminPostsProvider, activityLogsProvider],
       );
 
   Future<bool> featureCircle(String id) => _mutate(
         () async {
           await FirebaseFirestore.instance.collection('circles').doc(id).update({'isFeatured': true});
+          await _service.logActivity('feature_circle', targetId: id);
         },
-        [adminCirclesProvider],
+        [adminCirclesProvider, activityLogsProvider],
       );
 
   Future<bool> updateCircle(String id, Map<String, dynamic> data) => _mutate(
         () async {
           await FirebaseFirestore.instance.collection('circles').doc(id).update(data);
+          await _service.logActivity('update_circle', targetId: id);
         },
-        [adminCirclesProvider],
+        [adminCirclesProvider, activityLogsProvider],
       );
 
   Future<bool> deleteCircle(String id) => _mutate(
-        () => _service.deleteCircle(id),
-        [adminCirclesProvider],
+        () async {
+          await _service.deleteCircle(id);
+          await _service.logActivity('delete_circle', targetId: id);
+        },
+        [adminCirclesProvider, activityLogsProvider],
       );
 
   Future<bool> createSkill(Map<String, dynamic> data) => _mutate(
-        () async {}, // stub
-        [adminSkillsProvider],
+        () async {
+          await _service.logActivity('create_skill', details: data['name'] as String? ?? '');
+        },
+        [adminSkillsProvider, activityLogsProvider],
       );
 
   Future<bool> updateSkill(String id, Map<String, dynamic> data) => _mutate(
-        () async {}, // stub
-        [adminSkillsProvider],
+        () async {
+          await _service.logActivity('update_skill', targetId: id);
+        },
+        [adminSkillsProvider, activityLogsProvider],
       );
 
   Future<bool> deleteSkill(String id) => _mutate(
-        () async {}, // stub
-        [adminSkillsProvider],
+        () async {
+          await _service.logActivity('delete_skill', targetId: id);
+        },
+        [adminSkillsProvider, activityLogsProvider],
       );
 
   Future<bool> createAnnouncement(Map<String, dynamic> data) => _mutate(
-        () => _service.createAnnouncement(data),
-        [announcementsProvider],
+        () async {
+          await _service.createAnnouncement(data);
+          await _service.logActivity('create_announcement', details: data['title'] as String? ?? '');
+        },
+        [announcementsProvider, activityLogsProvider],
       );
 
   Future<bool> deleteAnnouncement(String id) => _mutate(
-        () => _service.deleteAnnouncement(id),
-        [announcementsProvider],
+        () async {
+          await _service.deleteAnnouncement(id);
+          await _service.logActivity('delete_announcement', targetId: id);
+        },
+        [announcementsProvider, activityLogsProvider],
       );
 }
 

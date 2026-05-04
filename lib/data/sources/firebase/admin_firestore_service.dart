@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AdminFirestoreService {
@@ -99,6 +100,18 @@ class AdminFirestoreService {
 
   Future<void> deleteAnnouncement(String id) async {
     await _db.collection('announcements').doc(id).delete();
+  }
+
+  /// Log an admin action to the activityLogs collection
+  Future<void> logActivity(String action, {String? targetId, String? details}) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    await _db.collection('activityLogs').add({
+      'action': action,
+      'adminId': uid,
+      'targetId': targetId ?? '',
+      'details': details ?? '',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<List<Map<String, dynamic>>> getActivityLogs() async {
