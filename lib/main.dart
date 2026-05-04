@@ -471,17 +471,27 @@ class _IncomingCallListenerState extends ConsumerState<IncomingCallListener> {
   }
 
   void _handleSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    debugPrint('IncomingCallListener: snapshot received, ${snapshot.docs.length} docs total');
+    for (final d in snapshot.docs) {
+      debugPrint('  doc ${d.id}: status=${d.data()['status']}, caller=${d.data()['caller']}, callee=${d.data()['callee']}');
+    }
+
     final ringingDocs = snapshot.docs.where((doc) {
       final status = doc.data()['status'] as String?;
       return status == 'ringing';
     }).toList();
+
+    debugPrint('IncomingCallListener: ${ringingDocs.length} ringing docs');
 
     if (ringingDocs.isEmpty) return;
 
     final doc = ringingDocs.first;
     final callId = doc.id;
 
-    if (_handledCallIds.contains(callId)) return;
+    if (_handledCallIds.contains(callId)) {
+      debugPrint('IncomingCallListener: call $callId already handled, skipping');
+      return;
+    }
 
     final data = doc.data();
     final callerName = data['callerName'] as String? ?? 'Unknown';
