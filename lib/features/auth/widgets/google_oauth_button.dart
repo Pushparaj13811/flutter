@@ -5,11 +5,10 @@ import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
 
 class GoogleOAuthButton extends StatelessWidget {
-  const GoogleOAuthButton({super.key, this.onPressed});
+  const GoogleOAuthButton({super.key, this.onPressed, this.isLoading = false});
 
-  /// Called when the button is tapped. Defaults to a no-op until the
-  /// OAuth flow is wired up.
   final VoidCallback? onPressed;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +16,7 @@ class GoogleOAuthButton extends StatelessWidget {
       width: double.infinity,
       height: 48,
       child: OutlinedButton(
-        onPressed: onPressed ?? () {},
+        onPressed: isLoading ? null : (onPressed ?? () {}),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: context.colors.border),
           shape: RoundedRectangleBorder(
@@ -26,32 +25,39 @@ class GoogleOAuthButton extends StatelessWidget {
           backgroundColor: context.colors.card,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Google "G" icon rendered with bold blue text to match the
-            // brand colour without requiring an image asset.
-            const Text(
-              'G',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF2563EB),
-                height: 1,
+        child: isLoading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: context.colors.foreground,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'G',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2563EB),
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'Continue with Google',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: context.colors.foreground,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'Continue with Google',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: context.colors.foreground,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

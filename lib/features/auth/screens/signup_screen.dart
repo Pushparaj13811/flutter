@@ -37,6 +37,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool _agreedToTerms = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _googleTapped = false;
 
   @override
   void dispose() {
@@ -87,6 +88,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next is AuthError) {
+        setState(() => _googleTapped = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.message),
@@ -101,6 +103,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     final authState = ref.watch(authProvider);
     final isLoading = authState is AuthAuthenticating;
+    final isGoogleLoading = isLoading && _googleTapped;
+    final isSignupLoading = isLoading && !_googleTapped;
     final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
@@ -344,8 +348,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   // ── Create Account button ─────────────────────────────────
                   _GradientButton(
                     label: 'Create Account',
-                    isLoading: isLoading,
-                    onPressed: _agreedToTerms ? _onSignup : null,
+                    isLoading: isSignupLoading,
+                    onPressed: _agreedToTerms && !isLoading ? _onSignup : null,
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
@@ -377,11 +381,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                   // ── Google button ─────────────────────────────────────────
                   GoogleOAuthButton(
+                    isLoading: isGoogleLoading,
                     onPressed: isLoading
                         ? null
-                        : () => ref
-                            .read(authProvider.notifier)
-                            .signInWithGoogle(),
+                        : () {
+                            setState(() => _googleTapped = true);
+                            ref.read(authProvider.notifier).signInWithGoogle();
+                          },
                   ),
                   const SizedBox(height: AppSpacing.xl),
 

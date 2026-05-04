@@ -36,9 +36,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isSeeding = false;
   _AuthAction _currentAction = _AuthAction.none;
 
-  bool get _isLoginLoading =>
-      _currentAction == _AuthAction.login ||
-      (_currentAction == _AuthAction.none && ref.watch(authProvider) is AuthAuthenticating);
+  bool get _isLoginLoading => _currentAction == _AuthAction.login;
+  bool get _isGoogleLoading => _currentAction == _AuthAction.google;
 
   @override
   void dispose() {
@@ -275,6 +274,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // ── Google button ─────────────────────────────────────────
                   GoogleOAuthButton(
+                    isLoading: _isGoogleLoading,
                     onPressed: _currentAction != _AuthAction.none
                         ? null
                         : () {
