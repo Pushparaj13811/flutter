@@ -35,6 +35,7 @@ class SessionModel {
   final String updatedAt;
   final UserProfileModel? host;
   final UserProfileModel? participant;
+  final bool isReviewed;
 
   const SessionModel({
     this.id = '',
@@ -55,6 +56,7 @@ class SessionModel {
     this.updatedAt = '',
     this.host,
     this.participant,
+    this.isReviewed = false,
   });
 
   factory SessionModel.fromMap(Map<String, dynamic> map) {
@@ -83,6 +85,7 @@ class SessionModel {
           ? UserProfileModel.fromMap(
               Map<String, dynamic>.from(map['participant'] as Map))
           : null,
+      isReviewed: map['isReviewed'] as bool? ?? false,
     );
   }
 
@@ -107,6 +110,7 @@ class SessionModel {
         'notes': notes,
         'createdAt': createdAt,
         'updatedAt': updatedAt,
+        'isReviewed': isReviewed,
       };
 
   SessionModel copyWith({
@@ -128,6 +132,7 @@ class SessionModel {
     String? updatedAt,
     UserProfileModel? host,
     UserProfileModel? participant,
+    bool? isReviewed,
   }) {
     return SessionModel(
       id: id ?? this.id,
@@ -148,6 +153,7 @@ class SessionModel {
       updatedAt: updatedAt ?? this.updatedAt,
       host: host ?? this.host,
       participant: participant ?? this.participant,
+      isReviewed: isReviewed ?? this.isReviewed,
     );
   }
 }

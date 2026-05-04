@@ -33,6 +33,7 @@ SessionModel _parseSession(Map<String, dynamic> d) {
     notes: d['notes'] as String?,
     createdAt: toIsoString(d['createdAt']),
     updatedAt: toIsoString(d['updatedAt'] ?? d['createdAt']),
+    isReviewed: d['isReviewed'] as bool? ?? false,
   );
 }
 
