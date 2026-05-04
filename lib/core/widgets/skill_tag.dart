@@ -52,8 +52,8 @@ class SkillTag extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
+        horizontal: 12,
+        vertical: 6,
       ),
       decoration: BoxDecoration(
         color: _backgroundColor(colors),
@@ -61,7 +61,7 @@ class SkillTag extends StatelessWidget {
       ),
       child: Text(
         name,
-        style: AppTextStyles.labelSmall.copyWith(color: _textColor(colors)),
+        style: AppTextStyles.labelMedium.copyWith(color: _textColor(colors)),
       ),
       ),
     );

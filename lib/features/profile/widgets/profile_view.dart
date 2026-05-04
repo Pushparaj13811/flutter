@@ -502,14 +502,15 @@ class _OwnProfileLayout extends StatelessWidget {
 
   Widget _detailChip(AppColorsExtension colors, String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: colors.muted,
+        color: colors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.chip),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
       ),
       child: Text(
         text,
-        style: AppTextStyles.labelSmall.copyWith(color: colors.foreground),
+        style: AppTextStyles.labelMedium.copyWith(color: colors.primary),
       ),
     );
   }
