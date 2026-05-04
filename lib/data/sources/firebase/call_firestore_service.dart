@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class CallFirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get currentUid => _uid;
 
   /// Create a call document (caller initiates)
   Future<String> createCall(String calleeUid, {String? callerName}) async {

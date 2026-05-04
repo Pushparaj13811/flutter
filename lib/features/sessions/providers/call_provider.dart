@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/core/services/agora_service.dart';
 import 'package:skill_exchange/core/services/call_sound_service.dart';
@@ -124,18 +125,73 @@ class CallNotifier extends StateNotifier<CallState> {
 
   Future<void> declineCall(String callId) async {
     _sound.stop();
+    final remoteUserId = state.remoteUserId;
     await _callService.declineCall(callId);
+    if (remoteUserId != null) {
+      _saveCallHistory(remoteUserId, false, Duration.zero);
+    }
     state = const CallState();
   }
 
   Future<void> endCall() async {
     _sound.stop();
     final callId = state.callId;
+    final wasActive = state.status == CallStatus.active;
+    final duration = state.duration;
+    final remoteUserId = state.remoteUserId;
+
     if (callId != null) {
       await _callService.endCall(callId);
     }
+
+    // Save call history as a message in the chat thread
+    if (remoteUserId != null) {
+      _saveCallHistory(remoteUserId, wasActive, duration);
+    }
+
     await _cleanup();
     state = const CallState();
+  }
+
+  Future<void> _saveCallHistory(
+      String otherUserId, bool wasConnected, Duration duration) async {
+    try {
+      final uid = _callService.currentUid;
+      final sorted = [uid, otherUserId]..sort();
+      final threadId = '${sorted[0]}_${sorted[1]}';
+      final db = FirebaseFirestore.instance;
+      final threadRef = db.collection('messages').doc(threadId);
+
+      final durationStr = wasConnected
+          ? '${duration.inMinutes}m ${duration.inSeconds.remainder(60)}s'
+          : null;
+
+      // Add call log as a special message
+      await threadRef.collection('msgs').add({
+        'sender': uid,
+        'content': wasConnected
+            ? 'Video call - $durationStr'
+            : 'Missed video call',
+        'type': 'call',
+        'callDuration': duration.inSeconds,
+        'callConnected': wasConnected,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+
+      // Update thread metadata
+      final threadDoc = await threadRef.get();
+      if (threadDoc.exists) {
+        await threadRef.update({
+          'lastMessage': wasConnected
+              ? 'Video call - $durationStr'
+              : 'Missed video call',
+          'lastMessageAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (_) {
+      // Non-blocking
+    }
   }
 
   void toggleMute() {
