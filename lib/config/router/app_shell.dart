@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
@@ -27,37 +30,57 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentIndex = _currentIndex(context);
     final colors = context.colors;
+    final isHome = currentIndex == 0;
 
-    return Scaffold(
-      body: child,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(RouteNames.community),
-        backgroundColor: colors.primary,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.groups, size: 26),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: colors.card,
-          border: Border(
-            top: BorderSide(color: colors.border.withValues(alpha: 0.3)),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (isHome) {
+          // On home tab — close the app
+          if (Platform.isAndroid) {
+            SystemNavigator.pop();
+          }
+        } else {
+          // On other tabs — go back to home
+          context.go(RouteNames.dashboard);
+        }
+      },
+      child: Scaffold(
+        body: child,
+        floatingActionButton: SizedBox(
+          width: 48,
+          height: 48,
+          child: FloatingActionButton(
+            onPressed: () => context.push(RouteNames.community),
+            backgroundColor: colors.primary,
+            foregroundColor: Colors.white,
+            elevation: 3,
+            shape: const CircleBorder(),
+            child: const Icon(Icons.groups, size: 22),
           ),
         ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 56,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(context, 0, currentIndex, colors),
-                _buildNavItem(context, 1, currentIndex, colors),
-                const SizedBox(width: 56),
-                _buildNavItem(context, 2, currentIndex, colors),
-                _buildNavItem(context, 3, currentIndex, colors),
-              ],
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: colors.card,
+            border: Border(
+              top: BorderSide(color: colors.border.withValues(alpha: 0.3)),
+            ),
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              height: 56,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(context, 0, currentIndex, colors),
+                  _buildNavItem(context, 1, currentIndex, colors),
+                  const SizedBox(width: 48),
+                  _buildNavItem(context, 2, currentIndex, colors),
+                  _buildNavItem(context, 3, currentIndex, colors),
+                ],
+              ),
             ),
           ),
         ),
