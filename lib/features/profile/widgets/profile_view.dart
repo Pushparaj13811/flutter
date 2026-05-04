@@ -1,6 +1,9 @@
-// Profile display widget — modern mobile layout with SliverAppBar
+// Profile display widget — own profile has gradient header; other profiles keep
+// cover+sections layout.
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/extensions/date_extensions.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_gradients.dart';
@@ -45,16 +48,357 @@ class ProfileView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isOwnProfile) {
+      return _OwnProfileLayout(
+        profile: profile,
+        onEditPressed: onEditPressed,
+        onLogoutPressed: onLogoutPressed,
+        onAvatarTap: onAvatarTap,
+        onConnectionsTap: onConnectionsTap,
+        onSessionsTap: onSessionsTap,
+      );
+    }
+
+    return _OtherProfileLayout(
+      profile: profile,
+      onBlockPressed: onBlockPressed,
+      onReportPressed: onReportPressed,
+      onConnectionsTap: onConnectionsTap,
+      onSessionsTap: onSessionsTap,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Own Profile — gradient header + activity stats + nav list
+// ---------------------------------------------------------------------------
+
+class _OwnProfileLayout extends StatelessWidget {
+  const _OwnProfileLayout({
+    required this.profile,
+    this.onEditPressed,
+    this.onLogoutPressed,
+    this.onAvatarTap,
+    this.onConnectionsTap,
+    this.onSessionsTap,
+  });
+
+  final UserProfileModel profile;
+  final VoidCallback? onEditPressed;
+  final VoidCallback? onLogoutPressed;
+  final VoidCallback? onAvatarTap;
+  final VoidCallback? onConnectionsTap;
+  final VoidCallback? onSessionsTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final topPad = MediaQuery.of(context).padding.top;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Gradient header ──────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  colors.primary,
+                  colors.primary.withValues(alpha: 0.85),
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: topPad + AppSpacing.xl,
+                bottom: AppSpacing.xl,
+                left: AppSpacing.screenPadding,
+                right: AppSpacing.screenPadding,
+              ),
+              child: Column(
+                children: [
+                  // Avatar with camera badge
+                  _buildAvatar(colors),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Name
+                  Text(
+                    profile.fullName,
+                    style: AppTextStyles.h3.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+
+                  // @username
+                  Text(
+                    '@${profile.username}',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Edit Profile button
+                  OutlinedButton(
+                    onPressed: onEditPressed,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white, width: 1.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl,
+                        vertical: AppSpacing.sm,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                      ),
+                    ),
+                    child: Text(
+                      'Edit Profile',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.xl),
+
+          // ── Activity stats card ──────────────────────────────────────────
+          _buildActivityCard(context, colors),
+
+          const SizedBox(height: AppSpacing.xl),
+
+          // ── Nav list items ───────────────────────────────────────────────
+          _buildNavList(context, colors),
+
+          const SizedBox(height: AppSpacing.xxl),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(AppColorsExtension colors) {
+    const double size = 80;
+
+    Widget avatar = Container(
+      padding: const EdgeInsets.all(3),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+      ),
+      child: UserAvatar(
+        imageUrl: profile.avatar,
+        name: profile.fullName,
+        size: size,
+        heroTag: 'avatar_${profile.id}',
+      ),
+    );
+
+    if (onAvatarTap != null) {
+      avatar = GestureDetector(
+        onTap: onAvatarTap,
+        child: Stack(
+          children: [
+            avatar,
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  size: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return avatar;
+  }
+
+  Widget _buildActivityCard(BuildContext context, AppColorsExtension colors) {
+    final skillsCount =
+        profile.skillsToTeach.length + profile.skillsToLearn.length;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colors.primary,
+            colors.primary.withValues(alpha: 0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            children: [
+              const Icon(Icons.bar_chart, color: Colors.white, size: 20),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Your Activity',
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // Row 1: Sessions | Connections
+          Row(
+            children: [
+              _StatBox(
+                value: Formatters.number(profile.stats.sessionsCompleted),
+                label: 'Sessions',
+                onTap: onSessionsTap,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              _StatBox(
+                value: Formatters.number(profile.stats.connectionsCount),
+                label: 'Connections',
+                onTap: onConnectionsTap,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Row 2: Reviews | Skills
+          Row(
+            children: [
+              _StatBox(
+                value: Formatters.number(profile.stats.reviewsReceived),
+                label: 'Reviews',
+              ),
+              const SizedBox(width: AppSpacing.md),
+              _StatBox(
+                value: skillsCount.toString(),
+                label: 'Skills',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavList(BuildContext context, AppColorsExtension colors) {
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+      child: Column(
+        children: [
+          _NavItem(
+            icon: Icons.calendar_today_outlined,
+            label: 'My Sessions',
+            colors: colors,
+            onTap: () => context.push(RouteNames.bookings),
+          ),
+          Divider(height: 1, color: colors.border.withValues(alpha: 0.5)),
+          _NavItem(
+            icon: Icons.group_outlined,
+            label: 'Community',
+            colors: colors,
+            onTap: () => context.push(RouteNames.community),
+          ),
+          Divider(height: 1, color: colors.border.withValues(alpha: 0.5)),
+          _NavItem(
+            icon: Icons.settings_outlined,
+            label: 'Settings',
+            colors: colors,
+            onTap: () => context.push(RouteNames.settings),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Divider(height: 1, color: colors.border.withValues(alpha: 0.3)),
+          _NavItem(
+            icon: Icons.logout,
+            label: 'Log Out',
+            colors: colors,
+            destructive: true,
+            onTap: onLogoutPressed,
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          // Version footer
+          Text(
+            'Skill Exchange',
+            style: AppTextStyles.caption.copyWith(
+              color: colors.mutedForeground,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Other user profile — cover + sections (existing layout, cleaned up)
+// ---------------------------------------------------------------------------
+
+class _OtherProfileLayout extends StatelessWidget {
+  const _OtherProfileLayout({
+    required this.profile,
+    this.onBlockPressed,
+    this.onReportPressed,
+    this.onConnectionsTap,
+    this.onSessionsTap,
+  });
+
+  final UserProfileModel profile;
+  final VoidCallback? onBlockPressed;
+  final VoidCallback? onReportPressed;
+  final VoidCallback? onConnectionsTap;
+  final VoidCallback? onSessionsTap;
+
+  @override
+  Widget build(BuildContext context) {
     final colors = context.colors;
 
     return SingleChildScrollView(
       child: Column(
         children: [
-          // -- Cover image with avatar overlapping --
+          // Cover + avatar
           _buildCoverWithAvatar(context, colors),
-
-          // -- Name, username, location --
           const SizedBox(height: AppSpacing.sm),
+
+          // Identity
           _buildIdentity(colors),
           const SizedBox(height: AppSpacing.lg),
 
@@ -74,7 +418,6 @@ class ProfileView extends StatelessWidget {
             ),
             child: Column(
               children: [
-                // About / Bio
                 if (profile.bio != null && profile.bio!.isNotEmpty) ...[
                   _buildSectionCard(
                     colors,
@@ -90,8 +433,6 @@ class ProfileView extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],
-
-                // Skills to Teach
                 if (profile.skillsToTeach.isNotEmpty) ...[
                   _buildSkillsSection(
                     colors,
@@ -102,8 +443,6 @@ class ProfileView extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],
-
-                // Skills to Learn
                 if (profile.skillsToLearn.isNotEmpty) ...[
                   _buildSkillsSection(
                     colors,
@@ -114,8 +453,6 @@ class ProfileView extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],
-
-                // Availability
                 _buildSectionCard(
                   colors,
                   icon: Icons.calendar_today_outlined,
@@ -126,18 +463,12 @@ class ProfileView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-
-                // Details (languages, interests)
                 if (profile.languages.isNotEmpty ||
                     profile.interests.isNotEmpty) ...[
                   _buildDetailsSection(colors),
                   const SizedBox(height: AppSpacing.lg),
                 ],
-
-                // Footer — Learning style + Member since
                 _buildFooterCard(colors),
-                const SizedBox(height: AppSpacing.lg),
-
                 const SizedBox(height: AppSpacing.xxl),
               ],
             ),
@@ -147,9 +478,10 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // -- Cover image with avatar overlapping using Stack -----------------------
+  // -- Cover with avatar (other user — no settings icon, only 3-dot menu) -----
 
-  Widget _buildCoverWithAvatar(BuildContext context, AppColorsExtension colors) {
+  Widget _buildCoverWithAvatar(
+      BuildContext context, AppColorsExtension colors) {
     const double coverHeight = 180.0;
     const double avatarSize = 88.0;
     const double borderWidth = 4.0;
@@ -160,114 +492,64 @@ class ProfileView extends StatelessWidget {
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
       children: [
-        // Cover image / gradient
         Column(
           children: [
             SizedBox(
-              height: coverHeight + avatarOverlap, // extra space for avatar bottom half
+              height: coverHeight + avatarOverlap,
               child: Stack(
                 children: [
-                  // Cover
                   SizedBox(
                     height: coverHeight,
                     width: double.infinity,
-                    child: _buildCoverImage(context, colors),
+                    child: _buildCoverImage(context),
                   ),
-                  // Transparent area below cover for avatar overlap
                 ],
               ),
             ),
           ],
         ),
 
-        // Avatar positioned at cover bottom boundary
+        // Avatar
         Positioned(
           top: coverHeight - avatarOverlap,
           child: _buildAvatar(colors),
         ),
 
-        // Top action bar (overlays the cover)
+        // 3-dot menu only (no settings icon for other users)
         Positioned(
           top: MediaQuery.of(context).padding.top,
-          left: 0,
           right: 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (isOwnProfile) ...[
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                  tooltip: 'Settings',
-                  onPressed: onSettingsPressed,
-                ),
-                PopupMenuButton<_OwnProfileAction>(
-                  icon: const Icon(Icons.more_vert, color: Colors.white),
-                  onSelected: (action) {
-                    switch (action) {
-                      case _OwnProfileAction.edit:
-                        onEditPressed?.call();
-                      case _OwnProfileAction.logout:
-                        onLogoutPressed?.call();
-                    }
-                  },
-                  itemBuilder: (ctx) => [
-                    const PopupMenuItem(
-                      value: _OwnProfileAction.edit,
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_outlined, size: 18),
-                          SizedBox(width: 8),
-                          Text('Edit Profile'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _OwnProfileAction.logout,
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout, size: 18, color: ctx.colors.destructive),
-                          const SizedBox(width: 8),
-                          Text('Log Out', style: TextStyle(color: ctx.colors.destructive)),
-                        ],
-                      ),
-                    ),
+          child: PopupMenuButton<_OtherProfileAction>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (action) {
+              switch (action) {
+                case _OtherProfileAction.block:
+                  onBlockPressed?.call();
+                case _OtherProfileAction.report:
+                  onReportPressed?.call();
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: _OtherProfileAction.block,
+                child: Row(
+                  children: [
+                    Icon(Icons.block, size: 18),
+                    SizedBox(width: 8),
+                    Text('Block'),
                   ],
                 ),
-              ] else ...[
-                PopupMenuButton<_OtherProfileAction>(
-                  icon: const Icon(Icons.more_vert, color: Colors.white),
-                  onSelected: (action) {
-                    switch (action) {
-                      case _OtherProfileAction.block:
-                        onBlockPressed?.call();
-                      case _OtherProfileAction.report:
-                        onReportPressed?.call();
-                    }
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
-                      value: _OtherProfileAction.block,
-                      child: Row(
-                        children: [
-                          Icon(Icons.block, size: 18),
-                          SizedBox(width: 8),
-                          Text('Block'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _OtherProfileAction.report,
-                      child: Row(
-                        children: [
-                          Icon(Icons.flag_outlined, size: 18),
-                          SizedBox(width: 8),
-                          Text('Report'),
-                        ],
-                      ),
-                    ),
+              ),
+              PopupMenuItem(
+                value: _OtherProfileAction.report,
+                child: Row(
+                  children: [
+                    Icon(Icons.flag_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Report'),
                   ],
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -275,48 +557,16 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildCoverImage(BuildContext context, AppColorsExtension colors) {
-    Widget cover;
+  Widget _buildCoverImage(BuildContext context) {
     if (profile.coverImage != null && profile.coverImage!.isNotEmpty) {
-      cover = CachedNetworkImage(
+      return CachedNetworkImage(
         imageUrl: profile.coverImage!,
         fit: BoxFit.cover,
         width: double.infinity,
         errorWidget: (_, _, _) => _buildGradientCover(context),
       );
-    } else {
-      cover = _buildGradientCover(context);
     }
-
-    if (isOwnProfile && onCoverTap != null) {
-      return GestureDetector(
-        onTap: onCoverTap,
-        child: Stack(
-          children: [
-            cover,
-            Positioned(
-              bottom: 8,
-              right: 8,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  size: 18,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return cover;
+    return _buildGradientCover(context);
   }
 
   Widget _buildGradientCover(BuildContext context) {
@@ -327,14 +577,9 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // -- Avatar -----------------------------------------------------------------
-
   Widget _buildAvatar(AppColorsExtension colors) {
-    const double avatarSize = 88;
-    const double borderWidth = 4;
-
-    Widget avatar = Container(
-      padding: const EdgeInsets.all(borderWidth),
+    return Container(
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: colors.card,
@@ -342,44 +587,11 @@ class ProfileView extends StatelessWidget {
       child: UserAvatar(
         imageUrl: profile.avatar,
         name: profile.fullName,
-        size: avatarSize,
+        size: 88,
         heroTag: 'avatar_${profile.id}',
       ),
     );
-
-    if (isOwnProfile && onAvatarTap != null) {
-      avatar = GestureDetector(
-        onTap: onAvatarTap,
-        child: Stack(
-          children: [
-            avatar,
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: colors.card, width: 2),
-                ),
-                child: Icon(
-                  Icons.camera_alt,
-                  size: 16,
-                  color: colors.primaryForeground,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return avatar;
   }
-
-  // -- Identity (name, username, location) ------------------------------------
 
   Widget _buildIdentity(AppColorsExtension colors) {
     return Column(
@@ -420,8 +632,6 @@ class ProfileView extends StatelessWidget {
       ],
     );
   }
-
-  // -- Stats row --------------------------------------------------------------
 
   Widget _buildStatsRow(AppColorsExtension colors) {
     return Container(
@@ -513,8 +723,6 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // -- Skills section ---------------------------------------------------------
-
   Widget _buildSkillsSection(
     AppColorsExtension colors, {
     required String title,
@@ -539,8 +747,6 @@ class ProfileView extends StatelessWidget {
       ),
     );
   }
-
-  // -- Details section (languages + interests) --------------------------------
 
   Widget _buildDetailsSection(AppColorsExtension colors) {
     return _buildSectionCard(
@@ -567,9 +773,8 @@ class ProfileView extends StatelessWidget {
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: profile.languages
-                  .map((lang) => _chip(colors, lang))
-                  .toList(),
+              children:
+                  profile.languages.map((lang) => _chip(colors, lang)).toList(),
             ),
           ],
           if (profile.languages.isNotEmpty && profile.interests.isNotEmpty)
@@ -627,8 +832,6 @@ class ProfileView extends StatelessWidget {
       ),
     );
   }
-
-  // -- Footer card (learning style + joined date) -----------------------------
 
   Widget _buildFooterCard(AppColorsExtension colors) {
     final joined = profile.joinedAt.toDateTimeOrNull;
@@ -694,8 +897,6 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  // -- Helpers ----------------------------------------------------------------
-
   String _formatLearningStyle(String style) {
     return style.isEmpty
         ? 'Not set'
@@ -745,8 +946,130 @@ class ProfileView extends StatelessWidget {
   }
 }
 
-// -- Own profile popup menu actions -------------------------------------------
+// ---------------------------------------------------------------------------
+// Shared sub-widgets
+// ---------------------------------------------------------------------------
 
-enum _OwnProfileAction { edit, logout }
+class _StatBox extends StatelessWidget {
+  const _StatBox({
+    required this.value,
+    required this.label,
+    this.onTap,
+  });
+
+  final String value;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget content = Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: AppTextStyles.h3.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      content = GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: content,
+      );
+    }
+
+    return Expanded(child: content);
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.colors,
+    this.onTap,
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final AppColorsExtension colors;
+  final VoidCallback? onTap;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final itemColor = destructive ? colors.destructive : colors.foreground;
+    final iconBgColor = destructive
+        ? colors.destructive.withValues(alpha: 0.1)
+        : colors.muted;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.md,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: destructive ? colors.destructive : colors.mutedForeground,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: itemColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: destructive
+                  ? colors.destructive.withValues(alpha: 0.6)
+                  : colors.mutedForeground,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Popup menu action enum (other user profiles only)
+// ---------------------------------------------------------------------------
 
 enum _OtherProfileAction { block, report }

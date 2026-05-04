@@ -120,7 +120,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final asyncValue = ref.watch(_provider);
 
     return Scaffold(
-      appBar: null,
+      appBar: _isOwnProfile
+          ? null
+          : AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: const BackButton(),
+              title: const Text('Profile'),
+            ),
       body: RefreshIndicator(
         onRefresh: () async => _invalidate(),
         child: asyncValue.when(
