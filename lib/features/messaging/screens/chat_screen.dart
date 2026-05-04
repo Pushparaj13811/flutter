@@ -166,11 +166,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             },
           ),
           // More options
-          IconButton(
-            icon:
-                Icon(Icons.more_vert_rounded, color: colors.foreground, size: 22),
-            tooltip: 'More options',
-            onPressed: () {},
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert_rounded, color: colors.foreground, size: 22),
+            onSelected: (value) async {
+              if (value == 'delete') {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Delete Chat'),
+                    content: const Text('Delete this entire conversation? This cannot be undone.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true && context.mounted) {
+                  await service.deleteConversation(_threadId);
+                  if (context.mounted) Navigator.of(context).pop();
+                }
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete Chat', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 4),
         ],

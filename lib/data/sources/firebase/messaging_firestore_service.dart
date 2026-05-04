@@ -79,6 +79,21 @@ class MessagingFirestoreService {
     return _db.collection('typing').doc(threadId).snapshots();
   }
 
+  Future<void> deleteConversation(String threadId) async {
+    // Delete all messages in the thread
+    final msgs = await _db.collection('messages').doc(threadId)
+        .collection('msgs').get();
+    final batch = _db.batch();
+    for (final doc in msgs.docs) {
+      batch.delete(doc.reference);
+    }
+    // Delete the thread document itself
+    batch.delete(_db.collection('messages').doc(threadId));
+    // Delete typing indicator
+    batch.delete(_db.collection('typing').doc(threadId));
+    await batch.commit();
+  }
+
   Future<int> getUnreadCount() async {
     final snap = await _db.collection('messages')
         .where('participants', arrayContains: _uid)

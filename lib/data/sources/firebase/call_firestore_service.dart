@@ -7,10 +7,18 @@ class CallFirestoreService {
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   /// Create a call document (caller initiates)
-  Future<String> createCall(String calleeUid) async {
+  Future<String> createCall(String calleeUid, {String? callerName}) async {
+    // Get caller name from profile if not provided
+    String name = callerName ?? '';
+    if (name.isEmpty) {
+      final profile = await _db.collection('profiles').doc(_uid).get();
+      name = profile.data()?['fullName'] as String? ?? 'Someone';
+    }
+
     final doc = await _db.collection('calls').add({
       'caller': _uid,
       'callee': calleeUid,
+      'callerName': name,
       'status': 'ringing',
       'offer': null,
       'answer': null,
@@ -19,6 +27,18 @@ class CallFirestoreService {
       'createdAt': FieldValue.serverTimestamp(),
       'endedAt': null,
     });
+
+    // Send a notification so callee gets alerted even if app is closed
+    await _db.collection('notifications').doc(calleeUid).collection('items').add({
+      'type': 'incomingCall',
+      'title': 'Incoming Video Call',
+      'body': '$name is calling you',
+      'senderId': _uid,
+      'isRead': false,
+      'actionUrl': '/call/${doc.id}',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
     return doc.id;
   }
 

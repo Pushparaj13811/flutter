@@ -16,6 +16,15 @@ class AgoraService {
       AgoraConfig.appId != 'YOUR_AGORA_APP_ID';
 
   Future<bool> requestPermissions() async {
+    final cameraStatus = await Permission.camera.status;
+    final micStatus = await Permission.microphone.status;
+
+    // If permanently denied, open settings
+    if (cameraStatus.isPermanentlyDenied || micStatus.isPermanentlyDenied) {
+      await openAppSettings();
+      return false;
+    }
+
     final camera = await Permission.camera.request();
     final mic = await Permission.microphone.request();
     return camera.isGranted && mic.isGranted;

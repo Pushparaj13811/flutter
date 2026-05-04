@@ -82,13 +82,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
-    // If screen is being disposed without ending the call, end it
-    final callState = ref.read(callNotifierProvider);
-    if (callState.status != CallStatus.idle &&
-        callState.status != CallStatus.ended &&
-        callState.status != CallStatus.declined) {
-      ref.read(callNotifierProvider.notifier).endCall();
-    }
+    // Do NOT end call on dispose — user might have pressed back to minimize
     super.dispose();
   }
 
@@ -111,31 +105,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     }
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        // Show confirmation dialog instead of just popping
-        showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('End Call?'),
-            content: const Text('Are you sure you want to end this call?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('End Call'),
-              ),
-            ],
-          ),
-        ).then((confirmed) {
-          if (confirmed == true) _endCallAndPop();
-        });
-      },
+      canPop: true, // Allow back to minimize (like WhatsApp)
       child: Scaffold(
         backgroundColor: Colors.black,
         body: GestureDetector(
@@ -246,32 +216,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                           IconButton(
                             icon: const Icon(Icons.arrow_back,
                                 color: Colors.white),
-                            onPressed: () {
-                              showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('End Call?'),
-                                  content: const Text(
-                                      'Are you sure you want to end this call?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(true),
-                                      style: TextButton.styleFrom(
-                                          foregroundColor: Colors.red),
-                                      child: const Text('End Call'),
-                                    ),
-                                  ],
-                                ),
-                              ).then((confirmed) {
-                                if (confirmed == true) _endCallAndPop();
-                              });
-                            },
+                            onPressed: () => Navigator.of(context).pop(),
                           ),
                           Expanded(
                             child: Text(

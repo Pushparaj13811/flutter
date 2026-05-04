@@ -60,11 +60,94 @@ class SkillExchangeApp extends ConsumerWidget {
         return GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: IncomingCallListener(
-            child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+            child: Column(
+              children: [
+                // Active call banner — tap to return to call
+                const _ActiveCallBanner(),
+                Expanded(
+                  child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
+  }
+}
+
+class _ActiveCallBanner extends ConsumerWidget {
+  const _ActiveCallBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final callState = ref.watch(callNotifierProvider);
+
+    // Only show when call is active/ringing/connecting but the call screen isn't visible
+    if (callState.status == CallStatus.idle ||
+        callState.status == CallStatus.ended ||
+        callState.status == CallStatus.declined) {
+      return const SizedBox.shrink();
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // Return to call screen
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => VideoCallScreen(
+              channelId: callState.callId ?? '',
+              remoteUserName: callState.remoteUserName ?? 'Call',
+              isCaller: true,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 4,
+          bottom: 8,
+          left: 16,
+          right: 16,
+        ),
+        color: const Color(0xFF059669),
+        child: Row(
+          children: [
+            const Icon(Icons.videocam, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                callState.status == CallStatus.active
+                    ? 'Tap to return to call'
+                    : 'Calling ${callState.remoteUserName ?? ''}...',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (callState.status == CallStatus.active)
+              Text(
+                _formatDuration(callState.duration),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => ref.read(callNotifierProvider.notifier).endCall(),
+              child: const Icon(Icons.call_end, color: Colors.white, size: 18),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 }
 

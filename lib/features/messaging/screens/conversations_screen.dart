@@ -9,6 +9,7 @@ import 'package:skill_exchange/core/widgets/empty_state.dart';
 import 'package:skill_exchange/core/widgets/error_message.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
 import 'package:skill_exchange/features/messaging/providers/messaging_provider.dart';
+import 'package:skill_exchange/config/di/providers.dart';
 import 'package:skill_exchange/core/widgets/animated_list_item.dart';
 import 'package:skill_exchange/features/messaging/screens/chat_screen.dart';
 import 'package:skill_exchange/features/messaging/widgets/conversation_tile.dart';
@@ -106,6 +107,17 @@ class ConversationsScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    onDelete: () async {
+                      final threadId = conversation['id'] as String;
+                      final service = ref.read(messagingFirestoreServiceProvider);
+                      await service.deleteConversation(threadId);
+                      _refresh(ref);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Chat deleted')),
+                        );
+                      }
+                    },
                   ),
                 );
               },

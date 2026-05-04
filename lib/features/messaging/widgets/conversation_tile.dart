@@ -10,10 +10,12 @@ class ConversationTile extends StatelessWidget {
     super.key,
     required this.conversation,
     this.onTap,
+    this.onDelete,
   });
 
   final Map<String, dynamic> conversation;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   bool get _isUnread => (conversation['unreadCount'] as int? ?? 0) > 0;
   int get _unreadCount => conversation['unreadCount'] as int? ?? 0;
@@ -41,6 +43,30 @@ class ConversationTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onDelete != null
+          ? () {
+              showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete Chat'),
+                  content: Text('Delete conversation with $_otherName? This cannot be undone.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              ).then((confirmed) {
+                if (confirmed == true) onDelete!();
+              });
+            }
+          : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.screenPadding,
