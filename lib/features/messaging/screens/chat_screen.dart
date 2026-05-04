@@ -12,6 +12,7 @@ import 'package:skill_exchange/features/messaging/providers/messaging_provider.d
 import 'package:skill_exchange/features/messaging/widgets/message_bubble.dart';
 import 'package:skill_exchange/features/messaging/widgets/message_input.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/services/call_overlay_service.dart';
 import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
 import 'package:skill_exchange/features/sessions/widgets/video_call_screen.dart';
 
@@ -146,13 +147,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   await notifier.startCall(_otherUserId, otherUserName);
               if (success && context.mounted) {
                 final callState = ref.read(callNotifierProvider);
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => VideoCallScreen(
-                      channelId: callState.callId!,
-                      remoteUserName: otherUserName,
-                      isCaller: true,
-                    ),
+                callOverlay.openCallScreen(
+                  VideoCallScreen(
+                    channelId: callState.callId!,
+                    remoteUserName: otherUserName,
+                    isCaller: true,
                   ),
                 );
               } else if (!success && context.mounted) {
@@ -305,17 +304,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               notifier
                                   .startCall(_otherUserId, otherUserName)
                                   .then((success) {
-                                if (success && context.mounted) {
+                                if (success) {
                                   final callState =
                                       ref.read(callNotifierProvider);
-                                  Navigator.of(context, rootNavigator: true)
-                                      .push(
-                                    MaterialPageRoute(
-                                      builder: (_) => VideoCallScreen(
-                                        channelId: callState.callId!,
-                                        remoteUserName: otherUserName,
-                                        isCaller: true,
-                                      ),
+                                  callOverlay.openCallScreen(
+                                    VideoCallScreen(
+                                      channelId: callState.callId!,
+                                      remoteUserName: otherUserName,
+                                      isCaller: true,
                                     ),
                                   );
                                 }

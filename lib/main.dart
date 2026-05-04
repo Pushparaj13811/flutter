@@ -11,6 +11,7 @@ import 'package:skill_exchange/core/services/fcm_service.dart';
 import 'package:skill_exchange/core/theme/app_theme.dart';
 import 'package:skill_exchange/core/widgets/connectivity_banner.dart';
 import 'package:skill_exchange/core/services/agora_service.dart';
+import 'package:skill_exchange/core/services/call_overlay_service.dart';
 import 'package:skill_exchange/core/services/call_sound_service.dart';
 import 'package:skill_exchange/core/services/presence_service.dart';
 import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
@@ -73,6 +74,8 @@ class SkillExchangeApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
+        // Store context for call overlay navigation
+        callOverlay.setContext(context);
         return GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: IncomingCallListener(
@@ -109,13 +112,12 @@ class _ActiveCallBanner extends ConsumerWidget {
     // Compact green banner — tap to return to full call screen
     return GestureDetector(
       onTap: () {
-        Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(
-            builder: (_) => VideoCallScreen(
-              channelId: callState.callId ?? '',
-              remoteUserName: callState.remoteUserName ?? 'Call',
-              isCaller: true,
-            ),
+        if (callOverlay.isCallScreenVisible.value) return;
+        callOverlay.openCallScreen(
+          VideoCallScreen(
+            channelId: callState.callId ?? '',
+            remoteUserName: callState.remoteUserName ?? 'Call',
+            isCaller: true,
           ),
         );
       },
@@ -256,9 +258,9 @@ class _FloatingCallPipState extends ConsumerState<FloatingCallPip>
         // Only show PIP when call is active AND call screen is NOT visible
         if (hasActiveCall)
           ValueListenableBuilder<bool>(
-            valueListenable: callScreenVisible,
-            builder: (context, isCallScreenVisible, _) {
-              if (isCallScreenVisible) return const SizedBox.shrink();
+            valueListenable: callOverlay.isCallScreenVisible,
+            builder: (context, isVisible, _) {
+              if (isVisible) return const SizedBox.shrink();
               return _buildPipWidget(context, callState, agora, isActive);
             },
           ),
@@ -292,13 +294,11 @@ class _FloatingCallPipState extends ConsumerState<FloatingCallPip>
           _snapToEdge();
         },
         onTap: () {
-          Navigator.of(context, rootNavigator: true).push(
-            MaterialPageRoute(
-              builder: (_) => VideoCallScreen(
-                channelId: callState.callId ?? '',
-                remoteUserName: callState.remoteUserName ?? 'Call',
-                isCaller: true,
-              ),
+          callOverlay.openCallScreen(
+            VideoCallScreen(
+              channelId: callState.callId ?? '',
+              remoteUserName: callState.remoteUserName ?? 'Call',
+              isCaller: true,
             ),
           );
         },
@@ -447,33 +447,29 @@ class IncomingCallListener extends ConsumerWidget {
           // Play ringtone for incoming call
           ref.read(callSoundServiceProvider).playRingtone();
 
-          Navigator.of(context, rootNavigator: true).push(
-            MaterialPageRoute(
-              builder: (_) => IncomingCallOverlay(
-                callerName: callerName,
-                onAccept: () async {
-                  ref.read(callSoundServiceProvider).stop();
-                  Navigator.of(context).pop();
-                  final notifier = ref.read(callNotifierProvider.notifier);
-                  final success = await notifier.acceptCall(callId, callerName);
-                  if (success && context.mounted) {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => VideoCallScreen(
-                          channelId: callId,
-                          remoteUserName: callerName,
-                          isCaller: false,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                onDecline: () {
-                  ref.read(callSoundServiceProvider).stop();
-                  Navigator.of(context).pop();
-                  ref.read(callNotifierProvider.notifier).declineCall(callId);
-                },
-              ),
+          callOverlay.openCallScreen(
+            IncomingCallOverlay(
+              callerName: callerName,
+              onAccept: () async {
+                ref.read(callSoundServiceProvider).stop();
+                if (context.mounted) Navigator.of(context, rootNavigator: true).maybePop();
+                final notifier = ref.read(callNotifierProvider.notifier);
+                final success = await notifier.acceptCall(callId, callerName);
+                if (success) {
+                  callOverlay.openCallScreen(
+                    VideoCallScreen(
+                      channelId: callId,
+                      remoteUserName: callerName,
+                      isCaller: false,
+                    ),
+                  );
+                }
+              },
+              onDecline: () {
+                ref.read(callSoundServiceProvider).stop();
+                if (context.mounted) Navigator.of(context, rootNavigator: true).maybePop();
+                ref.read(callNotifierProvider.notifier).declineCall(callId);
+              },
             ),
           );
         }
