@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Manages ringtone and dial tone for video calls using local MP3 assets.
 class CallSoundService {
   AudioPlayer? _player;
+  StreamSubscription? _stateSubscription;
   bool _isPlaying = false;
 
   bool get isPlaying => _isPlaying;
@@ -13,7 +15,7 @@ class CallSoundService {
     await stop();
     try {
       _player = AudioPlayer();
-      _player!.onPlayerStateChanged.listen((state) {
+      _stateSubscription = _player!.onPlayerStateChanged.listen((state) {
         _isPlaying = state == PlayerState.playing;
       });
       await _player!.setReleaseMode(ReleaseMode.loop);
@@ -31,7 +33,7 @@ class CallSoundService {
     await stop();
     try {
       _player = AudioPlayer();
-      _player!.onPlayerStateChanged.listen((state) {
+      _stateSubscription = _player!.onPlayerStateChanged.listen((state) {
         _isPlaying = state == PlayerState.playing;
       });
       await _player!.setReleaseMode(ReleaseMode.loop);
@@ -46,15 +48,18 @@ class CallSoundService {
   }
 
   Future<void> stop() async {
-    if (_player == null) return;
+    _stateSubscription?.cancel();
+    _stateSubscription = null;
+    _isPlaying = false;
+    final player = _player;
+    _player = null;
+    if (player == null) return;
     try {
-      await _player!.stop();
-      await _player!.dispose();
+      await player.stop();
+      await player.dispose();
     } catch (e) {
       debugPrint('CallSoundService.stop error: $e');
     }
-    _player = null;
-    _isPlaying = false;
   }
 }
 

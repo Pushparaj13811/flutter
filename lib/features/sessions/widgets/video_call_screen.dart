@@ -30,6 +30,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   bool _controlsVisible = true;
   Timer? _hideControlsTimer;
   bool _hasPopped = false;
+  bool _callbacksRegistered = false;
 
   // PIP state: which video is in the small PIP window
   // false = local video in PIP (default), true = remote video in PIP
@@ -76,9 +77,11 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   }
 
   void _setupAgoraCallbacks() {
+    if (_callbacksRegistered) return;
     final agora = ref.read(agoraServiceProvider);
     final engine = agora.engine;
     if (engine == null) return;
+    _callbacksRegistered = true;
 
     engine.registerEventHandler(RtcEngineEventHandler(
       onUserJoined: (connection, remoteUid, elapsed) {

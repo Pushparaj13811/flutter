@@ -123,11 +123,20 @@ class CallNotifier extends StateNotifier<CallState> {
 
     try {
       await _agora.initialize();
+
+      // Get caller's uid from the call document
+      final callDoc = await FirebaseFirestore.instance
+          .collection('calls')
+          .doc(callId)
+          .get();
+      final callerUid = callDoc.data()?['caller'] as String? ?? '';
+
       await _callService.setAnswer(callId, {'accepted': true});
 
       state = state.copyWith(
         status: CallStatus.connecting,
         callId: callId,
+        remoteUserId: callerUid,
         remoteUserName: callerName,
       );
 
@@ -249,6 +258,9 @@ class CallNotifier extends StateNotifier<CallState> {
   }
 
   void onRemoteUserLeft(int uid) {
+    if (state.status == CallStatus.idle ||
+        state.status == CallStatus.ended ||
+        state.status == CallStatus.declined) return;
     endCall();
   }
 
