@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -437,87 +439,125 @@ class IncomingCallListener extends ConsumerStatefulWidget {
 
 class _IncomingCallListenerState extends ConsumerState<IncomingCallListener> {
   final Set<String> _handledCallIds = {};
+  StreamSubscription? _callsSub;
+  String? _currentUid;
+
+  @override
+  void dispose() {
+    _callsSub?.cancel();
+    super.dispose();
+  }
+
+  void _startListening(String uid) {
+    _callsSub?.cancel();
+    _currentUid = uid;
+    debugPrint('IncomingCallListener: starting stream for uid=$uid');
+
+    _callsSub = FirebaseFirestore.instance
+        .collection('calls')
+        .where('callee', isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) {
+      _handleSnapshot(snapshot);
+    }, onError: (e) {
+      debugPrint('IncomingCallListener: stream error: $e');
+    });
+  }
+
+  void _stopListening() {
+    _callsSub?.cancel();
+    _callsSub = null;
+    _currentUid = null;
+  }
+
+  void _handleSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    final ringingDocs = snapshot.docs.where((doc) {
+      final status = doc.data()['status'] as String?;
+      return status == 'ringing';
+    }).toList();
+
+    if (ringingDocs.isEmpty) return;
+
+    final doc = ringingDocs.first;
+    final callId = doc.id;
+
+    if (_handledCallIds.contains(callId)) return;
+
+    final data = doc.data();
+    final callerName = data['callerName'] as String? ?? 'Unknown';
+
+    final createdAt = data['createdAt'] as Timestamp?;
+    if (createdAt != null) {
+      final age = DateTime.now().difference(createdAt.toDate());
+      if (age.inSeconds > 60) return;
+    }
+
+    final currentCall = ref.read(callNotifierProvider);
+    if (currentCall.status != CallStatus.idle) return;
+
+    _handledCallIds.add(callId);
+    debugPrint('IncomingCallListener: showing overlay for call $callId from $callerName');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      ref.read(callSoundServiceProvider).playRingtone();
+
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (_) => IncomingCallOverlay(
+            callerName: callerName,
+            onAccept: () async {
+              ref.read(callSoundServiceProvider).stop();
+              if (context.mounted) {
+                Navigator.of(context, rootNavigator: true).maybePop();
+              }
+              final notifier = ref.read(callNotifierProvider.notifier);
+              final success =
+                  await notifier.acceptCall(callId, callerName);
+              if (success && context.mounted) {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => VideoCallScreen(
+                      channelId: callId,
+                      remoteUserName: callerName,
+                      isCaller: false,
+                    ),
+                  ),
+                );
+              }
+            },
+            onDecline: () {
+              ref.read(callSoundServiceProvider).stop();
+              if (context.mounted) {
+                Navigator.of(context, rootNavigator: true).maybePop();
+              }
+              ref.read(callNotifierProvider.notifier).declineCall(callId);
+            },
+          ),
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final incomingAsync = ref.watch(incomingCallsProvider);
+    // Listen to auth state changes to start/stop the stream
+    final authState = ref.watch(authProvider);
 
-    incomingAsync.whenData((snapshot) {
-      // Filter for ringing calls only (query no longer filters by status)
-      final ringingDocs = snapshot.docs.where((doc) {
-        final status = doc.data()['status'] as String?;
-        return status == 'ringing';
-      }).toList();
-
-      if (ringingDocs.isEmpty) return;
-
-      final doc = ringingDocs.first;
-      final callId = doc.id;
-
-      // Skip if already handled this call
-      if (_handledCallIds.contains(callId)) return;
-
-      final data = doc.data();
-      final callerName = data['callerName'] as String? ?? 'Unknown';
-
-      // Only react to calls created within the last 60 seconds
-      final createdAt = data['createdAt'] as Timestamp?;
-      if (createdAt != null) {
-        final age = DateTime.now().difference(createdAt.toDate());
-        if (age.inSeconds > 60) return;
+    if (authState is AuthAuthenticated) {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null && uid.isNotEmpty && uid != _currentUid) {
+        // Start or restart stream for this user
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _startListening(uid);
+        });
       }
-
-      // Don't show overlay if we're already in a call
-      final currentCall = ref.read(callNotifierProvider);
-      if (currentCall.status != CallStatus.idle) return;
-
-      // Mark as handled
-      _handledCallIds.add(callId);
-
-      // Defer navigation to avoid build-phase issues
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!context.mounted) return;
-
-        // Play ringtone
-        ref.read(callSoundServiceProvider).playRingtone();
-
-        Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(
-            builder: (_) => IncomingCallOverlay(
-              callerName: callerName,
-              onAccept: () async {
-                ref.read(callSoundServiceProvider).stop();
-                // Pop the overlay
-                if (context.mounted) {
-                  Navigator.of(context, rootNavigator: true).maybePop();
-                }
-                final notifier = ref.read(callNotifierProvider.notifier);
-                final success =
-                    await notifier.acceptCall(callId, callerName);
-                if (success && context.mounted) {
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(
-                      builder: (_) => VideoCallScreen(
-                        channelId: callId,
-                        remoteUserName: callerName,
-                        isCaller: false,
-                      ),
-                    ),
-                  );
-                }
-              },
-              onDecline: () {
-                ref.read(callSoundServiceProvider).stop();
-                if (context.mounted) {
-                  Navigator.of(context, rootNavigator: true).maybePop();
-                }
-                ref.read(callNotifierProvider.notifier).declineCall(callId);
-              },
-            ),
-          ),
-        );
-      });
-    });
+    } else {
+      if (_currentUid != null) {
+        _stopListening();
+      }
+    }
 
     return widget.child;
   }
