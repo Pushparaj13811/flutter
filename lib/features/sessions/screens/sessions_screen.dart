@@ -14,7 +14,8 @@ import 'package:skill_exchange/features/sessions/providers/session_provider.dart
 import 'package:skill_exchange/features/sessions/widgets/reschedule_session_sheet.dart';
 import 'package:skill_exchange/features/sessions/widgets/session_booking_sheet.dart';
 import 'package:skill_exchange/features/sessions/widgets/session_card.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
+import 'package:skill_exchange/features/sessions/widgets/video_call_screen.dart';
 
 class SessionsScreen extends ConsumerWidget {
   const SessionsScreen({super.key});
@@ -32,18 +33,37 @@ class SessionsScreen extends ConsumerWidget {
     );
   }
 
-  void _onJoinMeeting(BuildContext context, SessionModel session) {
-    final link = session.meetingLink;
-    if (link == null || link.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No meeting link available'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-    launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication);
+  void _onJoinMeeting(BuildContext context, WidgetRef ref, SessionModel session) {
+    final currentUid = fb.FirebaseAuth.instance.currentUser?.uid ?? '';
+    final otherUserId = session.hostId == currentUid
+        ? session.participantId
+        : session.hostId;
+    final otherUserName = session.hostId == currentUid
+        ? (session.participant?.fullName ?? session.participantId)
+        : (session.host?.fullName ?? session.hostId);
+
+    final notifier = ref.read(callNotifierProvider.notifier);
+    notifier.startCall(otherUserId, otherUserName).then((success) {
+      if (success && context.mounted) {
+        final callState = ref.read(callNotifierProvider);
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => VideoCallScreen(
+              channelId: callState.callId!,
+              remoteUserName: otherUserName,
+              isCaller: true,
+            ),
+          ),
+        );
+      } else if (!success && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to start call. Check camera/mic permissions.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
   }
 
   void _onComplete(
@@ -252,7 +272,7 @@ class SessionsScreen extends ConsumerWidget {
                 final session = sessions[index];
                 return SessionCard(
                   session: session,
-                  onJoinMeeting: () => _onJoinMeeting(context, session),
+                  onJoinMeeting: () => _onJoinMeeting(context, ref, session),
                   onComplete: () => _onComplete(context, ref, session),
                   onReschedule: () => _onReschedule(context, session),
                   onCancel: () => _onCancel(context, ref, session),

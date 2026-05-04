@@ -31,7 +31,7 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       body: child,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(RouteNames.search),
+        onPressed: () => context.push(RouteNames.bookings),
         backgroundColor: colors.primary,
         foregroundColor: Colors.white,
         elevation: 4,
