@@ -1,4 +1,6 @@
 // Profile edit form — clean single-page layout with cover + avatar header
+// All profile fields: name, bio, location, timezone, learning style,
+// skills to teach/learn, interests, languages, availability
 
 import 'dart:io';
 
@@ -14,9 +16,12 @@ import 'package:skill_exchange/core/theme/app_radius.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/app_button.dart';
 import 'package:skill_exchange/core/widgets/user_avatar.dart';
+import 'package:skill_exchange/data/models/skill_model.dart';
 import 'package:skill_exchange/data/models/update_profile_dto.dart';
 import 'package:skill_exchange/data/models/user_profile_model.dart';
 import 'package:skill_exchange/features/profile/providers/profile_provider.dart';
+import 'package:skill_exchange/features/profile/widgets/availability_grid.dart';
+import 'package:skill_exchange/features/profile/widgets/skills_section.dart';
 
 class ProfileEdit extends ConsumerStatefulWidget {
   const ProfileEdit({
@@ -38,6 +43,23 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
   late final TextEditingController _fullNameController;
   late final TextEditingController _bioController;
   late final TextEditingController _locationController;
+  late final TextEditingController _timezoneController;
+  late final TextEditingController _interestInputController;
+  late final TextEditingController _languageInputController;
+
+  late String _preferredLearningStyle;
+  late List<SkillModel> _skillsToTeach;
+  late List<SkillModel> _skillsToLearn;
+  late List<String> _interests;
+  late List<String> _languages;
+  late AvailabilityModel _availability;
+
+  static const List<String> _learningStyles = [
+    'visual',
+    'auditory',
+    'kinesthetic',
+    'reading',
+  ];
 
   @override
   void initState() {
@@ -46,6 +68,17 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     _fullNameController = TextEditingController(text: p.fullName);
     _bioController = TextEditingController(text: p.bio ?? '');
     _locationController = TextEditingController(text: p.location ?? '');
+    _timezoneController = TextEditingController(text: p.timezone ?? '');
+    _interestInputController = TextEditingController();
+    _languageInputController = TextEditingController();
+    _preferredLearningStyle = _learningStyles.contains(p.preferredLearningStyle)
+        ? p.preferredLearningStyle
+        : 'visual';
+    _skillsToTeach = List<SkillModel>.from(p.skillsToTeach);
+    _skillsToLearn = List<SkillModel>.from(p.skillsToLearn);
+    _interests = List<String>.from(p.interests);
+    _languages = List<String>.from(p.languages);
+    _availability = p.availability;
   }
 
   @override
@@ -53,6 +86,9 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     _fullNameController.dispose();
     _bioController.dispose();
     _locationController.dispose();
+    _timezoneController.dispose();
+    _interestInputController.dispose();
+    _languageInputController.dispose();
     super.dispose();
   }
 
@@ -61,11 +97,17 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
       fullName: _fullNameController.text.trim(),
       bio: _bioController.text.trim(),
       location: _locationController.text.trim(),
+      timezone: _timezoneController.text.trim(),
+      preferredLearningStyle: _preferredLearningStyle,
+      skillsToTeach: _skillsToTeach,
+      skillsToLearn: _skillsToLearn,
+      interests: _interests,
+      languages: _languages,
+      availability: _availability,
     );
 
-    final success = await ref
-        .read(profileNotifierProvider.notifier)
-        .updateProfile(dto);
+    final success =
+        await ref.read(profileNotifierProvider.notifier).updateProfile(dto);
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -81,11 +123,12 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
 
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512);
+    final image =
+        await picker.pickImage(source: ImageSource.gallery, maxWidth: 512);
     if (image == null) return;
-
-    final file = File(image.path);
-    final url = await ref.read(profileNotifierProvider.notifier).uploadAvatar(file);
+    final url = await ref
+        .read(profileNotifierProvider.notifier)
+        .uploadAvatar(File(image.path));
     if (url != null && mounted) {
       ref.invalidate(currentProfileProvider);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,12 +139,13 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
 
   Future<void> _pickCover() async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200);
+    final image =
+        await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200);
     if (image == null) return;
-
-    final file = File(image.path);
     try {
-      await ref.read(profileFirestoreServiceProvider).uploadCoverImage(file);
+      await ref
+          .read(profileFirestoreServiceProvider)
+          .uploadCoverImage(File(image.path));
       if (mounted) {
         ref.invalidate(currentProfileProvider);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,6 +159,15 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
         );
       }
     }
+  }
+
+  void _addChip(List<String> list, TextEditingController controller) {
+    final text = controller.text.trim();
+    if (text.isEmpty || list.contains(text)) return;
+    setState(() {
+      list.add(text);
+      controller.clear();
+    });
   }
 
   @override
@@ -143,6 +196,7 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
         // Scrollable content
         Expanded(
           child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -150,39 +204,139 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
                 _buildCoverWithAvatar(context, colors, profile),
                 const SizedBox(height: AppSpacing.xl),
 
-                // Form fields
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildFieldLabel('Full Name'),
-                      const SizedBox(height: AppSpacing.xs),
-                      _buildFilledField(colors, _fullNameController),
-                      const SizedBox(height: AppSpacing.lg),
+                // ── Basic Info ─────────────────────────────────────────────
+                _sectionPadding(
+                  children: [
+                    _fieldLabel('Full Name'),
+                    _filledField(colors, _fullNameController),
+                    const SizedBox(height: AppSpacing.lg),
 
-                      _buildFieldLabel('Email Address'),
-                      const SizedBox(height: AppSpacing.xs),
-                      _buildReadOnlyField(colors, profile.email),
-                      const SizedBox(height: AppSpacing.lg),
+                    _fieldLabel('Email Address'),
+                    _readOnlyField(colors, profile.email),
+                    const SizedBox(height: AppSpacing.lg),
 
-                      _buildFieldLabel('Location'),
-                      const SizedBox(height: AppSpacing.xs),
-                      _buildFilledField(colors, _locationController, hint: 'City, Country'),
-                      const SizedBox(height: AppSpacing.lg),
+                    _fieldLabel('Location'),
+                    _filledField(colors, _locationController,
+                        hint: 'City, Country'),
+                    const SizedBox(height: AppSpacing.lg),
 
-                      _buildFieldLabel('Bio / Description'),
-                      const SizedBox(height: AppSpacing.xs),
-                      _buildFilledField(
-                        colors,
-                        _bioController,
-                        hint: 'Tell clients about your expertise and work ethic...',
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: AppSpacing.xxxl),
-                    ],
-                  ),
+                    _fieldLabel('Timezone'),
+                    _filledField(colors, _timezoneController,
+                        hint: 'e.g. UTC+5:30'),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    _fieldLabel('Bio / Description'),
+                    _filledField(colors, _bioController,
+                        hint:
+                            'Tell others about your expertise and work ethic...',
+                        maxLines: 3),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    _fieldLabel('Preferred Learning Style'),
+                    const SizedBox(height: AppSpacing.xs),
+                    _buildLearningStyleSelector(colors),
+                  ],
                 ),
+
+                _sectionDivider(colors),
+
+                // ── Skills ─────────────────────────────────────────────────
+                _sectionPadding(
+                  children: [
+                    SkillsSection(
+                      title: 'Skills to Teach',
+                      skills: _skillsToTeach,
+                      onChanged: (v) => setState(() => _skillsToTeach = v),
+                    ),
+                    const SizedBox(height: AppSpacing.sectionGap),
+                    SkillsSection(
+                      title: 'Skills to Learn',
+                      skills: _skillsToLearn,
+                      onChanged: (v) => setState(() => _skillsToLearn = v),
+                    ),
+                  ],
+                ),
+
+                _sectionDivider(colors),
+
+                // ── Languages ──────────────────────────────────────────────
+                _sectionPadding(
+                  children: [
+                    _fieldLabel('Languages'),
+                    const SizedBox(height: AppSpacing.sm),
+                    if (_languages.isNotEmpty)
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: _languages
+                            .map((lang) => Chip(
+                                  label: Text(lang,
+                                      style: AppTextStyles.labelSmall),
+                                  deleteIcon:
+                                      const Icon(Icons.close, size: 14),
+                                  onDeleted: () => setState(
+                                      () => _languages.remove(lang)),
+                                  backgroundColor: colors.muted,
+                                  side: BorderSide.none,
+                                ))
+                            .toList(),
+                      ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _chipInput(colors, _languageInputController, 'Add language',
+                        () => _addChip(_languages, _languageInputController)),
+                  ],
+                ),
+
+                _sectionDivider(colors),
+
+                // ── Interests ──────────────────────────────────────────────
+                _sectionPadding(
+                  children: [
+                    _fieldLabel('Interests'),
+                    const SizedBox(height: AppSpacing.sm),
+                    if (_interests.isNotEmpty)
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: _interests
+                            .map((interest) => Chip(
+                                  label: Text(interest,
+                                      style: AppTextStyles.labelSmall),
+                                  deleteIcon:
+                                      const Icon(Icons.close, size: 14),
+                                  onDeleted: () => setState(
+                                      () => _interests.remove(interest)),
+                                  backgroundColor: colors.muted,
+                                  side: BorderSide.none,
+                                ))
+                            .toList(),
+                      ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _chipInput(
+                        colors,
+                        _interestInputController,
+                        'Add interest',
+                        () =>
+                            _addChip(_interests, _interestInputController)),
+                  ],
+                ),
+
+                _sectionDivider(colors),
+
+                // ── Availability ───────────────────────────────────────────
+                _sectionPadding(
+                  children: [
+                    _fieldLabel('Availability'),
+                    const SizedBox(height: AppSpacing.sm),
+                    AvailabilityGrid(
+                      availability: _availability,
+                      readOnly: false,
+                      onChanged: (v) => setState(() => _availability = v),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.xl),
               ],
             ),
           ),
@@ -196,10 +350,16 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
             top: AppSpacing.md,
             bottom: MediaQuery.of(context).padding.bottom + AppSpacing.md,
           ),
+          decoration: BoxDecoration(
+            color: colors.card,
+            border: Border(
+              top: BorderSide(color: colors.border.withValues(alpha: 0.3)),
+            ),
+          ),
           child: SizedBox(
             width: double.infinity,
             child: AppButton.primary(
-              label: 'Save',
+              label: 'Save Changes',
               isLoading: isSaving,
               onPressed: isSaving ? null : _save,
             ),
@@ -209,10 +369,12 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     );
   }
 
+  // ── Cover + Avatar header ───────────────────────────────────────────────────
+
   Widget _buildCoverWithAvatar(
       BuildContext context, AppColorsExtension colors, UserProfileModel profile) {
-    const double coverHeight = 160.0;
-    const double avatarSize = 90.0;
+    const double coverHeight = 150.0;
+    const double avatarSize = 86.0;
     const double avatarOverlap = avatarSize / 2;
 
     return SizedBox(
@@ -220,7 +382,7 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Cover image
+          // Cover
           GestureDetector(
             onTap: _pickCover,
             child: SizedBox(
@@ -228,7 +390,8 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
               width: double.infinity,
               child: Stack(
                 children: [
-                  if (profile.coverImage != null && profile.coverImage!.isNotEmpty)
+                  if (profile.coverImage != null &&
+                      profile.coverImage!.isNotEmpty)
                     CachedNetworkImage(
                       imageUrl: profile.coverImage!,
                       fit: BoxFit.cover,
@@ -236,37 +399,29 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
                       height: coverHeight,
                       errorWidget: (_, _, _) => Container(
                         decoration: BoxDecoration(
-                          gradient: AppGradients.heroFor(Theme.of(context).brightness),
+                          gradient: AppGradients.heroFor(
+                              Theme.of(context).brightness),
                         ),
                       ),
                     )
                   else
                     Container(
                       decoration: BoxDecoration(
-                        gradient: AppGradients.heroFor(Theme.of(context).brightness),
+                        gradient:
+                            AppGradients.heroFor(Theme.of(context).brightness),
                       ),
                     ),
-                  // Camera icon on cover
                   Positioned(
-                    bottom: 10,
-                    right: 10,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                    ),
+                    bottom: 8,
+                    right: 8,
+                    child: _cameraBadge(colors, 34),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Avatar overlapping bottom of cover
+          // Avatar
           Positioned(
             bottom: 0,
             left: AppSpacing.screenPadding,
@@ -289,16 +444,7 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
-                    ),
+                    child: _cameraBadge(colors, 26),
                   ),
                 ],
               ),
@@ -309,17 +455,56 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     );
   }
 
-  Widget _buildFieldLabel(String label) {
-    return Text(
-      label,
-      style: AppTextStyles.labelMedium.copyWith(
-        color: Theme.of(context).colorScheme.onSurface,
-        fontWeight: FontWeight.w600,
+  Widget _cameraBadge(AppColorsExtension colors, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: colors.primary,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Icon(Icons.camera_alt, size: size * 0.45, color: Colors.white),
+    );
+  }
+
+  // ── Field builders ──────────────────────────────────────────────────────────
+
+  Widget _sectionPadding({required List<Widget> children}) {
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
       ),
     );
   }
 
-  Widget _buildFilledField(
+  Widget _sectionDivider(AppColorsExtension colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      child: Divider(
+        color: colors.border.withValues(alpha: 0.3),
+        height: 1,
+      ),
+    );
+  }
+
+  Widget _fieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Text(
+        label,
+        style: AppTextStyles.labelMedium.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _filledField(
     AppColorsExtension colors,
     TextEditingController controller, {
     String? hint,
@@ -331,7 +516,8 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
       style: AppTextStyles.bodyMedium.copyWith(color: colors.foreground),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
+        hintStyle:
+            AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
         filled: true,
         fillColor: colors.muted.withValues(alpha: 0.5),
         border: OutlineInputBorder(
@@ -354,7 +540,7 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     );
   }
 
-  Widget _buildReadOnlyField(AppColorsExtension colors, String value) {
+  Widget _readOnlyField(AppColorsExtension colors, String value) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
@@ -367,8 +553,50 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
       ),
       child: Text(
         value,
-        style: AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
+        style:
+            AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
       ),
+    );
+  }
+
+  Widget _chipInput(AppColorsExtension colors, TextEditingController controller,
+      String hint, VoidCallback onAdd) {
+    return Row(
+      children: [
+        Expanded(
+          child: _filledField(colors, controller, hint: hint),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        AppButton.icon(
+          icon: Icons.add_rounded,
+          onPressed: onAdd,
+          tooltip: 'Add',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLearningStyleSelector(AppColorsExtension colors) {
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: _learningStyles.map((style) {
+        final isSelected = _preferredLearningStyle == style;
+        return ChoiceChip(
+          label: Text(
+            '${style[0].toUpperCase()}${style.substring(1)}',
+            style: AppTextStyles.labelSmall.copyWith(
+              color: isSelected ? Colors.white : colors.foreground,
+            ),
+          ),
+          selected: isSelected,
+          selectedColor: colors.primary,
+          backgroundColor: colors.muted,
+          side: BorderSide.none,
+          onSelected: (_) =>
+              setState(() => _preferredLearningStyle = style),
+        );
+      }).toList(),
     );
   }
 }
