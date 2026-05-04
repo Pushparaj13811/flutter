@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
 import 'package:skill_exchange/core/theme/app_radius.dart';
-import 'package:skill_exchange/core/theme/app_shadows.dart';
 
 class AppCard extends StatelessWidget {
   const AppCard({
@@ -32,7 +31,7 @@ class AppCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: colors.card,
           borderRadius: borderRadius,
-          boxShadow: AppShadows.sm,
+          border: Border.all(color: colors.border.withValues(alpha: 0.5)),
         ),
         child: Material(
           color: Colors.transparent,
@@ -50,7 +49,7 @@ class AppCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.card,
         borderRadius: borderRadius,
-        boxShadow: AppShadows.sm,
+        border: Border.all(color: colors.border.withValues(alpha: 0.5)),
       ),
       child: content,
     );
