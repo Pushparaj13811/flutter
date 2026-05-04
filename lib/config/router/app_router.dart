@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skill_exchange/config/router/app_shell.dart';
+import 'package:skill_exchange/core/services/fcm_service.dart';
 import 'package:skill_exchange/config/router/page_transitions.dart';
 import 'package:skill_exchange/features/admin/screens/activity_logs_screen.dart';
 import 'package:skill_exchange/features/admin/screens/admin_dashboard_screen.dart';
@@ -70,6 +72,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
+    navigatorKey: globalNavigatorKey.navigatorKey,
     initialLocation: RouteNames.login,
     debugLogDiagnostics: true,
     redirect: (context, state) {

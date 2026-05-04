@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/services/notification_trigger_service.dart';
 
 // ── Stream-based Providers ───────────────────────────────────────────────────
 
@@ -109,9 +110,10 @@ final messagesProvider =
 
 class MessagingNotifier extends StateNotifier<AsyncValue<List<Map<String, dynamic>>>> {
   final MessagingFirestoreService _service;
+  final NotificationTriggerService _notifications;
   final Ref _ref;
 
-  MessagingNotifier(this._service, this._ref)
+  MessagingNotifier(this._service, this._notifications, this._ref)
       : super(const AsyncValue.data([]));
 
   /// Loads messages for a conversation (no-op for stream-based Firebase).
@@ -139,6 +141,11 @@ class MessagingNotifier extends StateNotifier<AsyncValue<List<Map<String, dynami
     try {
       await _service.sendMessage(receiverId, content);
       _ref.invalidate(conversationsProvider);
+      try {
+        await _notifications.onNewMessage(receiverId, content);
+      } catch (_) {
+        // Non-blocking
+      }
       return true;
     } catch (e) {
       // Revert on failure.
@@ -163,5 +170,6 @@ final messagingNotifierProvider =
     StateNotifierProvider<MessagingNotifier, AsyncValue<List<Map<String, dynamic>>>>(
         (ref) {
   final service = ref.watch(messagingFirestoreServiceProvider);
-  return MessagingNotifier(service, ref);
+  final notifications = ref.watch(notificationTriggerServiceProvider);
+  return MessagingNotifier(service, notifications, ref);
 });

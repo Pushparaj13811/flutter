@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/services/notification_trigger_service.dart';
 import 'package:skill_exchange/core/utils/firestore_helpers.dart';
 import 'package:skill_exchange/data/models/create_session_dto.dart';
 import 'package:skill_exchange/data/models/reschedule_session_dto.dart';
@@ -49,9 +51,10 @@ SessionStatus _parseSessionStatus(String status) {
 
 class SessionsNotifier extends StateNotifier<AsyncValue<void>> {
   final SessionFirestoreService _service;
+  final NotificationTriggerService _notifications;
   final Ref _ref;
 
-  SessionsNotifier(this._service, this._ref)
+  SessionsNotifier(this._service, this._notifications, this._ref)
       : super(const AsyncValue.data(null));
 
   Future<bool> createSession(CreateSessionDto dto) async {
@@ -60,6 +63,13 @@ class SessionsNotifier extends StateNotifier<AsyncValue<void>> {
       await _service.bookSession(dto.toJson());
       state = const AsyncValue.data(null);
       _ref.invalidate(upcomingSessionsProvider);
+      if (dto.participantId.isNotEmpty) {
+        try {
+          await _notifications.onSessionBooked(dto.participantId, dto.title);
+        } catch (_) {
+          // Non-blocking
+        }
+      }
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -70,9 +80,27 @@ class SessionsNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> cancelSession(String id, {String? reason}) async {
     state = const AsyncValue.loading();
     try {
+      // Fetch session before cancelling to get the other participant
+      final sessionData = await _service.getSession(id);
+      final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final hostId = sessionData?['host'] as String? ??
+          sessionData?['hostId'] as String? ?? '';
+      final participantId = sessionData?['participant'] as String? ??
+          sessionData?['participantId'] as String? ?? '';
+      final title = sessionData?['title'] as String? ??
+          sessionData?['skill'] as String? ?? 'Session';
+      final otherUid = hostId == myUid ? participantId : hostId;
+
       await _service.cancelSession(id);
       state = const AsyncValue.data(null);
       _ref.invalidate(upcomingSessionsProvider);
+      if (otherUid.isNotEmpty) {
+        try {
+          await _notifications.onSessionCancelled(otherUid, title);
+        } catch (_) {
+          // Non-blocking
+        }
+      }
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -83,9 +111,27 @@ class SessionsNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> completeSession(String id) async {
     state = const AsyncValue.loading();
     try {
+      // Fetch session before completing to get the other participant
+      final sessionData = await _service.getSession(id);
+      final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final hostId = sessionData?['host'] as String? ??
+          sessionData?['hostId'] as String? ?? '';
+      final participantId = sessionData?['participant'] as String? ??
+          sessionData?['participantId'] as String? ?? '';
+      final title = sessionData?['title'] as String? ??
+          sessionData?['skill'] as String? ?? 'Session';
+      final otherUid = hostId == myUid ? participantId : hostId;
+
       await _service.completeSession(id);
       state = const AsyncValue.data(null);
       _ref.invalidate(upcomingSessionsProvider);
+      if (otherUid.isNotEmpty) {
+        try {
+          await _notifications.onSessionCompleted(otherUid, title);
+        } catch (_) {
+          // Non-blocking
+        }
+      }
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -115,5 +161,6 @@ class SessionsNotifier extends StateNotifier<AsyncValue<void>> {
 final sessionsNotifierProvider =
     StateNotifierProvider<SessionsNotifier, AsyncValue<void>>((ref) {
   final service = ref.watch(sessionFirestoreServiceProvider);
-  return SessionsNotifier(service, ref);
+  final notifications = ref.watch(notificationTriggerServiceProvider);
+  return SessionsNotifier(service, notifications, ref);
 });

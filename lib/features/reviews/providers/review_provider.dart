@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/services/notification_trigger_service.dart';
 import 'package:skill_exchange/data/models/create_review_dto.dart';
 import 'package:skill_exchange/data/models/review_model.dart';
 import 'package:skill_exchange/data/models/review_stats_model.dart';
@@ -36,9 +37,10 @@ final reviewStatsProvider =
 
 class ReviewNotifier extends StateNotifier<AsyncValue<void>> {
   final ReviewFirestoreService _service;
+  final NotificationTriggerService _notifications;
   final Ref _ref;
 
-  ReviewNotifier(this._service, this._ref)
+  ReviewNotifier(this._service, this._notifications, this._ref)
       : super(const AsyncValue.data(null));
 
   Future<bool> createReview(CreateReviewDto dto) async {
@@ -48,6 +50,13 @@ class ReviewNotifier extends StateNotifier<AsyncValue<void>> {
       state = const AsyncValue.data(null);
       _ref.invalidate(reviewsProvider(dto.toUserId));
       _ref.invalidate(reviewStatsProvider(dto.toUserId));
+      if (dto.toUserId.isNotEmpty) {
+        try {
+          await _notifications.onReviewReceived(dto.toUserId, dto.rating);
+        } catch (_) {
+          // Non-blocking
+        }
+      }
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -59,5 +68,6 @@ class ReviewNotifier extends StateNotifier<AsyncValue<void>> {
 final reviewNotifierProvider =
     StateNotifierProvider<ReviewNotifier, AsyncValue<void>>((ref) {
   final service = ref.watch(reviewFirestoreServiceProvider);
-  return ReviewNotifier(service, ref);
+  final notifications = ref.watch(notificationTriggerServiceProvider);
+  return ReviewNotifier(service, notifications, ref);
 });

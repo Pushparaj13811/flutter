@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skill_exchange/core/services/notification_trigger_service.dart';
 import 'package:skill_exchange/data/sources/firebase/connection_firestore_service.dart';
 
 // ── Helper: enrich connection with the other user's profile ──────────────
@@ -89,9 +90,10 @@ final connectionStatusProvider =
 
 class ConnectionsNotifier extends StateNotifier<AsyncValue<void>> {
   final ConnectionFirestoreService _service;
+  final NotificationTriggerService _notifications;
   final Ref _ref;
 
-  ConnectionsNotifier(this._service, this._ref)
+  ConnectionsNotifier(this._service, this._notifications, this._ref)
       : super(const AsyncValue.data(null));
 
   Future<bool> sendRequest(String toUserId, String? message) async {
@@ -102,6 +104,11 @@ class ConnectionsNotifier extends StateNotifier<AsyncValue<void>> {
       _ref.invalidate(connectionsProvider);
       _ref.invalidate(sentRequestsProvider);
       _ref.invalidate(pendingRequestsProvider);
+      try {
+        await _notifications.onConnectionRequestSent(toUserId);
+      } catch (_) {
+        // Non-blocking — don't fail the main operation if notification fails
+      }
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -112,6 +119,11 @@ class ConnectionsNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> respondToRequest(String id, bool accept) async {
     state = const AsyncValue.loading();
     try {
+      // Fetch the connection doc before updating to get the requester uid
+      final db = FirebaseFirestore.instance;
+      final doc = await db.collection('connections').doc(id).get();
+      final requesterUid = doc.data()?['requester'] as String? ?? '';
+
       if (accept) {
         await _service.acceptRequest(id);
       } else {
@@ -120,6 +132,13 @@ class ConnectionsNotifier extends StateNotifier<AsyncValue<void>> {
       state = const AsyncValue.data(null);
       _ref.invalidate(connectionsProvider);
       _ref.invalidate(pendingRequestsProvider);
+      if (accept && requesterUid.isNotEmpty) {
+        try {
+          await _notifications.onConnectionAccepted(requesterUid);
+        } catch (_) {
+          // Non-blocking
+        }
+      }
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -144,5 +163,6 @@ class ConnectionsNotifier extends StateNotifier<AsyncValue<void>> {
 final connectionsNotifierProvider =
     StateNotifierProvider<ConnectionsNotifier, AsyncValue<void>>((ref) {
   final service = ref.watch(connectionFirestoreServiceProvider);
-  return ConnectionsNotifier(service, ref);
+  final notifications = ref.watch(notificationTriggerServiceProvider);
+  return ConnectionsNotifier(service, notifications, ref);
 });
