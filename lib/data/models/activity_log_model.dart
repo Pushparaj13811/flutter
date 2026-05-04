@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ActivityLogModel {
   final String id;
   final String adminName;
@@ -18,6 +20,15 @@ class ActivityLogModel {
   });
 
   factory ActivityLogModel.fromMap(Map<String, dynamic> map) {
+    // Handle Timestamp or String for timestamp/createdAt
+    String timestampStr = '';
+    final raw = map['timestamp'] ?? map['createdAt'];
+    if (raw is Timestamp) {
+      timestampStr = raw.toDate().toIso8601String();
+    } else if (raw is String) {
+      timestampStr = raw;
+    }
+
     return ActivityLogModel(
       id: map['id'] as String? ?? '',
       adminName: map['adminName'] as String? ?? '',
@@ -25,7 +36,7 @@ class ActivityLogModel {
       targetType: map['targetType'] as String? ?? '',
       targetId: map['targetId'] as String? ?? '',
       details: map['details'] as String? ?? '',
-      timestamp: map['timestamp'] as String? ?? '',
+      timestamp: timestampStr,
     );
   }
 

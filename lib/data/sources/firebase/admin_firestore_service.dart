@@ -82,6 +82,32 @@ class AdminFirestoreService {
   Future<void> deleteCircle(String circleId) async {
     await _db.collection('circles').doc(circleId).delete();
   }
+
+  Future<List<Map<String, dynamic>>> getAnnouncements() async {
+    final snap = await _db.collection('announcements')
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+  }
+
+  Future<void> createAnnouncement(Map<String, dynamic> data) async {
+    await _db.collection('announcements').add({
+      ...data,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> deleteAnnouncement(String id) async {
+    await _db.collection('announcements').doc(id).delete();
+  }
+
+  Future<List<Map<String, dynamic>>> getActivityLogs() async {
+    final snap = await _db.collection('activityLogs')
+        .orderBy('createdAt', descending: true)
+        .limit(100)
+        .get();
+    return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+  }
 }
 
 final adminFirestoreServiceProvider = Provider<AdminFirestoreService>((ref) {

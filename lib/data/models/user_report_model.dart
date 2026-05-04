@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserReportModel {
   final String id;
   final String reportedUserId;
@@ -22,15 +24,32 @@ class UserReportModel {
   });
 
   factory UserReportModel.fromMap(Map<String, dynamic> map) {
+    // Handle Timestamp or String for createdAt
+    String createdAtStr = '';
+    final raw = map['createdAt'];
+    if (raw is Timestamp) {
+      createdAtStr = raw.toDate().toIso8601String();
+    } else if (raw is String) {
+      createdAtStr = raw;
+    }
+
+    String reviewedAtStr = '';
+    final rawReviewed = map['reviewedAt'];
+    if (rawReviewed is Timestamp) {
+      reviewedAtStr = rawReviewed.toDate().toIso8601String();
+    } else if (rawReviewed is String) {
+      reviewedAtStr = rawReviewed;
+    }
+
     return UserReportModel(
       id: map['id'] as String? ?? '',
-      reportedUserId: map['reportedUserId'] as String? ?? '',
+      reportedUserId: map['reportedUserId'] as String? ?? map['reporter'] as String? ?? '',
       reporterName: map['reporterName'] as String?,
       reason: map['reason'] as String? ?? '',
       description: map['description'] as String? ?? '',
       status: map['status'] as String? ?? 'pending',
-      createdAt: map['createdAt'] as String? ?? '',
-      reviewedAt: map['reviewedAt'] as String?,
+      createdAt: createdAtStr,
+      reviewedAt: reviewedAtStr.isEmpty ? null : reviewedAtStr,
       reviewedBy: map['reviewedBy'] as String?,
     );
   }

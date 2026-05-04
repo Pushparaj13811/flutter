@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum AnnouncementPriority {
   info('info'),
   warning('warning'),
@@ -34,6 +36,24 @@ class AnnouncementModel {
   });
 
   factory AnnouncementModel.fromMap(Map<String, dynamic> map) {
+    // Handle Timestamp or String for createdAt
+    String createdAtStr = '';
+    final raw = map['createdAt'];
+    if (raw is Timestamp) {
+      createdAtStr = raw.toDate().toIso8601String();
+    } else if (raw is String) {
+      createdAtStr = raw;
+    }
+
+    // Handle Timestamp or String for expiresAt
+    String? expiresAtStr;
+    final rawExpires = map['expiresAt'];
+    if (rawExpires is Timestamp) {
+      expiresAtStr = rawExpires.toDate().toIso8601String();
+    } else if (rawExpires is String) {
+      expiresAtStr = rawExpires;
+    }
+
     return AnnouncementModel(
       id: map['id'] as String? ?? '',
       title: map['title'] as String? ?? '',
@@ -41,8 +61,8 @@ class AnnouncementModel {
       priority: AnnouncementPriority.fromString(
           map['priority'] as String? ?? 'info'),
       isActive: map['isActive'] as bool? ?? true,
-      createdAt: map['createdAt'] as String? ?? '',
-      expiresAt: map['expiresAt'] as String?,
+      createdAt: createdAtStr,
+      expiresAt: expiresAtStr,
     );
   }
 

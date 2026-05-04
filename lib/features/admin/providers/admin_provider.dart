@@ -107,20 +107,66 @@ final analyticsProvider = FutureProvider<AnalyticsModel>((ref) async {
 
 final adminSkillsProvider =
     FutureProvider<List<AdminSkillModel>>((ref) async {
-  // Admin skills not directly supported — stub with empty list
-  return <AdminSkillModel>[];
+  final db = FirebaseFirestore.instance;
+  final profiles = await db.collection('profiles').get();
+
+  final skillMap = <String, Map<String, dynamic>>{};
+
+  for (final doc in profiles.docs) {
+    final data = doc.data();
+    for (final skill in ((data['skillsToTeach'] as List?) ?? [])) {
+      if (skill is Map) {
+        final name = skill['name'] as String? ?? '';
+        if (name.isNotEmpty) {
+          skillMap.putIfAbsent(name, () => {
+            'id': name.toLowerCase().replaceAll(' ', '_'),
+            'name': name,
+            'category': skill['category'] ?? 'other',
+            'usersTeaching': 0,
+            'usersLearning': 0,
+          });
+          skillMap[name]!['usersTeaching'] =
+              (skillMap[name]!['usersTeaching'] as int) + 1;
+        }
+      }
+    }
+    for (final skill in ((data['skillsToLearn'] as List?) ?? [])) {
+      if (skill is Map) {
+        final name = skill['name'] as String? ?? '';
+        if (name.isNotEmpty) {
+          skillMap.putIfAbsent(name, () => {
+            'id': name.toLowerCase().replaceAll(' ', '_'),
+            'name': name,
+            'category': skill['category'] ?? 'other',
+            'usersTeaching': 0,
+            'usersLearning': 0,
+          });
+          skillMap[name]!['usersLearning'] =
+              (skillMap[name]!['usersLearning'] as int) + 1;
+        }
+      }
+    }
+  }
+
+  return skillMap.values
+      .map((d) => AdminSkillModel.fromMap(d))
+      .toList()
+    ..sort((a, b) => (b.usersTeaching + b.usersLearning)
+        .compareTo(a.usersTeaching + a.usersLearning));
 });
 
 final announcementsProvider =
     FutureProvider<List<AnnouncementModel>>((ref) async {
-  // Announcements not directly supported — stub with empty list
-  return <AnnouncementModel>[];
+  final service = ref.watch(adminFirestoreServiceProvider);
+  final data = await service.getAnnouncements();
+  return data.map((d) => AnnouncementModel.fromMap(d)).toList();
 });
 
 final activityLogsProvider =
     FutureProvider<List<ActivityLogModel>>((ref) async {
-  // Activity logs not directly supported — stub with empty list
-  return <ActivityLogModel>[];
+  final service = ref.watch(adminFirestoreServiceProvider);
+  final data = await service.getActivityLogs();
+  return data.map((d) => ActivityLogModel.fromMap(d)).toList();
 });
 
 // ── Admin Notifier ────────────────────────────────────────────────────────
@@ -223,12 +269,12 @@ class AdminNotifier extends StateNotifier<AsyncValue<void>> {
       );
 
   Future<bool> createAnnouncement(Map<String, dynamic> data) => _mutate(
-        () async {}, // stub
+        () => _service.createAnnouncement(data),
         [announcementsProvider],
       );
 
   Future<bool> deleteAnnouncement(String id) => _mutate(
-        () async {}, // stub
+        () => _service.deleteAnnouncement(id),
         [announcementsProvider],
       );
 }
