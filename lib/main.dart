@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -177,6 +178,17 @@ class IncomingCallListener extends ConsumerWidget {
           final data = doc.data();
           final callId = doc.id;
           final callerName = data['callerName'] as String? ?? 'Unknown';
+
+          // Only react to calls created within the last 30 seconds
+          final createdAt = data['createdAt'] as Timestamp?;
+          if (createdAt != null) {
+            final age = DateTime.now().difference(createdAt.toDate());
+            if (age.inSeconds > 30) return; // Skip old/stale calls
+          }
+
+          // Don't show overlay if we're already in a call
+          final currentCall = ref.read(callNotifierProvider);
+          if (currentCall.status != CallStatus.idle) return;
 
           // Play ringtone for incoming call
           ref.read(callSoundServiceProvider).playRingtone();

@@ -190,14 +190,25 @@ class CallNotifier extends StateNotifier<CallState> {
         'isRead': false,
       });
 
-      // Update thread metadata
+      // Create or update thread metadata so it appears in conversation list
+      final callMsg = wasConnected
+          ? 'Video call - $durationStr'
+          : 'Missed video call';
       final threadDoc = await threadRef.get();
       if (threadDoc.exists) {
         await threadRef.update({
-          'lastMessage': wasConnected
-              ? 'Video call - $durationStr'
-              : 'Missed video call',
+          'lastMessage': callMsg,
           'lastMessageAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Create thread doc so it shows in conversations list
+        await threadRef.set({
+          'participants': [uid, otherUserId],
+          'lastMessage': callMsg,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'unreadCount_$uid': 0,
+          'unreadCount_$otherUserId': 1,
+          'createdAt': FieldValue.serverTimestamp(),
         });
       }
     } catch (_) {

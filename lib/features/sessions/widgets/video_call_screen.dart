@@ -3,6 +3,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/core/services/agora_service.dart';
+import 'package:skill_exchange/core/services/call_sound_service.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
 
@@ -32,6 +33,13 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     super.initState();
     _setupAgoraCallbacks();
     _resetControlsTimer();
+    // Ensure dial tone is playing for caller
+    if (widget.isCaller) {
+      final sound = ref.read(callSoundServiceProvider);
+      if (!sound.isPlaying) {
+        sound.playDialTone();
+      }
+    }
   }
 
   void _setupAgoraCallbacks() {
