@@ -91,8 +91,8 @@ class CallNotifier extends StateNotifier<CallState> {
       );
 
       _listenToCall(callId);
+      await _sound.playDialTone(); // Start dial tone immediately
       await _agora.joinChannel(callId, 0);
-      _sound.playDialTone(); // Ring-back tone while waiting
 
       return true;
     } catch (e) {
