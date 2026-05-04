@@ -24,15 +24,33 @@ class ConversationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final conversationsAsync = ref.watch(conversationsStreamProvider);
+    final colors = context.colors;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Messages'),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showNewConversationSheet(context),
-        backgroundColor: context.colors.primary,
-        child: const Icon(Icons.edit, color: Colors.white),
+        automaticallyImplyLeading: false,
+        titleSpacing: AppSpacing.screenPadding,
+        title: Text(
+          'Chats',
+          style: AppTextStyles.h2.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search_rounded, color: colors.foreground, size: 24),
+            tooltip: 'Search conversations',
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: Icon(Icons.edit_outlined, color: colors.primary, size: 22),
+            tooltip: 'New message',
+            onPressed: () => _showNewConversationSheet(context),
+          ),
+          const SizedBox(width: 4),
+        ],
+        elevation: 0,
+        scrolledUnderElevation: 1,
       ),
       body: conversationsAsync.when(
         loading: () => _buildLoadingSkeleton(),
@@ -45,6 +63,7 @@ class ConversationsScreen extends ConsumerWidget {
         data: (conversations) {
           if (conversations.isEmpty) {
             return RefreshIndicator(
+              color: colors.primary,
               onRefresh: () => _refresh(ref),
               child: ListView(
                 children: const [
@@ -60,12 +79,15 @@ class ConversationsScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
+            color: colors.primary,
             onRefresh: () => _refresh(ref),
             child: ListView.separated(
               itemCount: conversations.length,
-              separatorBuilder: (_, __) => const Divider(
+              separatorBuilder: (_, __) => Divider(
                 height: 1,
+                thickness: 0.6,
                 indent: AppSpacing.screenPadding + 48 + AppSpacing.md,
+                color: colors.border,
               ),
               itemBuilder: (context, index) {
                 final conversation = conversations[index];
@@ -73,10 +95,13 @@ class ConversationsScreen extends ConsumerWidget {
                   index: index,
                   child: ConversationTile(
                     conversation: conversation,
-                    onTap: () =>
-                        Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => ChatScreen(conversationId: conversation['id'] as String),
-                        )),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          conversationId: conversation['id'] as String,
+                        ),
+                      ),
+                    ),
                   ),
                 );
               },
@@ -131,7 +156,8 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
     if (uid.isEmpty) return;
 
     final db = FirebaseFirestore.instance;
-    final snap = await db.collection('connections')
+    final snap = await db
+        .collection('connections')
         .where('participants', arrayContains: uid)
         .where('status', isEqualTo: 'accepted')
         .get();
@@ -144,7 +170,8 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
       final otherUid = requester == uid ? recipient : requester;
       if (otherUid.isEmpty) continue;
 
-      final profileDoc = await db.collection('profiles').doc(otherUid).get();
+      final profileDoc =
+          await db.collection('profiles').doc(otherUid).get();
       final userDoc = await db.collection('users').doc(otherUid).get();
       final profile = profileDoc.data() ?? {};
       final userData = userDoc.data() ?? {};
@@ -157,7 +184,12 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
       });
     }
 
-    if (mounted) setState(() { _connections = connections; _isLoading = false; });
+    if (mounted) {
+      setState(() {
+        _connections = connections;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -180,7 +212,8 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
               ),
               child: Center(
                 child: Container(
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: colors.muted,
                     borderRadius: BorderRadius.circular(2),
@@ -197,14 +230,17 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Text(
                 'Select a connection to start messaging',
-                style: AppTextStyles.bodySmall.copyWith(color: colors.mutedForeground),
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: colors.mutedForeground),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
             const Divider(height: 1),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(
+                      child: CircularProgressIndicator(color: colors.primary),
+                    )
                   : _connections.isEmpty
                       ? Center(
                           child: Padding(
@@ -212,14 +248,16 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
                             child: Text(
                               'No connections yet. Connect with users first to start messaging.',
                               textAlign: TextAlign.center,
-                              style: AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                  color: colors.mutedForeground),
                             ),
                           ),
                         )
                       : ListView.separated(
                           controller: scrollController,
                           itemCount: _connections.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          separatorBuilder: (_, __) =>
+                              Divider(height: 1, color: colors.border),
                           itemBuilder: (context, index) {
                             final conn = _connections[index];
                             final name = conn['name'] as String;
@@ -227,26 +265,48 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
                             final otherUid = conn['uid'] as String;
 
                             return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                                vertical: 4,
+                              ),
                               leading: CircleAvatar(
-                                radius: 20,
+                                radius: 22,
                                 backgroundColor: colors.muted,
-                                backgroundImage: avatar != null && avatar.isNotEmpty
-                                    ? NetworkImage(avatar)
-                                    : null,
+                                backgroundImage:
+                                    avatar != null && avatar.isNotEmpty
+                                        ? NetworkImage(avatar)
+                                        : null,
                                 child: avatar == null || avatar.isEmpty
-                                    ? Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                        style: AppTextStyles.labelLarge)
+                                    ? Text(
+                                        name.isNotEmpty
+                                            ? name[0].toUpperCase()
+                                            : '?',
+                                        style: AppTextStyles.labelLarge,
+                                      )
                                     : null,
                               ),
-                              title: Text(name, style: AppTextStyles.labelLarge),
-                              subtitle: Text('@${conn['username'] ?? ''}',
-                                  style: AppTextStyles.caption.copyWith(color: colors.mutedForeground)),
-                              trailing: Icon(Icons.chat_bubble_outline, color: colors.primary, size: 20),
+                              title: Text(name,
+                                  style: AppTextStyles.labelLarge.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  )),
+                              subtitle: Text(
+                                '@${conn['username'] ?? ''}',
+                                style: AppTextStyles.caption
+                                    .copyWith(color: colors.mutedForeground),
+                              ),
+                              trailing: Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: colors.mutedForeground,
+                                size: 14,
+                              ),
                               onTap: () {
                                 Navigator.of(context).pop();
-                                Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (_) => ChatScreen(conversationId: otherUid),
-                                  ));
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ChatScreen(conversationId: otherUid),
+                                  ),
+                                );
                               },
                             );
                           },

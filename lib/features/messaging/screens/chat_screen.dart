@@ -31,9 +31,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String get _threadId {
     final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final otherId = widget.conversationId;
-    // If conversationId already contains '_', it's a proper threadId
     if (otherId.contains('_')) return otherId;
-    // Otherwise compute it from the two UIDs
     final sorted = [myUid, otherId]..sort();
     return '${sorted[0]}_${sorted[1]}';
   }
@@ -42,7 +40,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String get _otherUserId {
     final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final parts = _threadId.split('_');
-    return parts.firstWhere((p) => p != myUid, orElse: () => widget.conversationId);
+    return parts.firstWhere((p) => p != myUid,
+        orElse: () => widget.conversationId);
   }
 
   String? _cachedOtherUserName;
@@ -51,11 +50,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Mark conversation as read when opening.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(messagingNotifierProvider.notifier)
-          .markAsRead(_threadId);
+      ref.read(messagingNotifierProvider.notifier).markAsRead(_threadId);
     });
     _loadOtherUserProfile();
   }
@@ -69,7 +65,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     if (mounted) {
       setState(() {
-        _cachedOtherUserName = profile['fullName'] ?? userData['name'] ?? 'User';
+        _cachedOtherUserName =
+            profile['fullName'] ?? userData['name'] ?? 'User';
         _cachedOtherUserAvatar = profile['avatar'] ?? userData['avatar'];
       });
     }
@@ -86,45 +83,66 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     service.setTyping(_threadId, isTyping);
   }
 
-  // ── Conversation metadata (cached in local state to avoid flicker) ────────
-
-  // ── Build ──────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final name = _cachedOtherUserName;
     final avatar = _cachedOtherUserAvatar;
+    final colors = context.colors;
     final service = ref.watch(messagingFirestoreServiceProvider);
 
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
+        leadingWidth: 48,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              size: 20, color: colors.foreground),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Row(
           children: [
             if (name != null) ...[
               UserAvatar(
                 name: name,
                 imageUrl: avatar,
-                size: 32,
+                size: 36,
               ),
               const SizedBox(width: AppSpacing.sm),
             ],
             Expanded(
-              child: Text(
-                name ?? 'Chat',
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name ?? 'Chat',
+                    style: AppTextStyles.labelLarge.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Typing / online status row
+                  _OnlineStatusSubtitle(
+                    threadId: _threadId,
+                    service: service,
+                  ),
+                ],
               ),
             ),
           ],
         ),
         actions: [
+          // Video call
           IconButton(
-            icon: const Icon(Icons.videocam_outlined),
+            icon: Icon(Icons.videocam_outlined,
+                color: colors.primary, size: 24),
             tooltip: 'Video Call',
             onPressed: () async {
               final otherUserName = _cachedOtherUserName ?? 'User';
               final notifier = ref.read(callNotifierProvider.notifier);
-              final success = await notifier.startCall(_otherUserId, otherUserName);
+              final success =
+                  await notifier.startCall(_otherUserId, otherUserName);
               if (success && context.mounted) {
                 final callState = ref.read(callNotifierProvider);
                 Navigator.of(context, rootNavigator: true).push(
@@ -139,7 +157,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               }
             },
           ),
+          // More options
+          IconButton(
+            icon:
+                Icon(Icons.more_vert_rounded, color: colors.foreground, size: 22),
+            tooltip: 'More options',
+            onPressed: () {},
+          ),
+          const SizedBox(width: 4),
         ],
+        elevation: 0,
+        scrolledUnderElevation: 1,
       ),
       body: Column(
         children: [
@@ -162,15 +190,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
                 final docs = snapshot.data!.docs;
                 if (docs.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.xl),
-                      child: Text('No messages yet. Say hello!'),
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.chat_bubble_outline_rounded,
+                              size: 48, color: colors.mutedForeground),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            'No messages yet',
+                            style: AppTextStyles.h4
+                                .copyWith(color: colors.foreground),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Say hello!',
+                            style: AppTextStyles.bodySmall
+                                .copyWith(color: colors.mutedForeground),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
 
-                final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                final currentUid =
+                    FirebaseAuth.instance.currentUser?.uid ?? '';
                 final messages = docs.map((doc) {
                   final data = doc.data();
                   return <String, dynamic>{
@@ -179,10 +226,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     'senderId': data['sender'] ?? '',
                     'receiverId': '',
                     'content': data['content'] ?? '',
-                    'createdAt': (data['createdAt'] as Timestamp?)
-                            ?.toDate()
-                            .toIso8601String() ??
-                        '',
+                    'createdAt':
+                        (data['createdAt'] as Timestamp?)
+                                ?.toDate()
+                                .toIso8601String() ??
+                            '',
                     'isFromMe': data['sender'] == currentUid,
                     'read': data['isRead'] ?? false,
                   };
@@ -192,21 +240,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   reverse: true,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.screenPadding,
-                    vertical: AppSpacing.sm,
+                    vertical: AppSpacing.md,
                   ),
                   itemCount: messages.length,
                   separatorBuilder: (_, __) =>
                       const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (_, index) {
-                    final message =
-                        messages[messages.length - 1 - index];
+                    final message = messages[messages.length - 1 - index];
                     return MessageBubble(message: message);
                   },
                 );
               },
             ),
           ),
-          // Typing indicator
+          // Typing indicator (moved into input area visually)
           _TypingIndicator(
             threadId: _threadId,
             service: service,
@@ -231,7 +278,55 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-// ── Typing Indicator Widget ──────────────────────────��──────────────────────
+// ── Online Status / Typing Subtitle ─────────────────────────────────────────
+
+class _OnlineStatusSubtitle extends StatelessWidget {
+  const _OnlineStatusSubtitle({
+    required this.threadId,
+    required this.service,
+  });
+
+  final String threadId;
+  final MessagingFirestoreService service;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: service.typingStream(threadId),
+      builder: (context, snapshot) {
+        bool otherIsTyping = false;
+        if (snapshot.hasData && snapshot.data?.data() != null) {
+          final data = snapshot.data!.data()!;
+          for (final entry in data.entries) {
+            if (entry.key == currentUid) continue;
+            if (entry.value is Timestamp) {
+              final ts = (entry.value as Timestamp).toDate();
+              if (DateTime.now().difference(ts).inSeconds < 5) {
+                otherIsTyping = true;
+                break;
+              }
+            }
+          }
+        }
+
+        return Text(
+          otherIsTyping ? 'typing...' : 'online',
+          style: AppTextStyles.caption.copyWith(
+            color: otherIsTyping ? colors.primary : colors.mutedForeground,
+            fontStyle:
+                otherIsTyping ? FontStyle.italic : FontStyle.normal,
+            fontSize: 11,
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Typing Indicator (legacy — kept for spacing, shows nothing) ──────────────
 
 class _TypingIndicator extends StatelessWidget {
   const _TypingIndicator({
@@ -244,49 +339,8 @@ class _TypingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-
-    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: service.typingStream(threadId),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data?.data() == null) {
-          return const SizedBox.shrink();
-        }
-
-        final data = snapshot.data!.data()!;
-        // Check if anyone other than current user is typing recently
-        bool otherIsTyping = false;
-        for (final entry in data.entries) {
-          if (entry.key == currentUid) continue;
-          if (entry.value is Timestamp) {
-            final ts = (entry.value as Timestamp).toDate();
-            if (DateTime.now().difference(ts).inSeconds < 5) {
-              otherIsTyping = true;
-              break;
-            }
-          }
-        }
-
-        if (!otherIsTyping) return const SizedBox.shrink();
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.screenPadding,
-            vertical: AppSpacing.xs,
-          ),
-          child: Row(
-            children: [
-              Text(
-                'typing...',
-                style: AppTextStyles.caption.copyWith(
-                  color: context.colors.mutedForeground,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    // Typing is now shown in the AppBar subtitle — keep this widget as
+    // an invisible spacer so layout doesn't shift.
+    return const SizedBox.shrink();
   }
 }

@@ -36,38 +36,47 @@ class ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final id = conversation['id'] as String? ?? '';
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.sm),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.screenPadding,
-          vertical: AppSpacing.md,
+          vertical: 10,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // 48px avatar
             UserAvatar(
               name: _otherName,
               imageUrl: _otherAvatar,
-              size: 40,
+              size: 48,
               heroTag: 'avatar_$id',
             ),
             const SizedBox(width: AppSpacing.md),
+            // Content column
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Name row
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
                       Expanded(
                         child: Text(
                           _otherName,
                           style: _isUnread
-                              ? AppTextStyles.labelLarge
-                                  .copyWith(fontWeight: FontWeight.w700)
-                              : AppTextStyles.labelLarge,
+                              ? AppTextStyles.labelLarge.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                )
+                              : AppTextStyles.labelLarge.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -77,13 +86,17 @@ class ConversationTile extends StatelessWidget {
                         _relativeTime,
                         style: AppTextStyles.caption.copyWith(
                           color: _isUnread
-                              ? context.colors.primary
-                              : context.colors.mutedForeground,
+                              ? colors.primary
+                              : colors.mutedForeground,
+                          fontWeight: _isUnread
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: 3),
+                  // Message preview row
                   Row(
                     children: [
                       Expanded(
@@ -92,10 +105,10 @@ class ConversationTile extends StatelessWidget {
                           style: _isUnread
                               ? AppTextStyles.bodySmall.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: context.colors.foreground,
+                                  color: colors.foreground,
                                 )
                               : AppTextStyles.bodySmall.copyWith(
-                                  color: context.colors.mutedForeground,
+                                  color: colors.mutedForeground,
                                 ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -117,21 +130,23 @@ class ConversationTile extends StatelessWidget {
   }
 
   Widget _buildUnreadBadge(BuildContext context) {
+    final colors = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 2,
-      ),
+      constraints: const BoxConstraints(minWidth: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: context.colors.primary,
-        borderRadius: BorderRadius.circular(AppSpacing.xl),
+        color: colors.primary,
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         _unreadCount > 99 ? '99+' : '$_unreadCount',
-        style: AppTextStyles.labelSmall.copyWith(
-          color: context.colors.primaryForeground,
-          fontSize: 10,
+        style: AppTextStyles.caption.copyWith(
+          color: colors.primaryForeground,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          height: 1.2,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }

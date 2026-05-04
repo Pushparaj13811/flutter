@@ -46,7 +46,6 @@ class _MessageInputState extends State<MessageInput> {
       setState(() => _canSend = hasText);
     }
 
-    // Typing indicator logic
     if (hasText) {
       if (!_isTyping) {
         _isTyping = true;
@@ -71,7 +70,6 @@ class _MessageInputState extends State<MessageInput> {
     if (text.isEmpty) return;
     widget.onSend(text);
     _controller.clear();
-    // Stop typing on send
     _typingTimer?.cancel();
     if (_isTyping) {
       _isTyping = false;
@@ -81,37 +79,61 @@ class _MessageInputState extends State<MessageInput> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: context.colors.card,
+        color: colors.card,
         border: Border(
-          top: BorderSide(color: context.colors.border),
+          top: BorderSide(color: colors.border, width: 0.8),
         ),
       ),
       child: SafeArea(
         top: false,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            // Camera icon (left prefix)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Icons.camera_alt_outlined,
+                  color: colors.mutedForeground,
+                  size: 22,
+                ),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                padding: EdgeInsets.zero,
+                splashRadius: 20,
+              ),
+            ),
+            const SizedBox(width: 4),
+            // Text field — pill shape
             Expanded(
               child: TextField(
                 controller: _controller,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.send,
+                maxLines: 5,
+                minLines: 1,
                 onSubmitted: (_) => _handleSend(),
+                style: TextStyle(color: colors.foreground, fontSize: 15),
                 decoration: InputDecoration(
-                  hintText: 'Type a message...',
+                  hintText: 'Message...',
                   hintStyle: TextStyle(
-                    color: context.colors.mutedForeground,
+                    color: colors.mutedForeground,
+                    fontSize: 15,
                   ),
                   filled: true,
-                  fillColor: context.colors.muted,
+                  fillColor: colors.muted,
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
+                    horizontal: 16,
+                    vertical: 10,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
@@ -124,19 +146,54 @@ class _MessageInputState extends State<MessageInput> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide(
-                      color: context.colors.ring,
+                      color: colors.ring,
                       width: 1.5,
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              onPressed: _canSend ? _handleSend : null,
-              icon: Icon(
-                Icons.send_rounded,
-                color: _canSend ? context.colors.primary : context.colors.mutedForeground,
+            const SizedBox(width: 8),
+            // Send / Mic button (right)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: child,
+                ),
+                child: _canSend
+                    ? GestureDetector(
+                        key: const ValueKey('send'),
+                        onTap: _handleSend,
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: colors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.send_rounded,
+                            color: colors.primaryForeground,
+                            size: 18,
+                          ),
+                        ),
+                      )
+                    : IconButton(
+                        key: const ValueKey('mic'),
+                        onPressed: () {},
+                        icon: Icon(
+                          Icons.mic_none_rounded,
+                          color: colors.mutedForeground,
+                          size: 22,
+                        ),
+                        constraints:
+                            const BoxConstraints(minWidth: 38, minHeight: 38),
+                        padding: EdgeInsets.zero,
+                        splashRadius: 20,
+                      ),
               ),
             ),
           ],
