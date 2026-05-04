@@ -45,9 +45,11 @@ class CallFirestoreService {
 
   /// Listen for incoming calls
   Stream<QuerySnapshot<Map<String, dynamic>>> incomingCallsStream() {
+    final uid = _uid;
+    if (uid.isEmpty) return const Stream.empty();
+    // Single field query — avoids composite index requirement
     return _db.collection('calls')
-        .where('callee', isEqualTo: _uid)
-        .where('status', isEqualTo: 'ringing')
+        .where('callee', isEqualTo: uid)
         .snapshots();
   }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/core/services/agora_service.dart';
 import 'package:skill_exchange/core/services/call_sound_service.dart';
@@ -300,6 +301,9 @@ final callNotifierProvider =
 });
 
 final incomingCallsProvider = StreamProvider((ref) {
+  // Watch auth state so the stream refreshes on login/logout
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null || uid.isEmpty) return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
   final service = ref.watch(callFirestoreServiceProvider);
   return service.incomingCallsStream();
 });

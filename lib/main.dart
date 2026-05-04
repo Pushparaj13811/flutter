@@ -61,6 +61,8 @@ class SkillExchangeApp extends ConsumerWidget {
       final presenceService = ref.read(presenceServiceProvider);
       if (next is AuthAuthenticated) {
         presenceService.startTracking();
+        // Restart incoming calls stream with new user's uid
+        ref.invalidate(incomingCallsProvider);
       } else {
         presenceService.stopTracking();
       }
@@ -441,9 +443,15 @@ class _IncomingCallListenerState extends ConsumerState<IncomingCallListener> {
     final incomingAsync = ref.watch(incomingCallsProvider);
 
     incomingAsync.whenData((snapshot) {
-      if (snapshot.docs.isEmpty) return;
+      // Filter for ringing calls only (query no longer filters by status)
+      final ringingDocs = snapshot.docs.where((doc) {
+        final status = doc.data()['status'] as String?;
+        return status == 'ringing';
+      }).toList();
 
-      final doc = snapshot.docs.first;
+      if (ringingDocs.isEmpty) return;
+
+      final doc = ringingDocs.first;
       final callId = doc.id;
 
       // Skip if already handled this call
@@ -452,11 +460,11 @@ class _IncomingCallListenerState extends ConsumerState<IncomingCallListener> {
       final data = doc.data();
       final callerName = data['callerName'] as String? ?? 'Unknown';
 
-      // Only react to calls created within the last 45 seconds
+      // Only react to calls created within the last 60 seconds
       final createdAt = data['createdAt'] as Timestamp?;
       if (createdAt != null) {
         final age = DateTime.now().difference(createdAt.toDate());
-        if (age.inSeconds > 45) return;
+        if (age.inSeconds > 60) return;
       }
 
       // Don't show overlay if we're already in a call
