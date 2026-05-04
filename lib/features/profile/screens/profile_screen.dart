@@ -120,6 +120,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final asyncValue = ref.watch(_provider);
 
     return Scaffold(
+      appBar: _isOwnProfile
+          ? AppBar(
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  tooltip: 'Settings',
+                  onPressed: () => context.push(RouteNames.settings),
+                ),
+              ],
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: () async => _invalidate(),
         child: asyncValue.when(
