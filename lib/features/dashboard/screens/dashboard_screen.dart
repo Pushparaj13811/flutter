@@ -158,18 +158,32 @@ class DashboardScreen extends ConsumerWidget {
 // ── Section Header ───────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
+  const _SectionHeader({required this.title, this.onViewAll});
 
   final String title;
+  final VoidCallback? onViewAll;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.md),
-      child: Text(
-        title,
-        style: AppTextStyles.h4.copyWith(color: colors.foreground),
+      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: AppTextStyles.h4.copyWith(color: colors.foreground),
+          ),
+          if (onViewAll != null)
+            GestureDetector(
+              onTap: onViewAll,
+              child: Text(
+                'View All',
+                style: AppTextStyles.labelMedium.copyWith(color: colors.primary),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -281,7 +295,7 @@ class _SessionReminderCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: colors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -458,7 +472,7 @@ class _SuggestedUsersSection extends StatelessWidget {
       data: (matches) {
         if (matches.isEmpty) return const SizedBox.shrink();
         return SizedBox(
-          height: 190,
+          height: 170,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: matches.length,
@@ -489,7 +503,7 @@ class _SuggestedUserCard extends StatelessWidget {
         : null;
 
     return Container(
-      width: 140,
+      width: 120,
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -501,7 +515,7 @@ class _SuggestedUserCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircleAvatar(
-            radius: 28,
+            radius: 24,
             backgroundImage: avatar != null && avatar.isNotEmpty
                 ? NetworkImage(avatar)
                 : null,
