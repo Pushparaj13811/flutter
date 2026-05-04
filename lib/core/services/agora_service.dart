@@ -1,4 +1,5 @@
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:skill_exchange/core/constants/agora_config.dart';
@@ -10,6 +11,10 @@ class AgoraService {
   RtcEngine? get engine => _engine;
   bool get isInitialized => _isInitialized;
 
+  bool get hasValidAppId =>
+      AgoraConfig.appId.isNotEmpty &&
+      AgoraConfig.appId != 'YOUR_AGORA_APP_ID';
+
   Future<bool> requestPermissions() async {
     final camera = await Permission.camera.request();
     final mic = await Permission.microphone.request();
@@ -18,6 +23,14 @@ class AgoraService {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
+
+    if (!hasValidAppId) {
+      throw Exception(
+        'Agora App ID not configured. '
+        'Get one from https://console.agora.io and set it in '
+        'lib/core/constants/agora_config.dart',
+      );
+    }
 
     _engine = createAgoraRtcEngine();
     await _engine!.initialize(const RtcEngineContext(
@@ -49,7 +62,11 @@ class AgoraService {
   }
 
   Future<void> leaveChannel() async {
-    await _engine?.leaveChannel();
+    try {
+      await _engine?.leaveChannel();
+    } catch (e) {
+      debugPrint('AgoraService.leaveChannel error: $e');
+    }
   }
 
   Future<void> toggleMute(bool muted) async {
@@ -57,11 +74,7 @@ class AgoraService {
   }
 
   Future<void> toggleCamera(bool enabled) async {
-    if (enabled) {
-      await _engine?.enableLocalVideo(true);
-    } else {
-      await _engine?.enableLocalVideo(false);
-    }
+    await _engine?.enableLocalVideo(enabled);
   }
 
   Future<void> switchCamera() async {
@@ -69,8 +82,12 @@ class AgoraService {
   }
 
   Future<void> dispose() async {
-    await _engine?.leaveChannel();
-    await _engine?.release();
+    try {
+      await _engine?.leaveChannel();
+      await _engine?.release();
+    } catch (e) {
+      debugPrint('AgoraService.dispose error: $e');
+    }
     _engine = null;
     _isInitialized = false;
   }

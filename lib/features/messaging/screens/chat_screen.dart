@@ -154,6 +154,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                   ),
                 );
+              } else if (!success && context.mounted) {
+                final callState = ref.read(callNotifierProvider);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(callState.error ?? 'Failed to start video call'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             },
           ),

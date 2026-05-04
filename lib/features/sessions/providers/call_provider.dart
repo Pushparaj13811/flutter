@@ -14,6 +14,7 @@ class CallState {
   final bool isCameraOn;
   final int? remoteUid;
   final Duration duration;
+  final String? error;
 
   const CallState({
     this.status = CallStatus.idle,
@@ -24,6 +25,7 @@ class CallState {
     this.isCameraOn = true,
     this.remoteUid,
     this.duration = Duration.zero,
+    this.error,
   });
 
   CallState copyWith({
@@ -35,6 +37,7 @@ class CallState {
     bool? isCameraOn,
     int? remoteUid,
     Duration? duration,
+    String? error,
   }) {
     return CallState(
       status: status ?? this.status,
@@ -45,6 +48,7 @@ class CallState {
       isCameraOn: isCameraOn ?? this.isCameraOn,
       remoteUid: remoteUid ?? this.remoteUid,
       duration: duration ?? this.duration,
+      error: error,
     );
   }
 }
@@ -58,8 +62,18 @@ class CallNotifier extends StateNotifier<CallState> {
   CallNotifier(this._agora, this._callService) : super(const CallState());
 
   Future<bool> startCall(String calleeUid, String calleeName) async {
+    if (!_agora.hasValidAppId) {
+      state = state.copyWith(
+        error: 'Video call not configured. Please set up Agora App ID.',
+      );
+      return false;
+    }
+
     final hasPerms = await _agora.requestPermissions();
-    if (!hasPerms) return false;
+    if (!hasPerms) {
+      state = state.copyWith(error: 'Camera and microphone permissions required.');
+      return false;
+    }
 
     try {
       await _agora.initialize();
