@@ -424,71 +424,93 @@ class _FloatingCallPipState extends ConsumerState<FloatingCallPip>
   }
 }
 
-class IncomingCallListener extends ConsumerWidget {
+class IncomingCallListener extends ConsumerStatefulWidget {
   const IncomingCallListener({super.key, required this.child});
   final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    ref.listen(incomingCallsProvider, (previous, next) {
-      next.whenData((snapshot) {
-        if (snapshot.docs.isNotEmpty) {
-          final doc = snapshot.docs.first;
-          final data = doc.data();
-          final callId = doc.id;
-          final callerName = data['callerName'] as String? ?? 'Unknown';
+  ConsumerState<IncomingCallListener> createState() =>
+      _IncomingCallListenerState();
+}
 
-          // Only react to calls created within the last 30 seconds
-          final createdAt = data['createdAt'] as Timestamp?;
-          if (createdAt != null) {
-            final age = DateTime.now().difference(createdAt.toDate());
-            if (age.inSeconds > 30) return; // Skip old/stale calls
-          }
+class _IncomingCallListenerState extends ConsumerState<IncomingCallListener> {
+  final Set<String> _handledCallIds = {};
 
-          // Don't show overlay if we're already in a call
-          final currentCall = ref.read(callNotifierProvider);
-          if (currentCall.status != CallStatus.idle) return;
+  @override
+  Widget build(BuildContext context) {
+    final incomingAsync = ref.watch(incomingCallsProvider);
 
-          // Play ringtone for incoming call
-          ref.read(callSoundServiceProvider).playRingtone();
+    incomingAsync.whenData((snapshot) {
+      if (snapshot.docs.isEmpty) return;
 
-          Navigator.of(context, rootNavigator: true).push(
-            MaterialPageRoute(
-              builder: (_) => IncomingCallOverlay(
-                callerName: callerName,
-                onAccept: () async {
-                  ref.read(callSoundServiceProvider).stop();
-                  if (context.mounted) {
-                    Navigator.of(context, rootNavigator: true).maybePop();
-                  }
-                  final notifier = ref.read(callNotifierProvider.notifier);
-                  final success = await notifier.acceptCall(callId, callerName);
-                  if (success && context.mounted) {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => VideoCallScreen(
-                          channelId: callId,
-                          remoteUserName: callerName,
-                          isCaller: false,
-                        ),
+      final doc = snapshot.docs.first;
+      final callId = doc.id;
+
+      // Skip if already handled this call
+      if (_handledCallIds.contains(callId)) return;
+
+      final data = doc.data();
+      final callerName = data['callerName'] as String? ?? 'Unknown';
+
+      // Only react to calls created within the last 45 seconds
+      final createdAt = data['createdAt'] as Timestamp?;
+      if (createdAt != null) {
+        final age = DateTime.now().difference(createdAt.toDate());
+        if (age.inSeconds > 45) return;
+      }
+
+      // Don't show overlay if we're already in a call
+      final currentCall = ref.read(callNotifierProvider);
+      if (currentCall.status != CallStatus.idle) return;
+
+      // Mark as handled
+      _handledCallIds.add(callId);
+
+      // Defer navigation to avoid build-phase issues
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+
+        // Play ringtone
+        ref.read(callSoundServiceProvider).playRingtone();
+
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => IncomingCallOverlay(
+              callerName: callerName,
+              onAccept: () async {
+                ref.read(callSoundServiceProvider).stop();
+                // Pop the overlay
+                if (context.mounted) {
+                  Navigator.of(context, rootNavigator: true).maybePop();
+                }
+                final notifier = ref.read(callNotifierProvider.notifier);
+                final success =
+                    await notifier.acceptCall(callId, callerName);
+                if (success && context.mounted) {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(
+                      builder: (_) => VideoCallScreen(
+                        channelId: callId,
+                        remoteUserName: callerName,
+                        isCaller: false,
                       ),
-                    );
-                  }
-                },
-                onDecline: () {
-                  ref.read(callSoundServiceProvider).stop();
-                  if (context.mounted) {
-                    Navigator.of(context, rootNavigator: true).maybePop();
-                  }
-                  ref.read(callNotifierProvider.notifier).declineCall(callId);
-                },
-              ),
+                    ),
+                  );
+                }
+              },
+              onDecline: () {
+                ref.read(callSoundServiceProvider).stop();
+                if (context.mounted) {
+                  Navigator.of(context, rootNavigator: true).maybePop();
+                }
+                ref.read(callNotifierProvider.notifier).declineCall(callId);
+              },
             ),
-          );
-        }
+          ),
+        );
       });
     });
 
-    return child;
+    return widget.child;
   }
 }
