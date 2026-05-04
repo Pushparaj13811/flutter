@@ -99,6 +99,10 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   }
 
   void _swapVideos() {
+    // Only swap when both local camera and remote video are available
+    final callState = ref.read(callNotifierProvider);
+    final agora = ref.read(agoraServiceProvider);
+    if (callState.remoteUid == null || agora.engine == null || !callState.isCameraOn) return;
     setState(() => _remoteInPip = !_remoteInPip);
   }
 
@@ -121,6 +125,11 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     final agora = ref.read(agoraServiceProvider);
     final hasRemote = callState.remoteUid != null && agora.engine != null;
     final hasCamera = callState.isCameraOn && agora.engine != null;
+
+    // Reset swap if conditions are no longer met
+    if (_remoteInPip && (!hasRemote || !hasCamera)) {
+      _remoteInPip = false;
+    }
 
     // Initialize PIP position on first build
     if (_pipLeft < 0) {
