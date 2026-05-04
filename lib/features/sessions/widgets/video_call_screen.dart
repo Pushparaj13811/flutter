@@ -7,6 +7,9 @@ import 'package:skill_exchange/core/services/call_sound_service.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
 
+/// Global flag: is the full-screen call screen currently visible?
+final callScreenVisible = ValueNotifier<bool>(false);
+
 class VideoCallScreen extends ConsumerStatefulWidget {
   const VideoCallScreen({
     super.key,
@@ -41,6 +44,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   @override
   void initState() {
     super.initState();
+    callScreenVisible.value = true;
     _setupAgoraCallbacks();
     _resetControlsTimer();
     if (widget.isCaller) {
@@ -101,6 +105,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
+    callScreenVisible.value = false;
     super.dispose();
   }
 

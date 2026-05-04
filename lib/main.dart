@@ -245,170 +245,176 @@ class _FloatingCallPipState extends ConsumerState<FloatingCallPip>
     final agora = ref.read(agoraServiceProvider);
     final isActive = callState.status == CallStatus.active;
 
+    final hasActiveCall = callState.status != CallStatus.idle &&
+        callState.status != CallStatus.ended &&
+        callState.status != CallStatus.declined;
+
     return Stack(
       children: [
         widget.child,
 
-        if (callState.status != CallStatus.idle &&
-            callState.status != CallStatus.ended &&
-            callState.status != CallStatus.declined)
-          Positioned(
-            left: _left,
-            top: _top,
-            child: GestureDetector(
-              onPanStart: (_) {
-                _isDragging = true;
-                _snapController.stop();
-              },
-              onPanUpdate: (details) {
-                setState(() {
-                  final size = MediaQuery.of(context).size;
-                  _left = (_left + details.delta.dx)
-                      .clamp(0, size.width - _pipWidth);
-                  _top = (_top + details.delta.dy).clamp(
-                    MediaQuery.of(context).padding.top,
-                    size.height - _pipHeight - 80,
-                  );
-                });
-              },
-              onPanEnd: (_) {
-                _isDragging = false;
-                _snapToEdge();
-              },
-              onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => VideoCallScreen(
-                      channelId: callState.callId ?? '',
-                      remoteUserName: callState.remoteUserName ?? 'Call',
-                      isCaller: true,
-                    ),
-                  ),
-                );
-              },
-              child: Material(
-                elevation: _isDragging ? 16 : 8,
-                shadowColor: Colors.black45,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: _pipWidth,
-                  height: _pipHeight,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF059669),
-                      width: 2,
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Stack(
-                      children: [
-                        // Video or avatar placeholder
-                        if (isActive &&
-                            callState.remoteUid != null &&
-                            agora.engine != null)
-                          AgoraVideoView(
-                            controller: VideoViewController.remote(
-                              rtcEngine: agora.engine!,
-                              canvas: VideoCanvas(
-                                  uid: callState.remoteUid!),
-                              connection: RtcConnection(
-                                  channelId: callState.callId ?? ''),
-                            ),
-                          )
-                        else
-                          Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircleAvatar(
-                                  radius: 24,
-                                  backgroundColor: Colors.white24,
-                                  child: Text(
-                                    (callState.remoteUserName ?? '?')
-                                        .isNotEmpty
-                                        ? callState.remoteUserName![0]
-                                            .toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  callState.status == CallStatus.calling
-                                      ? 'Calling...'
-                                      : callState.status ==
-                                              CallStatus.ringing
-                                          ? 'Ringing...'
-                                          : 'Connecting...',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 9,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+        // Only show PIP when call is active AND call screen is NOT visible
+        if (hasActiveCall)
+          ValueListenableBuilder<bool>(
+            valueListenable: callScreenVisible,
+            builder: (context, isCallScreenVisible, _) {
+              if (isCallScreenVisible) return const SizedBox.shrink();
+              return _buildPipWidget(context, callState, agora, isActive);
+            },
+          ),
+      ],
+    );
+  }
 
-                        // End call button at bottom
-                        Positioned(
-                          bottom: 6,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () => ref
-                                  .read(callNotifierProvider.notifier)
-                                  .endCall(),
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.call_end,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
+  Widget _buildPipWidget(BuildContext context, CallState callState,
+      AgoraService agora, bool isActive) {
+    return Positioned(
+      left: _left,
+      top: _top,
+      child: GestureDetector(
+        onPanStart: (_) {
+          _isDragging = true;
+          _snapController.stop();
+        },
+        onPanUpdate: (details) {
+          setState(() {
+            final size = MediaQuery.of(context).size;
+            _left = (_left + details.delta.dx)
+                .clamp(0, size.width - _pipWidth);
+            _top = (_top + details.delta.dy).clamp(
+              MediaQuery.of(context).padding.top,
+              size.height - _pipHeight - 80,
+            );
+          });
+        },
+        onPanEnd: (_) {
+          _isDragging = false;
+          _snapToEdge();
+        },
+        onTap: () {
+          Navigator.of(context, rootNavigator: true).push(
+            MaterialPageRoute(
+              builder: (_) => VideoCallScreen(
+                channelId: callState.callId ?? '',
+                remoteUserName: callState.remoteUserName ?? 'Call',
+                isCaller: true,
+              ),
+            ),
+          );
+        },
+        child: Material(
+          elevation: _isDragging ? 16 : 8,
+          shadowColor: Colors.black45,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: _pipWidth,
+            height: _pipHeight,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF059669),
+                width: 2,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  if (isActive &&
+                      callState.remoteUid != null &&
+                      agora.engine != null)
+                    AgoraVideoView(
+                      controller: VideoViewController.remote(
+                        rtcEngine: agora.engine!,
+                        canvas: VideoCanvas(uid: callState.remoteUid!),
+                        connection:
+                            RtcConnection(channelId: callState.callId ?? ''),
+                      ),
+                    )
+                  else
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.white24,
+                            child: Text(
+                              (callState.remoteUserName ?? '?').isNotEmpty
+                                  ? callState.remoteUserName![0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            callState.status == CallStatus.calling
+                                ? 'Calling...'
+                                : callState.status == CallStatus.ringing
+                                    ? 'Ringing...'
+                                    : 'Connecting...',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // End call button
+                  Positioned(
+                    bottom: 6,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () =>
+                            ref.read(callNotifierProvider.notifier).endCall(),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.call_end,
+                            color: Colors.white,
+                            size: 16,
                           ),
                         ),
-
-                        // Duration badge
-                        if (isActive)
-                          Positioned(
-                            top: 4,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: _DurationText(callState.duration),
-                              ),
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                  // Duration badge
+                  if (isActive)
+                    Positioned(
+                      top: 4,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: _DurationText(callState.duration),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }
