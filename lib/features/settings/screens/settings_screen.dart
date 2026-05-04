@@ -69,192 +69,159 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final notifier = ref.read(settingsNotifierProvider.notifier);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.screenPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Account Section ────────────────────────────────────────────
-          _SectionCard(
+    return ListView(
+      children: [
+        // ── Account Section ──────────────────────────────────────────────
+        _SectionLabel(title: 'Account'),
+        _SettingsTile(
+          colors: colors,
+          icon: Icons.lock_outline,
+          title: 'Change Password',
+          onTap: () => _showChangePasswordDialog(context),
+        ),
+        _thinDivider(colors),
+        _SettingsTile(
+          colors: colors,
+          icon: Icons.email_outlined,
+          title: 'Change Email',
+          onTap: () => _showChangeEmailDialog(context),
+        ),
+        _thinDivider(colors),
+        _SettingsTile(
+          colors: colors,
+          icon: Icons.delete_outline,
+          title: 'Delete Account',
+          titleColor: colors.destructive,
+          iconColor: colors.destructive,
+          onTap: () => _showDeleteAccountDialog(context, ref),
+        ),
+
+        // ── Notifications Section ────────────────────────────────────────
+        _SectionLabel(title: 'Notifications'),
+        _SettingsToggle(
+          colors: colors,
+          icon: Icons.notifications_active_outlined,
+          title: 'Push Notifications',
+          value: settings.pushNotifications,
+          onChanged: (v) => notifier.updatePushNotifications(v),
+        ),
+        _thinDivider(colors),
+        _SettingsToggle(
+          colors: colors,
+          icon: Icons.mark_email_read_outlined,
+          title: 'Email Notifications',
+          value: settings.emailNotifications,
+          onChanged: (v) => notifier.updateEmailNotifications(v),
+        ),
+        _thinDivider(colors),
+        _SettingsToggle(
+          colors: colors,
+          icon: Icons.alarm_outlined,
+          title: 'Session Reminders',
+          value: settings.sessionReminders,
+          onChanged: (v) => notifier.updateSessionReminders(v),
+        ),
+
+        // ── Privacy Section ──────────────────────────────────────────────
+        _SectionLabel(title: 'Privacy'),
+        _SettingsTile(
+          colors: colors,
+          icon: Icons.visibility_outlined,
+          title: 'Profile Visibility',
+          trailing: _VisibilityDropdown(
             colors: colors,
-            icon: Icons.person_outline,
-            title: 'Account',
+            value: settings.profileVisibility,
+            onChanged: (v) => notifier.updateProfileVisibility(v),
+          ),
+          onTap: null,
+        ),
+        _thinDivider(colors),
+        _SettingsToggle(
+          colors: colors,
+          icon: Icons.alternate_email,
+          title: 'Show Email',
+          value: settings.showEmail,
+          onChanged: (v) => notifier.updateShowEmail(v),
+        ),
+        _thinDivider(colors),
+        _SettingsToggle(
+          colors: colors,
+          icon: Icons.schedule_outlined,
+          title: 'Show Availability',
+          value: settings.showAvailability,
+          onChanged: (v) => notifier.updateShowAvailability(v),
+        ),
+
+        // ── Appearance Section ───────────────────────────────────────────
+        _SectionLabel(title: 'Appearance'),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenPadding,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
             children: [
-              _SettingsTile(
-                colors: colors,
-                icon: Icons.lock_outline,
-                title: 'Change Password',
-                trailing: Icon(Icons.chevron_right, color: colors.mutedForeground, size: 20),
-                onTap: () => _showChangePasswordDialog(context),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(Icons.brightness_6_outlined, size: 18, color: colors.primary),
               ),
-              _divider(colors),
-              _SettingsTile(
-                colors: colors,
-                icon: Icons.email_outlined,
-                title: 'Change Email',
-                trailing: Icon(Icons.chevron_right, color: colors.mutedForeground, size: 20),
-                onTap: () => _showChangeEmailDialog(context),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  'Theme',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: colors.foreground,
+                  ),
+                ),
               ),
-              _divider(colors),
-              _SettingsTile(
+              _ThemeSegmentedControl(
                 colors: colors,
-                icon: Icons.delete_outline,
-                title: 'Delete Account',
-                titleColor: colors.destructive,
-                trailing: Icon(Icons.chevron_right, color: colors.mutedForeground, size: 20),
-                onTap: () => _showDeleteAccountDialog(context, ref),
+                value: themeMode,
+                onChanged: (mode) =>
+                    ref.read(themeModeProvider.notifier).setThemeMode(mode),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+        ),
 
-          // ── Notifications Section ─────────────────────────────────────
-          _SectionCard(
-            colors: colors,
-            icon: Icons.notifications_outlined,
-            title: 'Notifications',
-            children: [
-              _SettingsToggle(
-                colors: colors,
-                icon: Icons.notifications_active_outlined,
-                title: 'Push Notifications',
-                value: settings.pushNotifications,
-                onChanged: (v) => notifier.updatePushNotifications(v),
-              ),
-              _divider(colors),
-              _SettingsToggle(
-                colors: colors,
-                icon: Icons.mark_email_read_outlined,
-                title: 'Email Notifications',
-                value: settings.emailNotifications,
-                onChanged: (v) => notifier.updateEmailNotifications(v),
-              ),
-              _divider(colors),
-              _SettingsToggle(
-                colors: colors,
-                icon: Icons.alarm_outlined,
-                title: 'Session Reminders',
-                value: settings.sessionReminders,
-                onChanged: (v) => notifier.updateSessionReminders(v),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
+        // ── Log Out ──────────────────────────────────────────────────────
+        _SectionLabel(title: 'Account Actions'),
+        _SettingsTile(
+          colors: colors,
+          icon: Icons.logout,
+          title: 'Log Out',
+          titleColor: colors.destructive,
+          iconColor: colors.destructive,
+          trailing: const SizedBox.shrink(),
+          onTap: () => _handleLogout(context, ref),
+        ),
 
-          // ── Privacy Section ────────────────────────────────────────────
-          _SectionCard(
-            colors: colors,
-            icon: Icons.lock_outlined,
-            title: 'Privacy',
-            children: [
-              _SettingsTile(
-                colors: colors,
-                icon: Icons.visibility_outlined,
-                title: 'Profile Visibility',
-                trailing: _VisibilityDropdown(
-                  colors: colors,
-                  value: settings.profileVisibility,
-                  onChanged: (v) => notifier.updateProfileVisibility(v),
-                ),
-                onTap: null,
-              ),
-              _divider(colors),
-              _SettingsToggle(
-                colors: colors,
-                icon: Icons.alternate_email,
-                title: 'Show Email',
-                value: settings.showEmail,
-                onChanged: (v) => notifier.updateShowEmail(v),
-              ),
-              _divider(colors),
-              _SettingsToggle(
-                colors: colors,
-                icon: Icons.schedule_outlined,
-                title: 'Show Availability',
-                value: settings.showAvailability,
-                onChanged: (v) => notifier.updateShowAvailability(v),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
 
-          // ── Appearance Section ─────────────────────────────────────────
-          _SectionCard(
-            colors: colors,
-            icon: Icons.palette_outlined,
-            title: 'Appearance',
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.brightness_6_outlined, size: 20, color: colors.mutedForeground),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Text(
-                        'Theme',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: colors.foreground,
-                        ),
-                      ),
-                    ),
-                    _ThemeSegmentedControl(
-                      colors: colors,
-                      value: themeMode,
-                      onChanged: (mode) =>
-                          ref.read(themeModeProvider.notifier).setThemeMode(mode),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ── Log Out Button ─────────────────────────────────────────────
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _handleLogout(context, ref),
-              icon: Icon(Icons.logout, color: colors.destructive),
-              label: Text(
-                'Log Out',
-                style: TextStyle(color: colors.destructive),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: colors.destructive.withValues(alpha: 0.5)),
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                ),
-              ),
+        // ── Version ──────────────────────────────────────────────────────
+        Center(
+          child: Text(
+            'Skill Exchange v1.0.0',
+            style: AppTextStyles.caption.copyWith(
+              color: colors.mutedForeground,
             ),
           ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // ── Version ────────────────────────────────────────────────────
-          Center(
-            child: Text(
-              'Skill Exchange v1.0.0',
-              style: AppTextStyles.caption.copyWith(
-                color: colors.mutedForeground,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-        ],
-      ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
     );
   }
 
-  Widget _divider(AppColorsExtension colors) {
+  Widget _thinDivider(AppColorsExtension colors) {
     return Divider(
       height: 1,
-      indent: AppSpacing.md + 20 + AppSpacing.md,
-      color: colors.border.withValues(alpha: 0.5),
+      indent: AppSpacing.screenPadding + 36 + AppSpacing.md,
+      color: colors.border.withValues(alpha: 0.3),
     );
   }
 
@@ -318,56 +285,26 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-// ── Section Card ──────────────────────────────────────────────────────────────
+// ── Section Label ─────────────────────────────────────────────────────────────
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.colors,
-    required this.icon,
-    required this.title,
-    required this.children,
-  });
-
-  final AppColorsExtension colors;
-  final IconData icon;
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.title});
   final String title;
-  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: colors.border.withValues(alpha: 0.5)),
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: AppSpacing.screenPadding,
+        top: AppSpacing.lg,
+        bottom: AppSpacing.sm,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.md,
-              AppSpacing.md,
-              AppSpacing.sm,
-            ),
-            child: Row(
-              children: [
-                Icon(icon, size: 20, color: colors.primary),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  title,
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: colors.foreground,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ...children,
-          const SizedBox(height: AppSpacing.xs),
-        ],
+      child: Text(
+        title.toUpperCase(),
+        style: AppTextStyles.labelSmall.copyWith(
+          color: context.colors.mutedForeground,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }
@@ -381,39 +318,65 @@ class _SettingsTile extends StatelessWidget {
     required this.icon,
     required this.title,
     this.titleColor,
+    this.subtitle,
     this.trailing,
     required this.onTap,
+    this.iconColor,
   });
 
   final AppColorsExtension colors;
   final IconData icon;
   final String title;
   final Color? titleColor;
+  final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = iconColor ?? colors.primary;
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
+          horizontal: AppSpacing.screenPadding,
           vertical: AppSpacing.md,
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: colors.mutedForeground),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: effectiveColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(icon, size: 18, color: effectiveColor),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(
-                title,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: titleColor ?? colors.foreground,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: titleColor ?? colors.foreground,
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle!,
+                      style: AppTextStyles.caption.copyWith(
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                ],
               ),
             ),
-            ?trailing,
+            if (trailing != null) trailing!
+            else Icon(Icons.chevron_right, size: 18, color: colors.mutedForeground),
           ],
         ),
       ),
@@ -442,19 +405,25 @@ class _SettingsToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
+        horizontal: AppSpacing.screenPadding,
         vertical: AppSpacing.xs,
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: colors.mutedForeground),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(icon, size: 18, color: colors.primary),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               title,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: colors.foreground,
-              ),
+              style: AppTextStyles.bodyMedium.copyWith(color: colors.foreground),
             ),
           ),
           Switch.adaptive(
