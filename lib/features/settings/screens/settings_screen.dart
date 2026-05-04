@@ -12,6 +12,7 @@ import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
 import 'package:skill_exchange/features/settings/providers/settings_provider.dart';
 import 'package:skill_exchange/features/settings/providers/theme_provider.dart';
 import 'package:skill_exchange/core/widgets/skeleton_card.dart';
+import 'package:skill_exchange/features/settings/screens/blocked_users_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -150,6 +151,16 @@ class SettingsScreen extends ConsumerWidget {
           title: 'Show Availability',
           value: settings.showAvailability,
           onChanged: (v) => notifier.updateShowAvailability(v),
+        ),
+        _thinDivider(colors),
+        _SettingsTile(
+          colors: colors,
+          icon: Icons.block,
+          title: 'Blocked Users',
+          iconColor: colors.destructive,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const BlockedUsersScreen()),
+          ),
         ),
 
         // ── Appearance Section ───────────────────────────────────────────
