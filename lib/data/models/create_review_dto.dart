@@ -3,14 +3,14 @@ class CreateReviewDto {
   final int rating;
   final String comment;
   final List<String> skillsReviewed;
-  final String? sessionId;
+  final String sessionId;
 
   const CreateReviewDto({
     this.toUserId = '',
     this.rating = 0,
     this.comment = '',
     this.skillsReviewed = const [],
-    this.sessionId,
+    this.sessionId = '',
   });
 
   factory CreateReviewDto.fromMap(Map<String, dynamic> map) {
@@ -19,7 +19,7 @@ class CreateReviewDto {
       rating: (map['rating'] as num?)?.toInt() ?? 0,
       comment: map['comment'] as String? ?? '',
       skillsReviewed: (map['skillsReviewed'] as List?)?.cast<String>() ?? [],
-      sessionId: map['sessionId'] as String?,
+      sessionId: map['sessionId'] as String? ?? '',
     );
   }
 
@@ -31,6 +31,5 @@ class CreateReviewDto {
         'sessionId': sessionId,
       };
 
-  /// Legacy compatibility alias
   Map<String, dynamic> toJson() => toMap();
 }

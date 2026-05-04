@@ -15,12 +15,14 @@ class ReviewSheet extends ConsumerStatefulWidget {
     super.key,
     required this.toUserId,
     required this.toUserName,
-    this.sessionId,
+    required this.sessionId,
+    this.prePopulatedSkills = const [],
   });
 
   final String toUserId;
   final String toUserName;
-  final String? sessionId;
+  final String sessionId;
+  final List<String> prePopulatedSkills;
 
   @override
   ConsumerState<ReviewSheet> createState() => _ReviewSheetState();
@@ -34,6 +36,12 @@ class _ReviewSheetState extends ConsumerState<ReviewSheet> {
   String? _commentError;
   String? _ratingError;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _skillsReviewed.addAll(widget.prePopulatedSkills);
+  }
 
   @override
   void dispose() {
