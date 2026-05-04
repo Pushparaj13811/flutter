@@ -117,17 +117,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                 // ── Logo ──────────────────────────────────────────────────────
                 Center(
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: context.colors.primary,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: const Icon(
-                      Icons.swap_horiz_rounded,
-                      color: Colors.white,
-                      size: 32,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      width: 72,
+                      height: 72,
                     ),
                   ),
                 ),
