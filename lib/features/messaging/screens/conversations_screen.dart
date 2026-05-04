@@ -28,8 +28,7 @@ class ConversationsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: AppSpacing.screenPadding,
+        titleSpacing: 0,
         title: Text(
           'Chats',
           style: AppTextStyles.h2.copyWith(
@@ -40,6 +39,11 @@ class ConversationsScreen extends ConsumerWidget {
           IconButton(
             icon: Icon(Icons.search_rounded, color: colors.foreground, size: 24),
             tooltip: 'Search conversations',
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: Icon(Icons.camera_alt_outlined, color: colors.foreground, size: 22),
+            tooltip: 'Camera',
             onPressed: () {},
           ),
           IconButton(

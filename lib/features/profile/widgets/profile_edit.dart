@@ -270,15 +270,14 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
                         children: _languages
                             .map((lang) => Chip(
                                   label: Text(lang,
-                                      style: AppTextStyles.labelSmall),
-                                  deleteIcon:
-                                      const Icon(Icons.close, size: 14),
+                                      style: AppTextStyles.labelMedium.copyWith(
+                                        color: colors.primary,
+                                      )),
+                                  deleteIcon: Icon(Icons.close, size: 14, color: colors.primary),
                                   onDeleted: () => setState(
                                       () => _languages.remove(lang)),
-                                  backgroundColor: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white.withValues(alpha: 0.1)
-                                      : const Color(0xFFE8E8ED),
-                                  side: BorderSide.none,
+                                  backgroundColor: colors.primary.withValues(alpha: 0.1),
+                                  side: BorderSide(color: colors.primary.withValues(alpha: 0.2)),
                                 ))
                             .toList(),
                       ),
@@ -302,15 +301,14 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
                         children: _interests
                             .map((interest) => Chip(
                                   label: Text(interest,
-                                      style: AppTextStyles.labelSmall),
-                                  deleteIcon:
-                                      const Icon(Icons.close, size: 14),
+                                      style: AppTextStyles.labelMedium.copyWith(
+                                        color: colors.primary,
+                                      )),
+                                  deleteIcon: Icon(Icons.close, size: 14, color: colors.primary),
                                   onDeleted: () => setState(
                                       () => _interests.remove(interest)),
-                                  backgroundColor: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white.withValues(alpha: 0.1)
-                                      : const Color(0xFFE8E8ED),
-                                  side: BorderSide.none,
+                                  backgroundColor: colors.primary.withValues(alpha: 0.1),
+                                  side: BorderSide(color: colors.primary.withValues(alpha: 0.2)),
                                 ))
                             .toList(),
                       ),
