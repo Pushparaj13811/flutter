@@ -121,11 +121,28 @@ service cloud.firestore {
 
     // Calls (WebRTC signaling)
     match /calls/{id} {
-      allow read: if isAuthenticated() &&
-        (request.auth.uid == resource.data.caller || request.auth.uid == resource.data.callee);
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() &&
-        (request.auth.uid == resource.data.caller || request.auth.uid == resource.data.callee);
+      allow update: if isAuthenticated();
+    }
+
+    // Blocks
+    match /blocks/{id} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Announcements
+    match /announcements/{id} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Activity Logs
+    match /activityLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
     }
   }
 }
