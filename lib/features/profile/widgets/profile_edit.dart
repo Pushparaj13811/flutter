@@ -275,7 +275,9 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
                                       const Icon(Icons.close, size: 14),
                                   onDeleted: () => setState(
                                       () => _languages.remove(lang)),
-                                  backgroundColor: colors.muted,
+                                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white.withValues(alpha: 0.1)
+                                      : const Color(0xFFE8E8ED),
                                   side: BorderSide.none,
                                 ))
                             .toList(),
@@ -305,7 +307,9 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
                                       const Icon(Icons.close, size: 14),
                                   onDeleted: () => setState(
                                       () => _interests.remove(interest)),
-                                  backgroundColor: colors.muted,
+                                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white.withValues(alpha: 0.1)
+                                      : const Color(0xFFE8E8ED),
                                   side: BorderSide.none,
                                 ))
                             .toList(),
@@ -595,6 +599,7 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
       runSpacing: AppSpacing.sm,
       children: _learningStyles.map((style) {
         final isSelected = _preferredLearningStyle == style;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return ChoiceChip(
           label: Text(
             '${style[0].toUpperCase()}${style.substring(1)}',
@@ -604,7 +609,9 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
           ),
           selected: isSelected,
           selectedColor: colors.primary,
-          backgroundColor: colors.muted,
+          backgroundColor: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : const Color(0xFFE8E8ED),
           side: BorderSide.none,
           onSelected: (_) =>
               setState(() => _preferredLearningStyle = style),

@@ -101,25 +101,26 @@ class _OwnProfileLayout extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Gradient header that fades into scaffold background ─────────
+          // ── Gradient header — tall, fades smoothly into background ──────
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: const [0.0, 0.6, 1.0],
+                stops: const [0.0, 0.55, 0.85, 1.0],
                 colors: [
                   colors.primary,
-                  colors.primary.withValues(alpha: 0.7),
+                  colors.primary,
+                  colors.primary.withValues(alpha: 0.4),
                   scaffoldBg,
                 ],
               ),
             ),
             child: Padding(
               padding: EdgeInsets.only(
-                top: topPad + AppSpacing.xl,
-                bottom: AppSpacing.xl,
+                top: topPad + AppSpacing.xxl,
+                bottom: AppSpacing.xxl,
                 left: AppSpacing.screenPadding,
                 right: AppSpacing.screenPadding,
               ),
@@ -132,7 +133,7 @@ class _OwnProfileLayout extends StatelessWidget {
                   // Name
                   Text(
                     profile.fullName,
-                    style: AppTextStyles.h3.copyWith(
+                    style: AppTextStyles.h2.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -148,7 +149,27 @@ class _OwnProfileLayout extends StatelessWidget {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
+
+                  // Location
+                  if (profile.location != null && profile.location!.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.location_on_outlined, size: 14, color: Colors.white.withValues(alpha: 0.8)),
+                        const SizedBox(width: 4),
+                        Text(
+                          profile.location!,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  const SizedBox(height: AppSpacing.xl),
 
                   // Manage Profile button
                   OutlinedButton.icon(
@@ -165,7 +186,7 @@ class _OwnProfileLayout extends StatelessWidget {
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white70, width: 1),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
+                        horizontal: AppSpacing.xl,
                         vertical: AppSpacing.sm,
                       ),
                       shape: RoundedRectangleBorder(
@@ -181,7 +202,10 @@ class _OwnProfileLayout extends StatelessWidget {
           // ── Activity stats card ──────────────────────────────────────────
           _buildActivityCard(context, colors),
 
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.lg),
+
+          // ── User details sections ──────────────────────────────────────
+          _buildUserDetails(context, colors),
 
           // ── Nav list items ───────────────────────────────────────────────
           _buildNavList(context, colors),
@@ -312,6 +336,203 @@ class _OwnProfileLayout extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildUserDetails(BuildContext context, AppColorsExtension colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Bio
+          if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+            _detailSection(colors, Icons.person_outline, 'Bio',
+              child: Text(
+                profile.bio!,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: colors.foreground,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+
+          // Skills to Teach
+          if (profile.skillsToTeach.isNotEmpty) ...[
+            _detailSection(colors, Icons.school_outlined, 'Skills to Teach',
+              iconColor: colors.success,
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: profile.skillsToTeach
+                    .map((s) => SkillTag(name: s.name, level: s.level.value))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+
+          // Skills to Learn
+          if (profile.skillsToLearn.isNotEmpty) ...[
+            _detailSection(colors, Icons.auto_stories_outlined, 'Skills to Learn',
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: profile.skillsToLearn
+                    .map((s) => SkillTag(name: s.name, level: s.level.value))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+
+          // Languages
+          if (profile.languages.isNotEmpty) ...[
+            _detailSection(colors, Icons.translate, 'Languages',
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: profile.languages
+                    .map((l) => _detailChip(colors, l))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+
+          // Interests
+          if (profile.interests.isNotEmpty) ...[
+            _detailSection(colors, Icons.favorite_outline, 'Interests',
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: profile.interests
+                    .map((i) => _detailChip(colors, i))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+
+          // Availability
+          _detailSection(colors, Icons.calendar_today_outlined, 'Availability',
+            child: AvailabilityGrid(
+              availability: profile.availability,
+              readOnly: true,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Rating + Learning Style + Member Since
+          _detailSection(colors, Icons.info_outline, 'About',
+            child: Column(
+              children: [
+                _infoRow(colors, 'Rating',
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        profile.stats.averageRating.toStringAsFixed(1),
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: colors.foreground,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      StarRating(rating: profile.stats.averageRating, size: 14),
+                    ],
+                  ),
+                ),
+                Divider(height: AppSpacing.lg, color: colors.border.withValues(alpha: 0.3)),
+                _infoRow(colors, 'Learning Style',
+                  value: profile.preferredLearningStyle.isEmpty
+                      ? 'Not set'
+                      : '${profile.preferredLearningStyle[0].toUpperCase()}${profile.preferredLearningStyle.substring(1)}',
+                ),
+                Divider(height: AppSpacing.lg, color: colors.border.withValues(alpha: 0.3)),
+                _infoRow(colors, 'Member Since',
+                  value: profile.joinedAt.toDateTimeOrNull?.fullDate ?? profile.joinedAt,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailSection(AppColorsExtension colors, IconData icon, String title, {
+    required Widget child,
+    Color? iconColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: colors.border.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: iconColor ?? colors.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                title,
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: colors.foreground,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _detailChip(AppColorsExtension colors, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: colors.muted,
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+      ),
+      child: Text(
+        text,
+        style: AppTextStyles.labelSmall.copyWith(color: colors.foreground),
+      ),
+    );
+  }
+
+  Widget _infoRow(AppColorsExtension colors, String label, {String? value, Widget? trailing}) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTextStyles.bodySmall.copyWith(color: colors.mutedForeground),
+          ),
+        ),
+        if (trailing != null)
+          trailing
+        else
+          Text(
+            value ?? '',
+            style: AppTextStyles.labelMedium.copyWith(
+              color: colors.foreground,
+            ),
+          ),
+      ],
     );
   }
 
