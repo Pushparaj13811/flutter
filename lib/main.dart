@@ -513,20 +513,24 @@ class _IncomingCallListenerState extends ConsumerState<IncomingCallListener> {
 
       ref.read(callSoundServiceProvider).playRingtone();
 
-      Navigator.of(context, rootNavigator: true).push(
+      final nav = globalNavigatorKey.navigatorKey.currentState;
+      if (nav == null) {
+        debugPrint('IncomingCallListener: navigator not available!');
+        return;
+      }
+
+      nav.push(
         MaterialPageRoute(
           builder: (_) => IncomingCallOverlay(
             callerName: callerName,
             onAccept: () async {
               ref.read(callSoundServiceProvider).stop();
-              if (context.mounted) {
-                Navigator.of(context, rootNavigator: true).maybePop();
-              }
+              globalNavigatorKey.navigatorKey.currentState?.maybePop();
               final notifier = ref.read(callNotifierProvider.notifier);
               final success =
                   await notifier.acceptCall(callId, callerName);
-              if (success && context.mounted) {
-                Navigator.of(context, rootNavigator: true).push(
+              if (success) {
+                globalNavigatorKey.navigatorKey.currentState?.push(
                   MaterialPageRoute(
                     builder: (_) => VideoCallScreen(
                       channelId: callId,
@@ -539,9 +543,7 @@ class _IncomingCallListenerState extends ConsumerState<IncomingCallListener> {
             },
             onDecline: () {
               ref.read(callSoundServiceProvider).stop();
-              if (context.mounted) {
-                Navigator.of(context, rootNavigator: true).maybePop();
-              }
+              globalNavigatorKey.navigatorKey.currentState?.maybePop();
               ref.read(callNotifierProvider.notifier).declineCall(callId);
             },
           ),
