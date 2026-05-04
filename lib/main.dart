@@ -7,6 +7,9 @@ import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/services/fcm_service.dart';
 import 'package:skill_exchange/core/theme/app_theme.dart';
 import 'package:skill_exchange/core/widgets/connectivity_banner.dart';
+import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
+import 'package:skill_exchange/features/sessions/widgets/incoming_call_overlay.dart';
+import 'package:skill_exchange/features/sessions/widgets/video_call_screen.dart';
 import 'package:skill_exchange/features/settings/providers/theme_provider.dart';
 import 'package:skill_exchange/firebase_options.dart';
 
@@ -48,9 +51,60 @@ class SkillExchangeApp extends ConsumerWidget {
       builder: (context, child) {
         return GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-          child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+          child: IncomingCallListener(
+            child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+          ),
         );
       },
     );
+  }
+}
+
+class IncomingCallListener extends ConsumerWidget {
+  const IncomingCallListener({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(incomingCallsProvider, (previous, next) {
+      next.whenData((snapshot) {
+        if (snapshot.docs.isNotEmpty) {
+          final doc = snapshot.docs.first;
+          final data = doc.data() as Map<String, dynamic>;
+          final callId = doc.id;
+          final callerName = data['callerName'] as String? ?? 'Unknown';
+
+          Navigator.of(context, rootNavigator: true).push(
+            MaterialPageRoute(
+              builder: (_) => IncomingCallOverlay(
+                callerName: callerName,
+                onAccept: () async {
+                  Navigator.of(context).pop();
+                  final notifier = ref.read(callNotifierProvider.notifier);
+                  final success = await notifier.acceptCall(callId, callerName);
+                  if (success && context.mounted) {
+                    Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(
+                        builder: (_) => VideoCallScreen(
+                          channelId: callId,
+                          remoteUserName: callerName,
+                          isCaller: false,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                onDecline: () {
+                  Navigator.of(context).pop();
+                  ref.read(callNotifierProvider.notifier).declineCall(callId);
+                },
+              ),
+            ),
+          );
+        }
+      });
+    });
+
+    return child;
   }
 }

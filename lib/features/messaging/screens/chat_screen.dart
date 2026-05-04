@@ -12,6 +12,8 @@ import 'package:skill_exchange/features/messaging/providers/messaging_provider.d
 import 'package:skill_exchange/features/messaging/widgets/message_bubble.dart';
 import 'package:skill_exchange/features/messaging/widgets/message_input.dart';
 import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
+import 'package:skill_exchange/features/sessions/widgets/video_call_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.conversationId});
@@ -115,6 +117,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.videocam_outlined),
+            tooltip: 'Video Call',
+            onPressed: () async {
+              final otherUserName = _cachedOtherUserName ?? 'User';
+              final notifier = ref.read(callNotifierProvider.notifier);
+              final success = await notifier.startCall(_otherUserId, otherUserName);
+              if (success && context.mounted) {
+                final callState = ref.read(callNotifierProvider);
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => VideoCallScreen(
+                      channelId: callState.callId!,
+                      remoteUserName: otherUserName,
+                      isCaller: true,
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
