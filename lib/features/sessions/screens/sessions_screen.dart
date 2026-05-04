@@ -14,8 +14,6 @@ import 'package:skill_exchange/features/sessions/providers/session_provider.dart
 import 'package:skill_exchange/features/sessions/widgets/reschedule_session_sheet.dart';
 import 'package:skill_exchange/features/sessions/widgets/session_booking_sheet.dart';
 import 'package:skill_exchange/features/sessions/widgets/session_card.dart';
-import 'package:skill_exchange/core/services/call_overlay_service.dart';
-import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
 import 'package:skill_exchange/features/sessions/widgets/video_call_screen.dart';
 
 class SessionsScreen extends ConsumerWidget {
@@ -43,26 +41,17 @@ class SessionsScreen extends ConsumerWidget {
         ? (session.participant?.fullName ?? session.participantId)
         : (session.host?.fullName ?? session.hostId);
 
-    final notifier = ref.read(callNotifierProvider.notifier);
-    notifier.startCall(otherUserId, otherUserName).then((success) {
-      if (success) {
-        final callState = ref.read(callNotifierProvider);
-        callOverlay.openCallScreen(
-          VideoCallScreen(
-            channelId: callState.callId!,
-            remoteUserName: otherUserName,
-            isCaller: true,
-          ),
-        );
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to start call. Check camera/mic permissions.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    });
+    // Open call screen immediately — it will handle startCall itself
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => VideoCallScreen(
+          channelId: '',
+          remoteUserName: otherUserName,
+          isCaller: true,
+          calleeId: otherUserId,
+        ),
+      ),
+    );
   }
 
   void _onComplete(

@@ -12,8 +12,6 @@ import 'package:skill_exchange/features/messaging/providers/messaging_provider.d
 import 'package:skill_exchange/features/messaging/widgets/message_bubble.dart';
 import 'package:skill_exchange/features/messaging/widgets/message_input.dart';
 import 'package:skill_exchange/config/di/providers.dart';
-import 'package:skill_exchange/core/services/call_overlay_service.dart';
-import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
 import 'package:skill_exchange/features/sessions/widgets/video_call_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -140,29 +138,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             icon: Icon(Icons.videocam_outlined,
                 color: colors.primary, size: 24),
             tooltip: 'Video Call',
-            onPressed: () async {
+            onPressed: () {
               final otherUserName = _cachedOtherUserName ?? 'User';
-              final notifier = ref.read(callNotifierProvider.notifier);
-              final success =
-                  await notifier.startCall(_otherUserId, otherUserName);
-              if (success && context.mounted) {
-                final callState = ref.read(callNotifierProvider);
-                callOverlay.openCallScreen(
-                  VideoCallScreen(
-                    channelId: callState.callId!,
+              // Open call screen immediately — it will handle startCall itself
+              Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (_) => VideoCallScreen(
+                    channelId: '',
                     remoteUserName: otherUserName,
                     isCaller: true,
+                    calleeId: _otherUserId,
                   ),
-                );
-              } else if (!success && context.mounted) {
-                final callState = ref.read(callNotifierProvider);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(callState.error ?? 'Failed to start video call'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
+                ),
+              );
             },
           ),
           // More options
@@ -299,23 +287,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ? () {
                               final otherUserName =
                                   _cachedOtherUserName ?? 'User';
-                              final notifier =
-                                  ref.read(callNotifierProvider.notifier);
-                              notifier
-                                  .startCall(_otherUserId, otherUserName)
-                                  .then((success) {
-                                if (success) {
-                                  final callState =
-                                      ref.read(callNotifierProvider);
-                                  callOverlay.openCallScreen(
-                                    VideoCallScreen(
-                                      channelId: callState.callId!,
-                                      remoteUserName: otherUserName,
-                                      isCaller: true,
-                                    ),
-                                  );
-                                }
-                              });
+                              // Open call screen immediately — it handles startCall
+                              Navigator.of(context, rootNavigator: true).push(
+                                MaterialPageRoute(
+                                  builder: (_) => VideoCallScreen(
+                                    channelId: '',
+                                    remoteUserName: otherUserName,
+                                    isCaller: true,
+                                    calleeId: _otherUserId,
+                                  ),
+                                ),
+                              );
                             }
                           : null,
                     );

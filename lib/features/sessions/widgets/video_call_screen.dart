@@ -14,11 +14,13 @@ class VideoCallScreen extends ConsumerStatefulWidget {
     required this.channelId,
     required this.remoteUserName,
     required this.isCaller,
+    this.calleeId, // Only for caller — screen will call startCall itself
   });
 
   final String channelId;
   final String remoteUserName;
   final bool isCaller;
+  final String? calleeId; // Only for caller — the screen will call startCall itself
 
   @override
   ConsumerState<VideoCallScreen> createState() => _VideoCallScreenState();
@@ -43,13 +45,33 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   void initState() {
     super.initState();
     callOverlay.onCallScreenOpened();
-    _setupAgoraCallbacks();
     _resetControlsTimer();
-    if (widget.isCaller) {
+    if (widget.isCaller && widget.calleeId != null) {
+      // Caller flow: screen opened first, now initiate the call
+      _initiateCall();
+    } else {
+      // Callee flow (or re-open via PIP/banner): Agora is already ready
+      _setupAgoraCallbacks();
+    }
+  }
+
+  Future<void> _initiateCall() async {
+    final notifier = ref.read(callNotifierProvider.notifier);
+    final success =
+        await notifier.startCall(widget.calleeId!, widget.remoteUserName);
+    if (success && mounted) {
+      _setupAgoraCallbacks();
       final sound = ref.read(callSoundServiceProvider);
-      if (!sound.isPlaying) {
-        sound.playDialTone();
-      }
+      if (!sound.isPlaying) sound.playDialTone();
+    } else if (!success && mounted) {
+      final error = ref.read(callNotifierProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Failed to start call'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.of(context).pop();
     }
   }
 
