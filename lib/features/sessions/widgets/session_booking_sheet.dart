@@ -28,7 +28,6 @@ class SessionBookingSheet extends ConsumerStatefulWidget {
 class _SessionBookingSheetState extends ConsumerState<SessionBookingSheet> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _meetingLinkController = TextEditingController();
   final _locationController = TextEditingController();
   final _skillController = TextEditingController();
 
@@ -36,25 +35,15 @@ class _SessionBookingSheetState extends ConsumerState<SessionBookingSheet> {
   TimeOfDay? _scheduledTime;
   int _duration = 60;
   String _sessionMode = 'online';
-  String _meetingPlatform = 'Google Meet';
   final List<String> _skillsToCover = [];
   bool _isBooking = false;
 
   static const _durationOptions = [30, 60, 90, 120, 180];
 
-  static const _platformOptions = [
-    'Google Meet',
-    'Zoom',
-    'Teams',
-    'Skype',
-    'Discord',
-  ];
-
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _meetingLinkController.dispose();
     _locationController.dispose();
     _skillController.dispose();
     super.dispose();
@@ -133,12 +122,8 @@ class _SessionBookingSheetState extends ConsumerState<SessionBookingSheet> {
       scheduledAt: scheduledAt.toIso8601String(),
       duration: _duration,
       sessionMode: _sessionMode,
-      meetingPlatform: _sessionMode == 'online' ? _meetingPlatform : null,
-      meetingLink: _sessionMode == 'online'
-          ? _meetingLinkController.text.trim().isEmpty
-              ? null
-              : _meetingLinkController.text.trim()
-          : null,
+      meetingPlatform: _sessionMode == 'online' ? 'In-App Call' : null,
+      meetingLink: null,
       location: _sessionMode == 'offline'
           ? _locationController.text.trim().isEmpty
               ? null
@@ -334,50 +319,28 @@ class _SessionBookingSheetState extends ConsumerState<SessionBookingSheet> {
             ),
             const SizedBox(height: AppSpacing.inputGap),
 
-            // ── Online fields ──
+            // ── Online info ──
             if (isOnline) ...[
-              Text(
-                'Meeting Platform',
-                style: AppTextStyles.labelMedium.copyWith(
-                  color: context.colors.foreground,
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: context.colors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppRadius.input),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              DropdownButtonFormField<String>(
-                initialValue: _meetingPlatform,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.input),
-                    borderSide: BorderSide(color: context.colors.input),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                ),
-                items: _platformOptions
-                    .map(
-                      (p) => DropdownMenuItem(
-                        value: p,
-                        child: Text(p),
+                child: Row(
+                  children: [
+                    Icon(Icons.videocam, size: 18, color: context.colors.primary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Session will use in-app video call',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: context.colors.primary,
+                        ),
                       ),
-                    )
-                    .toList(),
-                onChanged: _isBooking
-                    ? null
-                    : (value) {
-                        if (value != null) {
-                          setState(() => _meetingPlatform = value);
-                        }
-                      },
-              ),
-              const SizedBox(height: AppSpacing.inputGap),
-              AppTextField(
-                label: 'Meeting Link',
-                hint: 'https://meet.google.com/...',
-                controller: _meetingLinkController,
-                keyboardType: TextInputType.url,
-                enabled: !_isBooking,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.inputGap),
             ],
