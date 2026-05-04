@@ -83,22 +83,22 @@ class SessionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           _buildParticipants(context),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           _buildScheduleInfo(context),
           if (session.skillsToCover.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
             _buildSkillChips(),
           ],
           if (session.sessionMode == 'online' &&
               session.meetingLink != null &&
               session.meetingLink!.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
             _buildMeetingLinkButton(),
           ],
           if (session.status == SessionStatus.scheduled) ...[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             _buildActions(),
           ],
         ],

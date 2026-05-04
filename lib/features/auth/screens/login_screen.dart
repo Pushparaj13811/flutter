@@ -187,7 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         validator: Validators.email,
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.md),
 
                       // Password field
                       _buildLabel('Password'),

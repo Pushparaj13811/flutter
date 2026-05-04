@@ -194,7 +194,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         ),
                         validator: (v) => Validators.required(v, 'Name'),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.md),
 
                       // Username
                       _buildLabel('Username'),
@@ -211,7 +211,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         ),
                         validator: (v) => Validators.required(v, 'Username'),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.md),
 
                       // Email
                       _buildLabel('Email'),
@@ -229,7 +229,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         ),
                         validator: Validators.email,
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.md),
 
                       // Password
                       _buildLabel('Password'),
@@ -263,7 +263,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                       // Password strength indicator
                       PasswordStrengthIndicator(password: _passwordText),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.md),
 
                       // Confirm Password
                       _buildLabel('Confirm Password'),
@@ -294,7 +294,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         validator: (v) =>
                             Validators.confirmPassword(v, _passwordController.text),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.md),
 
                       // Terms checkbox
                       Row(
