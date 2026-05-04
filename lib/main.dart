@@ -1,3 +1,4 @@
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -9,6 +10,7 @@ import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/services/fcm_service.dart';
 import 'package:skill_exchange/core/theme/app_theme.dart';
 import 'package:skill_exchange/core/widgets/connectivity_banner.dart';
+import 'package:skill_exchange/core/services/agora_service.dart';
 import 'package:skill_exchange/core/services/call_sound_service.dart';
 import 'package:skill_exchange/core/services/presence_service.dart';
 import 'package:skill_exchange/features/auth/providers/auth_provider.dart';
@@ -74,14 +76,15 @@ class SkillExchangeApp extends ConsumerWidget {
         return GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: IncomingCallListener(
-            child: Column(
-              children: [
-                // Active call banner — tap to return to call
-                const _ActiveCallBanner(),
-                Expanded(
-                  child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
-                ),
-              ],
+            child: FloatingCallPip(
+              child: Column(
+                children: [
+                  const _ActiveCallBanner(),
+                  Expanded(
+                    child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -97,16 +100,15 @@ class _ActiveCallBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final callState = ref.watch(callNotifierProvider);
 
-    // Only show when call is active/ringing/connecting but the call screen isn't visible
     if (callState.status == CallStatus.idle ||
         callState.status == CallStatus.ended ||
         callState.status == CallStatus.declined) {
       return const SizedBox.shrink();
     }
 
+    // Compact green banner — tap to return to full call screen
     return GestureDetector(
       onTap: () {
-        // Return to call screen
         Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             builder: (_) => VideoCallScreen(
@@ -145,10 +147,7 @@ class _ActiveCallBanner extends ConsumerWidget {
               ),
             ),
             if (callState.status == CallStatus.active)
-              Text(
-                _formatDuration(callState.duration),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
+              _DurationText(callState.duration),
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () => ref.read(callNotifierProvider.notifier).endCall(),
@@ -159,11 +158,197 @@ class _ActiveCallBanner extends ConsumerWidget {
       ),
     );
   }
+}
 
-  String _formatDuration(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
+class _DurationText extends StatelessWidget {
+  const _DurationText(this.duration);
+  final Duration duration;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return Text('$m:$s', style: const TextStyle(color: Colors.white70, fontSize: 12));
+  }
+}
+
+/// Floating PIP overlay that shows during an active call when the user
+/// navigates away from the call screen. Draggable, tappable to return
+/// to full screen, with end-call button.
+class FloatingCallPip extends ConsumerStatefulWidget {
+  const FloatingCallPip({super.key, required this.child});
+  final Widget child;
+
+  @override
+  ConsumerState<FloatingCallPip> createState() => _FloatingCallPipState();
+}
+
+class _FloatingCallPipState extends ConsumerState<FloatingCallPip> {
+  Offset _offset = const Offset(16, 100);
+
+  @override
+  Widget build(BuildContext context) {
+    final callState = ref.watch(callNotifierProvider);
+    final agora = ref.read(agoraServiceProvider);
+    final isActive = callState.status == CallStatus.active;
+
+    return Stack(
+      children: [
+        widget.child,
+
+        // Show PIP only when call is active (not idle/ended/declined)
+        if (callState.status != CallStatus.idle &&
+            callState.status != CallStatus.ended &&
+            callState.status != CallStatus.declined)
+          Positioned(
+            left: _offset.dx,
+            top: _offset.dy,
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                setState(() {
+                  _offset += details.delta;
+                  // Clamp to screen bounds
+                  final size = MediaQuery.of(context).size;
+                  _offset = Offset(
+                    _offset.dx.clamp(0, size.width - 120),
+                    _offset.dy.clamp(50, size.height - 180),
+                  );
+                });
+              },
+              onTap: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => VideoCallScreen(
+                      channelId: callState.callId ?? '',
+                      remoteUserName: callState.remoteUserName ?? 'Call',
+                      isCaller: true,
+                    ),
+                  ),
+                );
+              },
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 120,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF059669),
+                      width: 2,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      children: [
+                        // Video or avatar placeholder
+                        if (isActive &&
+                            callState.remoteUid != null &&
+                            agora.engine != null)
+                          AgoraVideoView(
+                            controller: VideoViewController.remote(
+                              rtcEngine: agora.engine!,
+                              canvas: VideoCanvas(
+                                  uid: callState.remoteUid!),
+                              connection: RtcConnection(
+                                  channelId: callState.callId ?? ''),
+                            ),
+                          )
+                        else
+                          Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: Colors.white24,
+                                  child: Text(
+                                    (callState.remoteUserName ?? '?')
+                                        .isNotEmpty
+                                        ? callState.remoteUserName![0]
+                                            .toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  callState.status == CallStatus.calling
+                                      ? 'Calling...'
+                                      : callState.status ==
+                                              CallStatus.ringing
+                                          ? 'Ringing...'
+                                          : 'Connecting...',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // End call button at bottom
+                        Positioned(
+                          bottom: 6,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: () => ref
+                                  .read(callNotifierProvider.notifier)
+                                  .endCall(),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.call_end,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Duration badge
+                        if (isActive)
+                          Positioned(
+                            top: 4,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: _DurationText(callState.duration),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
 
