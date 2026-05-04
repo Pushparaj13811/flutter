@@ -174,7 +174,10 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
           children: [
             // Drag handle
             Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 8),
+              padding: const EdgeInsets.only(
+                top: AppSpacing.cardPadding,
+                bottom: AppSpacing.listItemGap,
+              ),
               child: Center(
                 child: Container(
                   width: 40, height: 4,
@@ -225,7 +228,7 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
 
                             return ListTile(
                               leading: CircleAvatar(
-                                radius: 22,
+                                radius: 20,
                                 backgroundColor: colors.muted,
                                 backgroundImage: avatar != null && avatar.isNotEmpty
                                     ? NetworkImage(avatar)

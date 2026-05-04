@@ -51,7 +51,7 @@ class ConversationTile extends StatelessWidget {
             UserAvatar(
               name: _otherName,
               imageUrl: _otherAvatar,
-              size: 48,
+              size: 40,
               heroTag: 'avatar_$id',
             ),
             const SizedBox(width: AppSpacing.md),
