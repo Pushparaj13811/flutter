@@ -270,8 +270,26 @@ class _OtherUserActionsState extends ConsumerState<_OtherUserActions> {
         onPressed = null;
         isPrimary = false;
       case 'pending_sent':
-        buttonLabel = 'Request Sent';
-        onPressed = null;
+        buttonLabel = 'Withdraw';
+        onPressed = () async {
+          try {
+            await ref
+                .read(connectionFirestoreServiceProvider)
+                .withdrawRequest(widget.userId);
+            if (mounted) {
+              setState(() => _status = 'none');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Connection request withdrawn')),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed: $e')),
+              );
+            }
+          }
+        };
         isPrimary = false;
       case 'pending_received':
         buttonLabel = 'Accept';

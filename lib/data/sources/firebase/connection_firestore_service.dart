@@ -89,6 +89,17 @@ class ConnectionFirestoreService {
     });
   }
 
+  Future<void> withdrawRequest(String otherUserId) async {
+    final snap = await _db.collection('connections')
+        .where('requester', isEqualTo: _uid)
+        .where('recipient', isEqualTo: otherUserId)
+        .where('status', isEqualTo: 'pending')
+        .get();
+    for (final doc in snap.docs) {
+      await doc.reference.delete();
+    }
+  }
+
   Future<void> removeConnection(String connectionId) async {
     final doc = await _db.collection('connections').doc(connectionId).get();
     if (doc.exists) {

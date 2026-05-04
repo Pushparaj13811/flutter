@@ -99,6 +99,14 @@ class _ReviewSheetState extends ConsumerState<ReviewSheet> {
         const SnackBar(content: Text('Review submitted successfully')),
       );
       Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Failed to submit review. Please try again.'),
+          backgroundColor: context.colors.destructive,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

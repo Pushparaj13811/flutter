@@ -24,7 +24,7 @@ class CreateReviewDto {
   }
 
   Map<String, dynamic> toMap() => {
-        'toUserId': toUserId,
+        'toUser': toUserId,
         'rating': rating,
         'comment': comment,
         'skillsReviewed': skillsReviewed,
