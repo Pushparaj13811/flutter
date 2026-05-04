@@ -78,7 +78,7 @@ class IncomingCallListener extends ConsumerWidget {
       next.whenData((snapshot) {
         if (snapshot.docs.isNotEmpty) {
           final doc = snapshot.docs.first;
-          final data = doc.data() as Map<String, dynamic>;
+          final data = doc.data();
           final callId = doc.id;
           final callerName = data['callerName'] as String? ?? 'Unknown';
 
