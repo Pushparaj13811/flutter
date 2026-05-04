@@ -45,7 +45,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.button),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             textStyle: AppTextStyles.labelLarge,
           ),
         ),
@@ -56,7 +56,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.button),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             textStyle: AppTextStyles.labelLarge,
           ),
         ),
@@ -101,7 +101,7 @@ class AppTheme {
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.mutedForeground,
           type: BottomNavigationBarType.fixed,
-          elevation: 8,
+          elevation: 0,
         ),
         dividerTheme: const DividerThemeData(
           color: AppColors.border,
@@ -147,7 +147,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.button),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             textStyle: AppTextStyles.labelLarge,
           ),
         ),
@@ -158,7 +158,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.button),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             textStyle: AppTextStyles.labelLarge,
           ),
         ),
@@ -203,7 +203,7 @@ class AppTheme {
           selectedItemColor: AppColors.darkPrimary,
           unselectedItemColor: AppColors.darkMutedForeground,
           type: BottomNavigationBarType.fixed,
-          elevation: 8,
+          elevation: 0,
         ),
         dividerTheme: const DividerThemeData(
           color: AppColors.darkBorder,
