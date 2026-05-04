@@ -183,8 +183,61 @@ class FloatingCallPip extends ConsumerStatefulWidget {
   ConsumerState<FloatingCallPip> createState() => _FloatingCallPipState();
 }
 
-class _FloatingCallPipState extends ConsumerState<FloatingCallPip> {
-  Offset _offset = const Offset(16, 100);
+class _FloatingCallPipState extends ConsumerState<FloatingCallPip>
+    with SingleTickerProviderStateMixin {
+  static const double _pipWidth = 120;
+  static const double _pipHeight = 160;
+  static const double _edgePadding = 8;
+
+  double _left = _edgePadding;
+  double _top = 120;
+  bool _isDragging = false;
+
+  late AnimationController _snapController;
+  Animation<Offset>? _snapAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _snapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    )..addListener(() {
+        if (_snapAnimation != null) {
+          setState(() {
+            _left = _snapAnimation!.value.dx;
+            _top = _snapAnimation!.value.dy;
+          });
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _snapController.dispose();
+    super.dispose();
+  }
+
+  void _snapToEdge() {
+    final size = MediaQuery.of(context).size;
+    final centerX = _left + _pipWidth / 2;
+    final targetX = centerX < size.width / 2
+        ? _edgePadding
+        : size.width - _pipWidth - _edgePadding;
+    final targetY = _top.clamp(
+      MediaQuery.of(context).padding.top + _edgePadding,
+      size.height - _pipHeight - _edgePadding - 80,
+    );
+
+    _snapAnimation = Tween<Offset>(
+      begin: Offset(_left, _top),
+      end: Offset(targetX, targetY),
+    ).animate(CurvedAnimation(
+      parent: _snapController,
+      curve: Curves.easeOutCubic,
+    ));
+    _snapController.forward(from: 0);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,24 +249,31 @@ class _FloatingCallPipState extends ConsumerState<FloatingCallPip> {
       children: [
         widget.child,
 
-        // Show PIP only when call is active (not idle/ended/declined)
         if (callState.status != CallStatus.idle &&
             callState.status != CallStatus.ended &&
             callState.status != CallStatus.declined)
           Positioned(
-            left: _offset.dx,
-            top: _offset.dy,
+            left: _left,
+            top: _top,
             child: GestureDetector(
+              onPanStart: (_) {
+                _isDragging = true;
+                _snapController.stop();
+              },
               onPanUpdate: (details) {
                 setState(() {
-                  _offset += details.delta;
-                  // Clamp to screen bounds
                   final size = MediaQuery.of(context).size;
-                  _offset = Offset(
-                    _offset.dx.clamp(0, size.width - 120),
-                    _offset.dy.clamp(50, size.height - 180),
+                  _left = (_left + details.delta.dx)
+                      .clamp(0, size.width - _pipWidth);
+                  _top = (_top + details.delta.dy).clamp(
+                    MediaQuery.of(context).padding.top,
+                    size.height - _pipHeight - 80,
                   );
                 });
+              },
+              onPanEnd: (_) {
+                _isDragging = false;
+                _snapToEdge();
               },
               onTap: () {
                 Navigator.of(context, rootNavigator: true).push(
@@ -227,21 +287,22 @@ class _FloatingCallPipState extends ConsumerState<FloatingCallPip> {
                 );
               },
               child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(12),
+                elevation: _isDragging ? 16 : 8,
+                shadowColor: Colors.black45,
+                borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  width: 120,
-                  height: 160,
+                  width: _pipWidth,
+                  height: _pipHeight,
                   decoration: BoxDecoration(
                     color: Colors.black,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: const Color(0xFF059669),
                       width: 2,
                     ),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(14),
                     child: Stack(
                       children: [
                         // Video or avatar placeholder
