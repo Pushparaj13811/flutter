@@ -112,9 +112,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             end: Alignment.bottomCenter,
             stops: const [0.0, 0.3, 0.6, 1.0],
             colors: [
-              const Color(0xFF064E3B),
-              const Color(0xFF065F46),
-              const Color(0xFF059669).withValues(alpha: 0.3),
+              context.colors.primary,
+              context.colors.primary.withValues(alpha: 0.85),
+              context.colors.primary.withValues(alpha: 0.3),
               scaffoldBg,
             ],
           ),
