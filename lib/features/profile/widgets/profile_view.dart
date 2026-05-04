@@ -150,25 +150,26 @@ class _OwnProfileLayout extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
-                  // Edit Profile button
-                  OutlinedButton(
+                  // Manage Profile button
+                  OutlinedButton.icon(
                     onPressed: onEditPressed,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white, width: 1.5),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl,
-                        vertical: AppSpacing.sm,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                      ),
-                    ),
-                    child: Text(
-                      'Edit Profile',
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: Text(
+                      'Manage Profile',
                       style: AppTextStyles.labelMedium.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white70, width: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.sm,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                     ),
                   ),
@@ -342,20 +343,11 @@ class _OwnProfileLayout extends StatelessWidget {
             colors: colors,
             onTap: () => context.push(RouteNames.settings),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Divider(height: 1, color: colors.border.withValues(alpha: 0.3)),
-          _NavItem(
-            icon: Icons.logout,
-            label: 'Log Out',
-            colors: colors,
-            destructive: true,
-            onTap: onLogoutPressed,
-          ),
           const SizedBox(height: AppSpacing.xl),
 
           // Version footer
           Text(
-            'Skill Exchange',
+            'Skill Exchange v1.0.0',
             style: AppTextStyles.caption.copyWith(
               color: colors.mutedForeground,
             ),

@@ -1,16 +1,22 @@
-// Profile edit form widget
+// Profile edit form — clean single-page layout with cover + avatar header
 
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:skill_exchange/config/di/providers.dart';
+import 'package:skill_exchange/core/theme/app_colors_extension.dart';
+import 'package:skill_exchange/core/theme/app_gradients.dart';
 import 'package:skill_exchange/core/theme/app_spacing.dart';
+import 'package:skill_exchange/core/theme/app_radius.dart';
+import 'package:skill_exchange/core/theme/app_text_styles.dart';
 import 'package:skill_exchange/core/widgets/app_button.dart';
-import 'package:skill_exchange/core/widgets/app_text_field.dart';
-import 'package:skill_exchange/data/models/skill_model.dart';
+import 'package:skill_exchange/core/widgets/user_avatar.dart';
 import 'package:skill_exchange/data/models/update_profile_dto.dart';
 import 'package:skill_exchange/data/models/user_profile_model.dart';
 import 'package:skill_exchange/features/profile/providers/profile_provider.dart';
-import 'package:skill_exchange/features/profile/widgets/availability_grid.dart';
-import 'package:skill_exchange/features/profile/widgets/skills_section.dart';
 
 class ProfileEdit extends ConsumerStatefulWidget {
   const ProfileEdit({
@@ -29,51 +35,17 @@ class ProfileEdit extends ConsumerStatefulWidget {
 }
 
 class _ProfileEditState extends ConsumerState<ProfileEdit> {
-  // ── Controllers ──────────────────────────────────────────────────────────
-
   late final TextEditingController _fullNameController;
   late final TextEditingController _bioController;
   late final TextEditingController _locationController;
-  late final TextEditingController _timezoneController;
-  late final TextEditingController _interestInputController;
-
-  // ── Mutable edit state ───────────────────────────────────────────────────
-
-  late String _preferredLearningStyle;
-  late List<SkillModel> _skillsToTeach;
-  late List<SkillModel> _skillsToLearn;
-  late List<String> _interests;
-  late AvailabilityModel _editedAvailability;
-
-  // ── Learning style options ───────────────────────────────────────────────
-
-  static const List<String> _learningStyles = [
-    'visual',
-    'auditory',
-    'kinesthetic',
-    'reading',
-  ];
 
   @override
   void initState() {
     super.initState();
-
     final p = widget.profile;
-
     _fullNameController = TextEditingController(text: p.fullName);
     _bioController = TextEditingController(text: p.bio ?? '');
     _locationController = TextEditingController(text: p.location ?? '');
-    _timezoneController = TextEditingController(text: p.timezone ?? '');
-    _interestInputController = TextEditingController();
-
-    _preferredLearningStyle = _learningStyles.contains(p.preferredLearningStyle)
-        ? p.preferredLearningStyle
-        : 'visual';
-
-    _skillsToTeach = List<SkillModel>.from(p.skillsToTeach);
-    _skillsToLearn = List<SkillModel>.from(p.skillsToLearn);
-    _interests = List<String>.from(p.interests);
-    _editedAvailability = p.availability;
   }
 
   @override
@@ -81,24 +53,14 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     _fullNameController.dispose();
     _bioController.dispose();
     _locationController.dispose();
-    _timezoneController.dispose();
-    _interestInputController.dispose();
     super.dispose();
   }
-
-  // ── Save ─────────────────────────────────────────────────────────────────
 
   Future<void> _save() async {
     final dto = UpdateProfileDto(
       fullName: _fullNameController.text.trim(),
       bio: _bioController.text.trim(),
       location: _locationController.text.trim(),
-      timezone: _timezoneController.text.trim(),
-      preferredLearningStyle: _preferredLearningStyle,
-      skillsToTeach: _skillsToTeach,
-      skillsToLearn: _skillsToLearn,
-      interests: _interests,
-      availability: _editedAvailability,
     );
 
     final success = await ref
@@ -117,271 +79,296 @@ class _ProfileEditState extends ConsumerState<ProfileEdit> {
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512);
+    if (image == null) return;
 
-  void _addInterest() {
-    final text = _interestInputController.text.trim();
-    if (text.isEmpty) return;
-    if (_interests.contains(text)) {
-      _interestInputController.clear();
-      return;
+    final file = File(image.path);
+    final url = await ref.read(profileNotifierProvider.notifier).uploadAvatar(file);
+    if (url != null && mounted) {
+      ref.invalidate(currentProfileProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Avatar updated!')),
+      );
     }
-    setState(() {
-      _interests = [..._interests, text];
-      _interestInputController.clear();
-    });
   }
 
-  void _removeInterest(String interest) {
-    setState(() {
-      _interests = _interests.where((i) => i != interest).toList();
-    });
+  Future<void> _pickCover() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200);
+    if (image == null) return;
+
+    final file = File(image.path);
+    try {
+      await ref.read(profileFirestoreServiceProvider).uploadCoverImage(file);
+      if (mounted) {
+        ref.invalidate(currentProfileProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cover image updated!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload cover: $e')),
+        );
+      }
+    }
   }
-
-  // ── Tab pages ────────────────────────────────────────────────────────────
-
-  Widget _buildBasicInfoTab() {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.screenPadding),
-      children: [
-        AppTextField(
-          label: 'Full Name',
-          hint: 'Your full name',
-          controller: _fullNameController,
-        ),
-        const SizedBox(height: AppSpacing.inputGap),
-        AppTextField(
-          label: 'Bio',
-          hint: 'Tell others about yourself',
-          controller: _bioController,
-          maxLines: 4,
-        ),
-        const SizedBox(height: AppSpacing.inputGap),
-        AppTextField(
-          label: 'Location',
-          hint: 'City, Country',
-          controller: _locationController,
-        ),
-        const SizedBox(height: AppSpacing.inputGap),
-        AppTextField(
-          label: 'Timezone',
-          hint: 'e.g. UTC+5:30',
-          controller: _timezoneController,
-        ),
-        const SizedBox(height: AppSpacing.inputGap),
-        _LabeledDropdown<String>(
-          label: 'Preferred Learning Style',
-          value: _preferredLearningStyle,
-          items: _learningStyles,
-          itemLabel: (s) => _capitalize(s),
-          onChanged: (val) {
-            if (val != null) setState(() => _preferredLearningStyle = val);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSkillsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.screenPadding),
-      children: [
-        SkillsSection(
-          title: 'Skills to Teach',
-          skills: _skillsToTeach,
-          onChanged: (updated) => setState(() => _skillsToTeach = updated),
-        ),
-        const SizedBox(height: AppSpacing.sectionGap),
-        SkillsSection(
-          title: 'Skills to Learn',
-          skills: _skillsToLearn,
-          onChanged: (updated) => setState(() => _skillsToLearn = updated),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInterestsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.screenPadding),
-      children: [
-        if (_interests.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: AppSpacing.md),
-            child: Text('No interests added yet.'),
-          )
-        else
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: _interests.map((interest) {
-              return Chip(
-                label: Text(interest),
-                deleteIcon: const Icon(Icons.close, size: 16),
-                onDeleted: () => _removeInterest(interest),
-              );
-            }).toList(),
-          ),
-        const SizedBox(height: AppSpacing.lg),
-        Row(
-          children: [
-            Expanded(
-              child: AppTextField(
-                hint: 'Add an interest',
-                controller: _interestInputController,
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            AppButton.primary(
-              label: 'Add',
-              onPressed: _interestInputController.text.trim().isNotEmpty
-                  ? _addInterest
-                  : null,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAvailabilityTab() {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.screenPadding),
-      children: [
-        AvailabilityGrid(
-          availability: _editedAvailability,
-          readOnly: false,
-          onChanged: (updated) =>
-              setState(() => _editedAvailability = updated),
-        ),
-      ],
-    );
-  }
-
-  // ── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final notifierState = ref.watch(profileNotifierProvider);
     final isSaving = notifierState is AsyncLoading;
+    final profile = widget.profile;
 
-    return SafeArea(
-      child: DefaultTabController(
-      length: 4,
-      child: Column(
-        children: [
-          // ── Tab bar ───────────────────────────────────────────────────────
-          const TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: [
-              Tab(text: 'Basic Info'),
-              Tab(text: 'Skills'),
-              Tab(text: 'Interests'),
-              Tab(text: 'Availability'),
-            ],
+    return Column(
+      children: [
+        // App bar
+        AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: widget.onCancel,
           ),
+          title: Text(
+            'Edit Profile',
+            style: AppTextStyles.h4.copyWith(color: colors.primary),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
 
-          // ── Tab content ───────────────────────────────────────────────────
-          Expanded(
-            child: TabBarView(
+        // Scrollable content
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildBasicInfoTab(),
-                _buildSkillsTab(),
-                _buildInterestsTab(),
-                _buildAvailabilityTab(),
+                // Cover + Avatar
+                _buildCoverWithAvatar(context, colors, profile),
+                const SizedBox(height: AppSpacing.xl),
+
+                // Form fields
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildFieldLabel('Full Name'),
+                      const SizedBox(height: AppSpacing.xs),
+                      _buildFilledField(colors, _fullNameController),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      _buildFieldLabel('Email Address'),
+                      const SizedBox(height: AppSpacing.xs),
+                      _buildReadOnlyField(colors, profile.email),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      _buildFieldLabel('Location'),
+                      const SizedBox(height: AppSpacing.xs),
+                      _buildFilledField(colors, _locationController, hint: 'City, Country'),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      _buildFieldLabel('Bio / Description'),
+                      const SizedBox(height: AppSpacing.xs),
+                      _buildFilledField(
+                        colors,
+                        _bioController,
+                        hint: 'Tell clients about your expertise and work ethic...',
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: AppSpacing.xxxl),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
+        ),
 
-          // ── Action buttons ────────────────────────────────────────────────
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.screenPadding),
-            child: Row(
-              children: [
-                Expanded(
-                  child: AppButton.outline(
-                    label: 'Cancel',
-                    onPressed: isSaving ? null : widget.onCancel,
+        // Save button pinned at bottom
+        Container(
+          padding: EdgeInsets.only(
+            left: AppSpacing.screenPadding,
+            right: AppSpacing.screenPadding,
+            top: AppSpacing.md,
+            bottom: MediaQuery.of(context).padding.bottom + AppSpacing.md,
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: AppButton.primary(
+              label: 'Save',
+              isLoading: isSaving,
+              onPressed: isSaving ? null : _save,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCoverWithAvatar(
+      BuildContext context, AppColorsExtension colors, UserProfileModel profile) {
+    const double coverHeight = 160.0;
+    const double avatarSize = 90.0;
+    const double avatarOverlap = avatarSize / 2;
+
+    return SizedBox(
+      height: coverHeight + avatarOverlap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Cover image
+          GestureDetector(
+            onTap: _pickCover,
+            child: SizedBox(
+              height: coverHeight,
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  if (profile.coverImage != null && profile.coverImage!.isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: profile.coverImage!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: coverHeight,
+                      errorWidget: (_, _, _) => Container(
+                        decoration: BoxDecoration(
+                          gradient: AppGradients.heroFor(Theme.of(context).brightness),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: AppGradients.heroFor(Theme.of(context).brightness),
+                      ),
+                    ),
+                  // Camera icon on cover
+                  Positioned(
+                    bottom: 10,
+                    right: 10,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: AppButton.primary(
-                    label: 'Save',
-                    isLoading: isSaving,
-                    onPressed: isSaving ? null : _save,
+                ],
+              ),
+            ),
+          ),
+
+          // Avatar overlapping bottom of cover
+          Positioned(
+            bottom: 0,
+            left: AppSpacing.screenPadding,
+            child: GestureDetector(
+              onTap: _pickAvatar,
+              child: Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colors.card,
+                    ),
+                    child: UserAvatar(
+                      imageUrl: profile.avatar,
+                      name: profile.fullName,
+                      size: avatarSize,
+                    ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
-    ),
     );
   }
 
-  String _capitalize(String s) {
-    if (s.isEmpty) return s;
-    return s[0].toUpperCase() + s.substring(1);
+  Widget _buildFieldLabel(String label) {
+    return Text(
+      label,
+      style: AppTextStyles.labelMedium.copyWith(
+        color: Theme.of(context).colorScheme.onSurface,
+        fontWeight: FontWeight.w600,
+      ),
+    );
   }
-}
 
-// ── Reusable labeled dropdown ─────────────────────────────────────────────────
-
-class _LabeledDropdown<T> extends StatelessWidget {
-  const _LabeledDropdown({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.itemLabel,
-    required this.onChanged,
-  });
-
-  final String label;
-  final T value;
-  final List<T> items;
-  final String Function(T) itemLabel;
-  final ValueChanged<T?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            height: 1.4,
-          ),
+  Widget _buildFilledField(
+    AppColorsExtension colors,
+    TextEditingController controller, {
+    String? hint,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      style: AppTextStyles.bodyMedium.copyWith(color: colors.foreground),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
+        filled: true,
+        fillColor: colors.muted.withValues(alpha: 0.5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide.none,
         ),
-        const SizedBox(height: AppSpacing.xs),
-        DropdownButtonFormField<T>(
-          initialValue: value,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-          ),
-          items: items.map((item) {
-            return DropdownMenuItem<T>(
-              value: item,
-              child: Text(itemLabel(item)),
-            );
-          }).toList(),
-          onChanged: onChanged,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide.none,
         ),
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(color: colors.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyField(AppColorsExtension colors, String value) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: colors.muted.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppRadius.input),
+      ),
+      child: Text(
+        value,
+        style: AppTextStyles.bodyMedium.copyWith(color: colors.mutedForeground),
+      ),
     );
   }
 }
