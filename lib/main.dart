@@ -485,25 +485,38 @@ class _IncomingCallListenerState extends ConsumerState<IncomingCallListener> {
 
     if (ringingDocs.isEmpty) return;
 
-    final doc = ringingDocs.first;
-    final callId = doc.id;
+    // Find the NEWEST unhandled ringing call
+    QueryDocumentSnapshot<Map<String, dynamic>>? targetDoc;
+    for (final doc in ringingDocs) {
+      final callId = doc.id;
+      if (_handledCallIds.contains(callId)) continue;
 
-    if (_handledCallIds.contains(callId)) {
-      debugPrint('IncomingCallListener: call $callId already handled, skipping');
-      return;
+      final createdAt = doc.data()['createdAt'] as Timestamp?;
+      if (createdAt != null) {
+        final age = DateTime.now().difference(createdAt.toDate());
+        if (age.inSeconds > 60) {
+          // Mark old calls as handled so we don't check them again
+          _handledCallIds.add(callId);
+          debugPrint('IncomingCallListener: skipping old call $callId (${age.inSeconds}s old)');
+          continue;
+        }
+      }
+
+      targetDoc = doc;
+      break; // Take the first fresh, unhandled call
     }
 
-    final data = doc.data();
+    if (targetDoc == null) return;
+
+    final callId = targetDoc.id;
+    final data = targetDoc.data();
     final callerName = data['callerName'] as String? ?? 'Unknown';
 
-    final createdAt = data['createdAt'] as Timestamp?;
-    if (createdAt != null) {
-      final age = DateTime.now().difference(createdAt.toDate());
-      if (age.inSeconds > 60) return;
-    }
-
     final currentCall = ref.read(callNotifierProvider);
-    if (currentCall.status != CallStatus.idle) return;
+    if (currentCall.status != CallStatus.idle) {
+      debugPrint('IncomingCallListener: already in a call, skipping');
+      return;
+    }
 
     _handledCallIds.add(callId);
     debugPrint('IncomingCallListener: showing overlay for call $callId from $callerName');
