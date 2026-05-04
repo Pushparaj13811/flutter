@@ -134,7 +134,9 @@ class _ActiveCallBanner extends ConsumerWidget {
               child: Text(
                 callState.status == CallStatus.active
                     ? 'Tap to return to call'
-                    : 'Calling ${callState.remoteUserName ?? ''}...',
+                    : callState.status == CallStatus.calling
+                        ? 'Calling ${callState.remoteUserName ?? ''}...'
+                        : 'Ringing ${callState.remoteUserName ?? ''}...',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13,

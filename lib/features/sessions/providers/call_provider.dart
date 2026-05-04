@@ -5,7 +5,7 @@ import 'package:skill_exchange/core/services/agora_service.dart';
 import 'package:skill_exchange/core/services/call_sound_service.dart';
 import 'package:skill_exchange/data/sources/firebase/call_firestore_service.dart';
 
-enum CallStatus { idle, ringing, connecting, active, ended, declined }
+enum CallStatus { idle, calling, ringing, connecting, active, ended, declined }
 
 class CallState {
   final CallStatus status;
@@ -85,7 +85,7 @@ class CallNotifier extends StateNotifier<CallState> {
       final callId = await _callService.createCall(calleeUid);
 
       state = state.copyWith(
-        status: CallStatus.ringing,
+        status: CallStatus.calling,
         callId: callId,
         remoteUserId: calleeUid,
         remoteUserName: calleeName,
@@ -96,12 +96,17 @@ class CallNotifier extends StateNotifier<CallState> {
 
       // Auto-timeout after 30 seconds if not answered
       _callTimeoutTimer = Timer(const Duration(seconds: 30), () {
-        if (state.status == CallStatus.ringing) {
+        if (state.status == CallStatus.calling ||
+            state.status == CallStatus.ringing) {
           endCall();
         }
       });
 
       await _agora.joinChannel(callId, 0);
+      // Channel joined — device is connected, now waiting for callee to answer
+      if (state.status == CallStatus.calling) {
+        state = state.copyWith(status: CallStatus.ringing);
+      }
 
       return true;
     } catch (e) {

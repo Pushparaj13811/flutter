@@ -1,5 +1,7 @@
 // Block user bottom sheet
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_exchange/core/theme/app_colors_extension.dart';
 import 'package:skill_exchange/core/theme/app_text_styles.dart';
@@ -85,7 +87,45 @@ class BlockUserSheet extends StatelessWidget {
               Expanded(
                 child: AppButton.destructive(
                   label: 'Block',
-                  onPressed: () => Navigator.of(context).pop(true),
+                  onPressed: () async {
+                    try {
+                      final uid =
+                          FirebaseAuth.instance.currentUser!.uid;
+                      final db = FirebaseFirestore.instance;
+                      await db.collection('blocks').add({
+                        'blocker': uid,
+                        'blocked': userId,
+                        'createdAt': FieldValue.serverTimestamp(),
+                      });
+                      // Also remove any existing connection
+                      final connections = await db
+                          .collection('connections')
+                          .where('participants', arrayContains: uid)
+                          .get();
+                      for (final doc in connections.docs) {
+                        final data = doc.data();
+                        final participants =
+                            (data['participants'] as List?)?.cast<String>() ??
+                                [];
+                        if (participants.contains(userId)) {
+                          await doc.reference.delete();
+                        }
+                      }
+                      if (context.mounted) {
+                        Navigator.of(context).pop(true);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('User blocked')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Failed to block: $e')),
+                        );
+                      }
+                    }
+                  },
                 ),
               ),
             ],

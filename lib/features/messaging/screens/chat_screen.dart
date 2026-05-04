@@ -277,6 +277,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             '',
                     'isFromMe': data['sender'] == currentUid,
                     'read': data['isRead'] ?? false,
+                    'type': data['type'] ?? 'text',
+                    'callDuration': data['callDuration'] ?? 0,
+                    'callConnected': data['callConnected'] ?? false,
                   };
                 }).toList();
 
@@ -291,7 +294,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (_, index) {
                     final message = messages[messages.length - 1 - index];
-                    return MessageBubble(message: message);
+                    return MessageBubble(
+                      message: message,
+                      onCallBack: message['type'] == 'call'
+                          ? () {
+                              final otherUserName =
+                                  _cachedOtherUserName ?? 'User';
+                              final notifier =
+                                  ref.read(callNotifierProvider.notifier);
+                              notifier
+                                  .startCall(_otherUserId, otherUserName)
+                                  .then((success) {
+                                if (success && context.mounted) {
+                                  final callState =
+                                      ref.read(callNotifierProvider);
+                                  Navigator.of(context, rootNavigator: true)
+                                      .push(
+                                    MaterialPageRoute(
+                                      builder: (_) => VideoCallScreen(
+                                        channelId: callState.callId!,
+                                        remoteUserName: otherUserName,
+                                        isCaller: true,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              });
+                            }
+                          : null,
+                    );
                   },
                 );
               },

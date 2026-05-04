@@ -331,6 +331,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
 
   String _statusText(CallStatus status) {
     return switch (status) {
+      CallStatus.calling => 'Calling...',
       CallStatus.ringing => 'Ringing...',
       CallStatus.connecting => 'Connecting...',
       CallStatus.active => 'Connected',
