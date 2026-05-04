@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skill_exchange/core/services/agora_service.dart';
+import 'package:skill_exchange/core/services/call_sound_service.dart';
 import 'package:skill_exchange/data/sources/firebase/call_firestore_service.dart';
 
 enum CallStatus { idle, ringing, connecting, active, ended, declined }
@@ -56,10 +57,12 @@ class CallState {
 class CallNotifier extends StateNotifier<CallState> {
   final AgoraService _agora;
   final CallFirestoreService _callService;
+  final CallSoundService _sound;
   StreamSubscription? _callStreamSub;
   Timer? _durationTimer;
 
-  CallNotifier(this._agora, this._callService) : super(const CallState());
+  CallNotifier(this._agora, this._callService, this._sound)
+      : super(const CallState());
 
   Future<bool> startCall(String calleeUid, String calleeName) async {
     if (!_agora.hasValidAppId) {
@@ -88,9 +91,11 @@ class CallNotifier extends StateNotifier<CallState> {
 
       _listenToCall(callId);
       await _agora.joinChannel(callId, 0);
+      _sound.playDialTone(); // Ring-back tone while waiting
 
       return true;
     } catch (e) {
+      _sound.stop();
       state = const CallState();
       return false;
     }
@@ -118,11 +123,13 @@ class CallNotifier extends StateNotifier<CallState> {
   }
 
   Future<void> declineCall(String callId) async {
+    _sound.stop();
     await _callService.declineCall(callId);
     state = const CallState();
   }
 
   Future<void> endCall() async {
+    _sound.stop();
     final callId = state.callId;
     if (callId != null) {
       await _callService.endCall(callId);
@@ -148,6 +155,7 @@ class CallNotifier extends StateNotifier<CallState> {
   }
 
   void onRemoteUserJoined(int uid) {
+    _sound.stop(); // Stop dial/ring tone when connected
     state = state.copyWith(
       status: CallStatus.active,
       remoteUid: uid,
@@ -165,6 +173,7 @@ class CallNotifier extends StateNotifier<CallState> {
       if (data == null) return;
       final status = data['status'] as String?;
       if (status == 'ended' || status == 'declined') {
+        _sound.stop();
         _cleanup();
         state = state.copyWith(
           status: status == 'declined' ? CallStatus.declined : CallStatus.ended,
@@ -201,7 +210,8 @@ final callNotifierProvider =
     StateNotifierProvider<CallNotifier, CallState>((ref) {
   final agora = ref.watch(agoraServiceProvider);
   final callService = ref.watch(callFirestoreServiceProvider);
-  return CallNotifier(agora, callService);
+  final sound = ref.watch(callSoundServiceProvider);
+  return CallNotifier(agora, callService, sound);
 });
 
 final incomingCallsProvider = StreamProvider((ref) {

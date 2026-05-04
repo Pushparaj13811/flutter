@@ -31,12 +31,12 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       body: child,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(RouteNames.bookings),
+        onPressed: () => context.push(RouteNames.community),
         backgroundColor: colors.primary,
         foregroundColor: Colors.white,
         elevation: 4,
         shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 28),
+        child: const Icon(Icons.groups, size: 26),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: Container(

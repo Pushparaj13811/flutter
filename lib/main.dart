@@ -8,6 +8,7 @@ import 'package:skill_exchange/config/router/app_router.dart';
 import 'package:skill_exchange/core/services/fcm_service.dart';
 import 'package:skill_exchange/core/theme/app_theme.dart';
 import 'package:skill_exchange/core/widgets/connectivity_banner.dart';
+import 'package:skill_exchange/core/services/call_sound_service.dart';
 import 'package:skill_exchange/features/sessions/providers/call_provider.dart';
 import 'package:skill_exchange/features/sessions/widgets/incoming_call_overlay.dart';
 import 'package:skill_exchange/features/sessions/widgets/video_call_screen.dart';
@@ -165,11 +166,15 @@ class IncomingCallListener extends ConsumerWidget {
           final callId = doc.id;
           final callerName = data['callerName'] as String? ?? 'Unknown';
 
+          // Play ringtone for incoming call
+          ref.read(callSoundServiceProvider).playRingtone();
+
           Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
               builder: (_) => IncomingCallOverlay(
                 callerName: callerName,
                 onAccept: () async {
+                  ref.read(callSoundServiceProvider).stop();
                   Navigator.of(context).pop();
                   final notifier = ref.read(callNotifierProvider.notifier);
                   final success = await notifier.acceptCall(callId, callerName);
@@ -186,6 +191,7 @@ class IncomingCallListener extends ConsumerWidget {
                   }
                 },
                 onDecline: () {
+                  ref.read(callSoundServiceProvider).stop();
                   Navigator.of(context).pop();
                   ref.read(callNotifierProvider.notifier).declineCall(callId);
                 },
